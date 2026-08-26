@@ -1,0 +1,17 @@
+TecladoIA
+Copyright 2026 Juan Carlos Vergara Schmalbach
+
+Este producto es una reimplementación en español, escrita desde cero en Python,
+del cliente de escritorio de AhaKey.
+
+Trabajo original:
+  AhakeyAI/desktop — https://github.com/AhakeyAI/desktop
+  Licencia Apache 2.0.
+
+De ese proyecto proceden el protocolo BLE del teclado AhaKey-X1 (documentado en
+docs/ble-protocol.md), los códigos de estado que mueven la barra de luz y el
+diseño general del sistema de aprobación por palanca. El código de este
+repositorio no reutiliza fuentes de Swift, Java, C# ni Python del original.
+
+AhaKey y AhaKey-X1 son marcas de sus respectivos titulares. Este proyecto no
+está afiliado a ellos ni respaldado por ellos.
