@@ -78,6 +78,13 @@ cd project-manager
 pip install -e .          # o: pip install -e ".[ble]" para hablar con el teclado
 ```
 
+Al actualizar, comprueba siempre qué copia estás ejecutando —si el instalador
+no era editable, cambiar los ficheros no cambia nada—:
+
+```bash
+tecladoia --version       # versión y carpeta desde la que se ejecuta
+```
+
 `bleak` solo es necesario para conectarse al teclado real por Bluetooth. Sin él
 todo lo demás funciona, incluido el modo simulado.
 
@@ -92,9 +99,54 @@ tecladoia instalar        # pone los enganches en los programas que tengas
 tecladoia servicio        # arranca el servicio y el panel web
 ```
 
+**Si la búsqueda no encuentra nada** pero el teclado aparece como «Conectado» en
+los ajustes de Bluetooth, no está averiado: un dispositivo ya emparejado deja de
+anunciarse, así que un rastreo no lo ve. Dale su dirección y se conectará
+directamente:
+
+```bash
+tecladoia config --direccion AA:BB:CC:DD:EE:FF
+```
+
+En Windows, la dirección sale de aquí (los doce dígitos tras `DEV_`):
+
+```powershell
+Get-PnpDevice -Class Bluetooth | Where-Object FriendlyName -like "*AhaKey*" |
+  Select-Object FriendlyName, InstanceId
+```
+
+Y recuerda que **solo un programa a la vez puede tener el teclado abierto**:
+cierra la aplicación original de AhaKey antes de arrancar el servicio.
+
 Con el servicio en marcha, abre <http://127.0.0.1:8770> y tendrás el estado del
 teclado, la palanca virtual, el efecto de la barra de luz y el historial de
 decisiones.
+
+### Llegar al panel desde fuera
+
+El panel decide qué puede ejecutar un agente sin preguntar, así que **no se abre
+al exterior sin clave**: si le pides que escuche fuera de la máquina local y no
+hay clave puesta, se niega a arrancar y te dice por qué.
+
+```bash
+tecladoia config --clave-panel generar     # crea una clave al azar
+tecladoia servicio --host 0.0.0.0          # ahora sí escucha fuera
+```
+
+Se entra con `?clave=…` una vez —la clave queda guardada en una cookie— y
+también vale por cabecera, `Authorization: Bearer …` o `X-TecladoIA-Clave`. La
+comparación es de tiempo constante.
+
+Lo más cómodo para usarlo desde cualquier sitio es un túnel de Cloudflare desde
+la propia máquina que tiene el teclado, sin abrir un solo puerto en el router:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8770
+```
+
+Ojo con dónde lo montas: el Bluetooth vive donde está el teclado. Un panel en un
+servidor remoto no lo verá, así que el túnel tiene que salir del equipo que lo
+tiene emparejado.
 
 Así se ve la demo:
 
@@ -167,6 +219,7 @@ sin distinguir mayúsculas. `agente` limita la regla a un solo programa.
 | `tecladoia bitacora -n 20` | últimas decisiones de aprobación |
 | `tecladoia config [--crear]` | muestra o escribe la configuración |
 | `tecladoia probar` | recorre el flujo completo con un teclado simulado |
+| `tecladoia --version` | qué versión hay instalada y desde qué carpeta se ejecuta |
 | `tecladoia enganche <programa> <evento>` | lo llaman los programas de IA, no tú |
 
 Añade `--sin-color` a cualquiera de ellas para una salida limpia, sin secuencias
@@ -188,7 +241,12 @@ proyecto original: tramas `AA BB [comando] [datos] CC DD` sobre el servicio BLE
   translitera en vez de perderse.
 - **Barra de luz.** Diecisiete efectos, uno asignado por omisión a cada momento
   del agente: pensamiento azul mientras trabaja, espera de aprobación cuando
-  pregunta, barrido de éxito al terminar.
+  pregunta, barrido de éxito al terminar. Los momentos pasajeros se apagan solos
+  al segundo y medio, y si un agente deja de dar señales durante 45 segundos la
+  barra vuelve al reposo por su cuenta. Sin eso la última animación se quedaría
+  encendida para siempre: el teclado no sabe qué ventana tienes delante ni
+  cuándo se cerró un programa, así que alguien tiene que decírselo. Ambos plazos
+  se ajustan con `segundos_hasta_reposo` y `milisegundos_estado_breve`.
 - **Tres transportes.** BLE nativo con `bleak`, el puente BLE↔TCP del proyecto
   original y el teclado simulado. Con `transporte: "auto"` se elige el mejor
   disponible.

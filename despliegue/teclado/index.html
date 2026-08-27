@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis teclados</title>
+<meta name="description" content="Teclados con aplicación propia: AhaKey X1 y macropad YXT K100.">
+<style>
+  :root{
+    --azul-900:#0B2C6B; --azul-700:#1D4ED8; --azul-600:#2563EB;
+    --azul-500:#3B82F6; --azul-100:#DBEAFE; --azul-50:#EFF6FF;
+    --naranja:#F97316; --naranja-claro:#FB923C; --naranja-50:#FFF7ED;
+    --tinta:#0F172A; --gris:#64748B; --gris-borde:#E2E8F0;
+    --blanco:#FFFFFF;
+    --sombra:0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
+    --sombra-alta:0 18px 50px -12px rgba(29,78,216,.28);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--blanco); color:var(--tinta);
+    -webkit-font-smoothing:antialiased; line-height:1.6;
+    min-height:100vh; overflow-x:hidden;
+  }
+
+  /* ---------- fondo animado ---------- */
+  .fondo{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
+  .blob{position:absolute; border-radius:50%; filter:blur(80px); opacity:.5}
+  .blob-1{width:600px;height:600px;background:radial-gradient(circle,var(--azul-100),transparent 70%);
+          top:-220px;left:-160px;animation:flotar 22s ease-in-out infinite}
+  .blob-2{width:520px;height:520px;background:radial-gradient(circle,var(--naranja-50),transparent 70%);
+          top:20%;right:-200px;animation:flotar 28s ease-in-out infinite reverse}
+  .blob-3{width:680px;height:680px;background:radial-gradient(circle,var(--azul-50),transparent 70%);
+          bottom:-300px;left:35%;animation:flotar 25s ease-in-out infinite 3s}
+  @keyframes flotar{
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(50px,-40px) scale(1.08)}
+    66%{transform:translate(-40px,30px) scale(.95)}
+  }
+  .rejilla{position:absolute;inset:0;
+    background-image:linear-gradient(var(--gris-borde) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--gris-borde) 1px,transparent 1px);
+    background-size:64px 64px; opacity:.35;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 75%)}
+
+  /* ---------- estructura ---------- */
+  .envoltura{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  header{position:sticky;top:0;z-index:50;
+    backdrop-filter:saturate(180%) blur(14px);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    background:rgba(255,255,255,.72);
+    border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s}
+  header.desplazado{border-bottom-color:var(--gris-borde);box-shadow:0 1px 20px rgba(15,23,42,.05)}
+  .barra{display:flex;align-items:center;justify-content:space-between;height:72px}
+  .marca{display:flex;align-items:center;gap:11px;font-weight:700;font-size:1.06rem;letter-spacing:-.02em;
+         text-decoration:none;color:inherit}
+  .logo{width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--azul-600),var(--azul-900));
+    display:grid;place-items:center;box-shadow:0 4px 14px rgba(37,99,235,.35);
+    position:relative;overflow:hidden}
+  .logo::after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;
+    background:var(--naranja);bottom:6px;right:6px;box-shadow:0 0 10px var(--naranja);
+    animation:latir 2.6s ease-in-out infinite}
+  @keyframes latir{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.75}}
+  .logo svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+  .marca span{color:var(--gris);font-weight:500}
+  .volver{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--gris);
+    padding:7px 14px;border:1px solid var(--gris-borde);border-radius:99px;
+    background:rgba(255,255,255,.6);text-decoration:none;transition:.3s}
+  .volver:hover{border-color:var(--azul-100);color:var(--azul-700)}
+  .volver svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+
+  /* ---------- portada ---------- */
+  .portada{padding:88px 0 48px;text-align:center}
+  .etiqueta{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;
+    background:var(--azul-50);border:1px solid var(--azul-100);border-radius:99px;
+    font-size:.82rem;font-weight:600;color:var(--azul-700);margin-bottom:28px}
+  .etiqueta b{color:var(--naranja)}
+  h1{font-size:clamp(2.4rem,6.5vw,4.2rem);line-height:1.05;letter-spacing:-.035em;
+    font-weight:800;margin-bottom:22px}
+  .degradado{background:linear-gradient(120deg,var(--azul-700) 0%,var(--azul-500) 45%,var(--naranja) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    background-size:200% auto;animation:desplazar 6s ease-in-out infinite}
+  @keyframes desplazar{0%,100%{background-position:0% center}50%{background-position:100% center}}
+  .entrada{font-size:clamp(1.02rem,2vw,1.2rem);color:var(--gris);max-width:640px;margin:0 auto}
+
+  /* ---------- destacado ---------- */
+  .destacado{
+    display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:44px;align-items:center;
+    background:var(--blanco);border:1px solid var(--gris-borde);border-radius:24px;
+    padding:40px;margin:48px 0 8px;box-shadow:var(--sombra);position:relative;overflow:hidden}
+  .destacado::after{content:"";position:absolute;top:0;left:0;height:4px;width:100%;
+    background:linear-gradient(90deg,var(--azul-600),var(--naranja))}
+  .destacado h2{font-size:clamp(1.6rem,3.2vw,2.15rem);letter-spacing:-.03em;line-height:1.15;margin-bottom:12px}
+  .destacado p{color:var(--gris);margin-bottom:18px}
+  .fichas{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+  .ficha{font-size:.76rem;font-weight:600;color:var(--azul-700);background:var(--azul-50);
+    border:1px solid var(--azul-100);border-radius:99px;padding:5px 12px}
+  .acciones{display:flex;flex-wrap:wrap;gap:12px}
+  .accion{display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+    font-size:.92rem;font-weight:600;padding:12px 22px;border-radius:12px;transition:.3s}
+  .accion.principal{background:var(--azul-700);color:#fff;box-shadow:0 8px 22px rgba(29,78,216,.28)}
+  .accion.principal:hover{background:var(--azul-900);transform:translateY(-2px)}
+  .accion.secundaria{border:1px solid var(--gris-borde);color:var(--tinta)}
+  .accion.secundaria:hover{border-color:var(--azul-700);color:var(--azul-700)}
+  .accion svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  .retrato{display:grid;place-items:center}
+  .retrato svg{width:100%;max-width:400px;height:auto;filter:drop-shadow(0 24px 44px rgba(15,23,42,.16))}
+  .pie-retrato{font-size:.74rem;color:var(--gris);text-align:center;margin-top:14px}
+
+  /* ---------- botones ---------- */
+  .rejilla-botones{display:flex;flex-wrap:wrap;gap:20px;
+    padding:40px 0 8px;margin:0 auto}
+  .boton{
+    position:relative;flex:1 1 300px;max-width:none;min-height:190px;
+    background:var(--blanco);border:1px solid var(--gris-borde);border-radius:18px;
+    padding:26px;text-align:left;cursor:pointer;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:space-between;
+    box-shadow:var(--sombra);font-family:inherit;
+    transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s,border-color .35s}
+  .boton::before{content:"";position:absolute;inset:0;border-radius:18px;opacity:0;
+    background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),
+               rgba(37,99,235,.09),transparent 42%);transition:opacity .35s;pointer-events:none}
+  .boton::after{content:"";position:absolute;top:0;left:0;height:3px;width:100%;
+    background:linear-gradient(90deg,var(--azul-600),var(--naranja));
+    transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.22,1,.36,1)}
+  a.boton{text-decoration:none;color:inherit}
+  .boton:hover,.boton:focus-visible{transform:translateY(-7px);
+    box-shadow:var(--sombra-alta);border-color:var(--azul-100);outline:none}
+  .boton:hover::before,.boton:focus-visible::before{opacity:1}
+  .boton:hover::after,.boton:focus-visible::after{transform:scaleX(1)}
+  .boton:active{transform:translateY(-3px) scale(.99)}
+  .icono{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+    background:var(--azul-50);color:var(--azul-700);margin-bottom:18px;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),background .35s,color .35s}
+  .icono svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;
+    stroke-linecap:round;stroke-linejoin:round}
+  .boton:hover .icono{transform:scale(1.1) rotate(-5deg);background:var(--azul-600);color:#fff}
+  .boton:nth-child(2) .icono{background:var(--naranja-50);color:var(--naranja)}
+  .boton:nth-child(2):hover .icono{background:var(--naranja);color:#fff}
+  .titulo-boton{font-size:1.14rem;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+  .desc-boton{font-size:.88rem;color:var(--gris);line-height:1.5}
+  .pie-boton{display:flex;align-items:center;gap:7px;margin-top:18px;
+    font-size:.8rem;font-weight:600;color:var(--azul-700);opacity:0;transform:translateX(-8px);
+    transition:opacity .35s,transform .35s}
+  .boton:hover .pie-boton,.boton:focus-visible .pie-boton{opacity:1;transform:translateX(0)}
+  .pie-boton svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+
+  footer{border-top:1px solid var(--gris-borde);margin-top:64px;padding:34px 0 46px;
+    display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;
+    font-size:.84rem;color:var(--gris)}
+  footer b{color:var(--tinta);font-weight:600}
+
+  /* ---------- aviso ---------- */
+  .aviso{position:fixed;left:50%;bottom:32px;transform:translate(-50%,24px);
+    background:var(--tinta);color:#fff;padding:13px 24px;border-radius:99px;
+    font-size:.89rem;font-weight:500;z-index:100;display:flex;align-items:center;gap:10px;
+    box-shadow:0 16px 40px rgba(15,23,42,.3);opacity:0;visibility:hidden;pointer-events:none;
+    transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .35s,visibility .35s}
+  .aviso.visible{transform:translate(-50%,0);opacity:1;visibility:visible}
+  .aviso i{width:7px;height:7px;border-radius:50%;background:var(--naranja);font-style:normal;flex:none}
+
+  /* ---------- animacion de entrada ---------- */
+  .aparece{opacity:0;transform:translateY(26px);
+    animation:surgir .85s cubic-bezier(.22,1,.36,1) forwards}
+  @keyframes surgir{to{opacity:1;transform:translateY(0)}}
+  .d1{animation-delay:.05s}.d2{animation-delay:.14s}.d3{animation-delay:.23s}
+  .d4{animation-delay:.32s}.d5{animation-delay:.41s}.d6{animation-delay:.5s}
+  .d7{animation-delay:.59s}
+
+  @media (max-width:880px){
+    .destacado{grid-template-columns:1fr;gap:28px;padding:28px}
+    .retrato{order:-1}
+  }
+  @media (max-width:640px){
+    .portada{padding:56px 0 32px}
+    .boton{flex:1 1 100%;min-height:auto}
+    .pie-boton{opacity:1;transform:none}
+    .boton::after{transform:scaleX(1)}
+    .volver span{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+    .aparece{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="fondo" aria-hidden="true">
+  <div class="rejilla"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<header id="cabecera">
+  <div class="envoltura barra">
+    <div class="marca">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+      </div>
+      Mis <span>teclados</span>
+    </div>
+    <div class="volver" style="cursor:default">
+      <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      <span>Taller personal</span>
+    </div>
+  </div>
+</header>
+
+<main class="envoltura">
+  <section class="portada">
+    <div class="etiqueta aparece d1">Taller de hardware <b>&bull;</b> 2026</div>
+    <h1 class="aparece d2">Mis <span class="degradado">teclados</span></h1>
+    <p class="entrada aparece d3">
+      Teclados a los que les escribí su propia aplicación, porque la del
+      fabricante no servía o no existía en español. Aquí están sus programas de
+      configuración y su código fuente.
+    </p>
+  </section>
+
+  <!-- ===================== TECLADO DESTACADO ===================== -->
+  <section class="destacado aparece d4" aria-labelledby="t-ahakey">
+    <div>
+      <h2 id="t-ahakey">AhaKey X1</h2>
+      <p>
+        Cuatro teclas, una palanca y una barra de luz. La palanca es el interruptor:
+        hacia un lado el agente ejecuta sus herramientas sin preguntar; hacia el otro,
+        cada acción vuelve a tus manos. La aplicación —<b>TecladoIA</b>, escrita desde
+        cero y enteramente en español— añade reglas que bloquean lo destructivo aunque
+        la palanca esté en automático, bitácora de todo lo aprobado y aprobación a
+        distancia desde el navegador.
+      </p>
+      <div class="fichas">
+        <span class="ficha">4 teclas &times; 3 modos</span>
+        <span class="ficha">Bluetooth</span>
+        <span class="ficha">17 efectos de luz</span>
+        <span class="ficha">Claude Code · Codex · Cursor · Kimi · Gemini</span>
+      </div>
+      <div class="acciones">
+        <a class="accion principal" href="https://ahakey.proyectoia.org">
+          Abrir la aplicación
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+        <a class="accion secundaria" href="https://github.com/juancarlosvergaras/project-manager/tree/claude/keyboard-app-spanish-pc5t9p" target="_blank" rel="noopener noreferrer">
+          Repositorio
+          <svg viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 00-1.3-3.2 4.3 4.3 0 00-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 00-6.2 0C6.6 2.6 5.6 2.9 5.6 2.9a4.3 4.3 0 00-.1 3.2A4.6 4.6 0 004.2 9.3c0 4.6 2.7 5.7 5.5 6-.4.4-.5.9-.5 1.6V21"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="retrato">
+      <!-- Ilustración del AhaKey X1, dibujada a partir del aparato real:
+           carcasa translúcida, barra de luz arriba a la izquierda, pantalla
+           arriba a la derecha, cuatro teclas con icono y palanca metálica. -->
+      <svg viewBox="0 0 420 260" role="img" aria-labelledby="titulo-teclado">
+        <title id="titulo-teclado">AhaKey X1: carcasa translúcida con barra de luz, pantalla, cuatro teclas (micrófono, aceptar, rechazar y entrar) y una palanca lateral</title>
+        <defs>
+          <linearGradient id="carcasa" x1=".1" y1="0" x2=".85" y2="1">
+            <stop offset="0%" stop-color="#FBFCFE" stop-opacity=".97"/>
+            <stop offset="45%" stop-color="#EDF1F6" stop-opacity=".93"/>
+            <stop offset="100%" stop-color="#D8DFE8" stop-opacity=".95"/>
+          </linearGradient>
+          <linearGradient id="canto" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#D3DAE4"/><stop offset="100%" stop-color="#AEB8C6"/>
+          </linearGradient>
+          <linearGradient id="keycap" x1=".2" y1="0" x2=".8" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E3E8EF"/>
+          </linearGradient>
+          <linearGradient id="luz" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#2563EB"/><stop offset="50%" stop-color="#7DA2FF"/>
+            <stop offset="100%" stop-color="#F97316"/>
+          </linearGradient>
+          <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#F1F4F8"/><stop offset="45%" stop-color="#B7C0CD"/>
+            <stop offset="100%" stop-color="#8B95A5"/>
+          </linearGradient>
+          <linearGradient id="brillo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".85"/>
+            <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <ellipse cx="212" cy="234" rx="158" ry="15" fill="#0F172A" opacity=".10"/>
+
+        <!-- canto inferior de la carcasa -->
+        <rect x="42" y="52" width="336" height="168" rx="30" fill="url(#canto)"/>
+        <!-- cuerpo translúcido -->
+        <rect x="42" y="40" width="336" height="168" rx="30" fill="url(#carcasa)"
+              stroke="#C3CCD8" stroke-width="1.6"/>
+        <!-- tornillos de las esquinas, visibles a través del plástico -->
+        <g fill="none" stroke="#B6C0CD" stroke-width="1.4" opacity=".75">
+          <circle cx="66" cy="64" r="6"/><circle cx="354" cy="64" r="6"/>
+          <circle cx="66" cy="196" r="6"/><circle cx="354" cy="196" r="6"/>
+        </g>
+
+        <!-- barra de luz difusa, arriba a la izquierda -->
+        <rect x="76" y="66" width="164" height="20" rx="10" fill="#E7ECF3" stroke="#C9D2DD" stroke-width="1"/>
+        <rect x="82" y="72" width="152" height="8" rx="4" fill="url(#luz)" opacity=".92"/>
+        <rect x="82" y="72" width="152" height="8" rx="4" fill="url(#luz)" opacity=".5" filter="blur(5px)"/>
+
+        <!-- pantalla OLED, arriba a la derecha -->
+        <rect x="258" y="60" width="98" height="60" rx="10" fill="#0C1420" stroke="#9AA6B6" stroke-width="1.4"/>
+        <rect x="264" y="66" width="86" height="48" rx="6" fill="#121C2B"/>
+        <text x="272" y="86" font-family="ui-monospace, Menlo, Consolas, monospace"
+              font-size="12" font-weight="700" fill="#6EE7A8">AUTO</text>
+        <text x="272" y="104" font-family="ui-monospace, Menlo, Consolas, monospace"
+              font-size="9.5" fill="#8FA3BC">claude · 97%</text>
+
+        <!-- palanca metálica, al costado derecho -->
+        <g transform="translate(366 150) rotate(-18)">
+          <rect x="-9" y="-4" width="18" height="12" rx="3" fill="#9AA5B4"/>
+          <rect x="-3" y="-26" width="6" height="24" rx="3" fill="url(#metal)"/>
+          <circle cx="0" cy="-27" r="5" fill="url(#metal)" stroke="#7C8797" stroke-width=".8"/>
+        </g>
+
+        <!-- cuatro teclas -->
+        <g>
+          <!-- 1 · dictado -->
+          <rect x="72" y="120" width="60" height="60" rx="10" fill="url(#canto)"/>
+          <rect x="72" y="114" width="60" height="60" rx="10" fill="url(#keycap)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <g transform="translate(102 144)" fill="none" stroke="#1F2937" stroke-width="2.1"
+             stroke-linecap="round" stroke-linejoin="round">
+            <rect x="-5" y="-14" width="10" height="17" rx="5"/>
+            <path d="M-9 -1a9 9 0 0018 0"/><path d="M0 8v6M-5 14h10"/>
+          </g>
+
+          <!-- 2 · aceptar -->
+          <rect x="146" y="120" width="60" height="60" rx="10" fill="url(#canto)"/>
+          <rect x="146" y="114" width="60" height="60" rx="10" fill="url(#keycap)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <path d="M164 145l9 10 19-22" fill="none" stroke="#1F2937" stroke-width="2.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- 3 · rechazar -->
+          <rect x="220" y="120" width="60" height="60" rx="10" fill="url(#canto)"/>
+          <rect x="220" y="114" width="60" height="60" rx="10" fill="url(#keycap)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <path d="M239 131l22 26M261 131l-22 26" fill="none" stroke="#1F2937" stroke-width="2.6"
+                stroke-linecap="round"/>
+
+          <!-- 4 · entrar -->
+          <rect x="294" y="120" width="60" height="60" rx="10" fill="url(#canto)"/>
+          <rect x="294" y="114" width="60" height="60" rx="10" fill="url(#keycap)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <path d="M337 129v13a4 4 0 01-4 4h-22M318 137l-7 9 7 9" fill="none" stroke="#1F2937"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
+        <!-- reflejo del plástico -->
+        <path d="M42 70a28 28 0 0128-30h120l-96 168H70a28 28 0 01-28-28z"
+              fill="url(#brillo)" opacity=".55"/>
+      </svg>
+      <p class="pie-retrato">AhaKey X1 &mdash; ilustración</p>
+    </div>
+  </section>
+
+  <!-- ===================== RESTO DE BOTONES ===================== -->
+  <section class="rejilla-botones" aria-label="Más teclados y recursos">
+
+    <a class="boton aparece d5" href="https://ahakey.proyectoia.org/#descargar">
+      <div>
+        <div class="icono">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        </div>
+        <div class="titulo-boton">Descargar TecladoIA</div>
+        <div class="desc-boton">
+          La aplicación completa para instalarla en el equipo que tiene el teclado cerca.
+          Solo necesita Python; el Bluetooth no viaja por Internet.
+        </div>
+      </div>
+      <div class="pie-boton">Descargar <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <button class="boton aparece d6" data-nombre="YXT K100 — configurador">
+      <div>
+        <div class="icono">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" rx="2"/><circle cx="19" cy="8" r="2.4"/><circle cx="19" cy="16" r="2.4"/><path d="M6 9h.01M9.5 9h.01M6 12.5h.01M9.5 12.5h.01M6 16h.01M9.5 16h.01"/></svg>
+        </div>
+        <div class="titulo-boton">YXT K100</div>
+        <div class="desc-boton">
+          Macropad de 12 teclas y 3 perillas. Configurador propio que intercepta cada
+          control por su dispositivo, porque su firmware no se deja reprogramar.
+        </div>
+      </div>
+      <div class="pie-boton">Entrar <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </button>
+
+    <a class="boton aparece d7" href="https://github.com/juancarlosvergaras/project-manager/tree/claude/keyboard-app-spanish-pc5t9p" target="_blank" rel="noopener noreferrer">
+      <div>
+        <div class="icono">
+          <svg viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 00-1.3-3.2 4.3 4.3 0 00-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 00-6.2 0C6.6 2.6 5.6 2.9 5.6 2.9a4.3 4.3 0 00-.1 3.2A4.6 4.6 0 004.2 9.3c0 4.6 2.7 5.7 5.5 6-.4.4-.5.9-.5 1.6V21"/></svg>
+        </div>
+        <div class="titulo-boton">Código fuente</div>
+        <div class="desc-boton">
+          TecladoIA en GitHub: protocolo del teclado, motor de aprobación, adaptadores
+          de seis programas de IA y 123 pruebas.
+        </div>
+      </div>
+      <div class="pie-boton">Abrir <svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+    </a>
+
+  </section>
+</main>
+
+<footer class="envoltura">
+  <div><b>Mis teclados</b> &bull; proyectos personales</div>
+  <div>Servidor propio &bull; Mac mini M4</div>
+</footer>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"><i></i><span id="aviso-texto"></span></div>
+
+<script>
+  const cabecera = document.getElementById('cabecera');
+  addEventListener('scroll', () => cabecera.classList.toggle('desplazado', scrollY > 8), {passive:true});
+
+  document.querySelectorAll('.boton').forEach(b => {
+    b.addEventListener('pointermove', e => {
+      const r = b.getBoundingClientRect();
+      b.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      b.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+
+  const aviso = document.getElementById('aviso');
+  const avisoTexto = document.getElementById('aviso-texto');
+  let reloj;
+  document.querySelectorAll('button.boton').forEach(b => {
+    b.addEventListener('click', () => {
+      avisoTexto.textContent = b.dataset.nombre + ' — próximamente';
+      aviso.classList.add('visible');
+      clearTimeout(reloj);
+      reloj = setTimeout(() => aviso.classList.remove('visible'), 2600);
+    });
+  });
+</script>
+</body>
+</html>

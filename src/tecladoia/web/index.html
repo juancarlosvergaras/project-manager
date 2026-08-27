@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TecladoIA · AhaKey X1</title>
+<meta name="description" content="Configura tu teclado AhaKey X1 y decide qué puede hacer solo un agente de inteligencia artificial.">
+<link rel="stylesheet" href="/estilo.css">
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+</head>
+<body>
+
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<!-- ============================ BARRA SUPERIOR ============================ -->
+<header class="cabecera">
+  <div class="cabecera-izq">
+    <span class="logotipo" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+    </span>
+    <span class="titulo-app">Teclado<b>IA</b></span>
+
+    <div class="indicadores">
+      <div class="indicador" id="ind-conexion">
+        <span class="ind-etiqueta">Conexión</span>
+        <span class="ind-valor" id="ind-conexion-valor">Esperando…</span>
+      </div>
+      <div class="indicador" id="ind-bateria">
+        <span class="ind-etiqueta">Batería</span>
+        <span class="ind-valor" id="ind-bateria-valor">—</span>
+      </div>
+      <div class="indicador" id="ind-palanca">
+        <span class="ind-etiqueta">Palanca</span>
+        <span class="ind-valor" id="ind-palanca-valor">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cabecera-der">
+    <button type="button" class="btn btn-verde" id="btn-conectar">Conectar dispositivo</button>
+    <button type="button" class="btn btn-azul" id="btn-buscar">Buscar por Bluetooth</button>
+    <span class="chip-vivo" id="chip-vivo" hidden><i></i>En vivo</span>
+    <div class="tema" role="group" aria-label="Tema de la página">
+      <button type="button" data-tema="sistema" title="Seguir al sistema">Auto</button>
+      <button type="button" data-tema="claro" title="Fondo claro">Claro</button>
+      <button type="button" data-tema="oscuro" title="Fondo oscuro">Oscuro</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================== SECCIONES ============================== -->
+<nav class="barra-secciones" aria-label="Secciones">
+  <button type="button" class="tab activa" data-seccion="teclado">Teclado</button>
+  <button type="button" class="tab" data-seccion="reglas">Reglas</button>
+  <button type="button" class="tab" data-seccion="agentes">Programas de IA</button>
+  <button type="button" class="tab" data-seccion="bitacora">Bitácora</button>
+  <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
+  <button type="button" class="tab" data-seccion="descargar">Descargar</button>
+</nav>
+
+<main id="contenido">
+
+<!-- ================================ TECLADO ================================ -->
+<section class="seccion activa" id="seccion-teclado">
+  <div id="zona-pendientes" class="pendientes" aria-live="assertive"></div>
+  <div id="aviso-sin-teclado" class="banda" hidden></div>
+
+  <div class="taller">
+
+    <!-- ---------------------- columna izquierda ---------------------- -->
+    <div class="lienzo">
+      <div class="fila-modos">
+        <span class="rotulo">Modo del teclado</span>
+        <div class="segmentado" id="modos" role="tablist" aria-label="Modo del teclado"></div>
+      </div>
+
+      <div class="teclado" id="teclado">
+        <div class="teclado-arriba">
+          <button type="button" class="pieza pieza-luz" data-pieza="luz"
+                  aria-label="Barra de luz">
+            <span class="pieza-titulo">Barra de luz</span>
+            <span class="barra-luz"><i></i><i></i><i></i><i></i></span>
+          </button>
+
+          <button type="button" class="pieza pieza-pantalla" data-pieza="pantalla"
+                  aria-label="Pantalla del teclado">
+            <span class="oled">
+              <b id="oled-titulo">Claude</b>
+              <em id="oled-sub">Modo 1</em>
+            </span>
+          </button>
+        </div>
+
+        <div class="teclado-abajo">
+          <div class="teclas" id="teclas"></div>
+
+          <button type="button" class="pieza pieza-palanca" data-pieza="palanca"
+                  aria-label="Palanca de aprobación">
+            <span class="palanca"><i id="palanca-perilla"></i></span>
+            <span class="pieza-pie" id="palanca-pie">Automático</span>
+          </button>
+        </div>
+
+        <span class="numero-modo" id="numero-modo">1</span>
+      </div>
+
+      <p class="pista">Pulsa cualquier pieza del teclado para configurarla.</p>
+    </div>
+
+    <!-- ---------------------- columna derecha ---------------------- -->
+    <aside class="editor" id="editor" aria-live="polite">
+      <p class="vacio-editor">Elige una pieza del teclado.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- ================================ REGLAS ================================ -->
+<section class="seccion" id="seccion-reglas">
+  <article class="tarjeta">
+    <h2>Reglas de aprobación</h2>
+    <p class="nota">
+      Se comparan con el nombre de la herramienta, con el comando y con la ruta, sin
+      distinguir mayúsculas. <b>Denegar</b> y <b>preguntar</b> ganan siempre, incluso con
+      la palanca en automático.
+    </p>
+    <div class="tabla-envoltura">
+      <table class="tabla-reglas">
+        <thead><tr><th>Patrón</th><th>Decisión</th><th>Programa</th><th>Nota</th><th></th></tr></thead>
+        <tbody id="reglas"></tbody>
+      </table>
+    </div>
+    <div class="acciones">
+      <button type="button" class="btn btn-claro" id="btn-regla-nueva">Añadir regla</button>
+      <button type="button" class="btn btn-azul" id="btn-reglas-guardar">Guardar reglas</button>
+      <button type="button" class="btn btn-claro peligro" id="btn-reglas-restaurar">Restaurar las de fábrica</button>
+    </div>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Probador</h2>
+    <p class="nota">Escribe una orden y mira qué pasaría. No se ejecuta nada.</p>
+    <div class="rejilla-campos">
+      <div class="campo">
+        <label for="prueba-agente">Programa</label>
+        <select id="prueba-agente"></select>
+      </div>
+      <div class="campo">
+        <label for="prueba-herramienta">Herramienta</label>
+        <input id="prueba-herramienta" placeholder="Bash">
+      </div>
+      <div class="campo ancho">
+        <label for="prueba-comando">Comando</label>
+        <input id="prueba-comando" placeholder="git push --force">
+      </div>
+      <div class="campo">
+        <label for="prueba-palanca">Palanca</label>
+        <select id="prueba-palanca">
+          <option value="actual">La de ahora</option>
+          <option value="0">Automático</option>
+          <option value="1">Manual</option>
+          <option value="ninguna">Sin lectura</option>
+        </select>
+      </div>
+    </div>
+    <div class="acciones">
+      <button type="button" class="btn btn-azul" id="btn-probar">Probar</button>
+    </div>
+    <div id="resultado-prueba" class="resultado" hidden></div>
+  </article>
+</section>
+
+<!-- =============================== AGENTES =============================== -->
+<section class="seccion" id="seccion-agentes">
+  <article class="tarjeta">
+    <h2>Programas de IA</h2>
+    <p class="nota">
+      Los enganches se fusionan con los que ya tengas y se hace copia de seguridad antes
+      de tocar nada.
+    </p>
+    <div class="agentes" id="agentes"></div>
+    <div class="acciones">
+      <button type="button" class="btn btn-azul" id="btn-instalar-todos">Instalar en todos los detectados</button>
+    </div>
+    <p class="nota" id="nota-agentes"></p>
+  </article>
+</section>
+
+<!-- =============================== BITÁCORA =============================== -->
+<section class="seccion" id="seccion-bitacora">
+  <article class="tarjeta">
+    <h2>Bitácora de decisiones</h2>
+    <div class="rejilla-campos">
+      <div class="campo">
+        <label for="filtro-agente">Programa</label>
+        <select id="filtro-agente"><option value="">Todos</option></select>
+      </div>
+      <div class="campo">
+        <label for="filtro-decision">Decisión</label>
+        <select id="filtro-decision">
+          <option value="">Todas</option>
+          <option value="permitir">Permitir</option>
+          <option value="preguntar">Preguntar</option>
+          <option value="denegar">Denegar</option>
+        </select>
+      </div>
+      <div class="campo ancho">
+        <label for="filtro-texto">Buscar</label>
+        <input id="filtro-texto" placeholder="git, rm, Bash…">
+      </div>
+      <div class="campo">
+        <label for="filtro-numero">Cuántas</label>
+        <select id="filtro-numero">
+          <option>50</option><option selected>100</option><option>500</option><option>2000</option>
+        </select>
+      </div>
+    </div>
+    <div class="acciones">
+      <button type="button" class="btn btn-azul" id="btn-bitacora">Actualizar</button>
+      <a class="btn btn-claro" id="btn-csv" href="/api/bitacora.csv">Descargar CSV</a>
+    </div>
+    <div class="tabla-envoltura">
+      <table>
+        <thead><tr><th>Hora</th><th>Programa</th><th>Acción</th><th>Decisión</th><th>Motivo</th></tr></thead>
+        <tbody id="bitacora"><tr><td colspan="5" class="vacio">Sin datos todavía.</td></tr></tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<!-- =============================== AJUSTES =============================== -->
+<section class="seccion" id="seccion-ajustes">
+  <article class="tarjeta">
+    <h2>Ajustes</h2>
+    <div class="rejilla-campos" id="ajustes"></div>
+    <div class="acciones">
+      <button type="button" class="btn btn-azul" id="btn-ajustes">Guardar ajustes</button>
+    </div>
+    <p class="nota" id="nota-ajustes"></p>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Seguir a la aplicación que uses</h2>
+    <p class="nota">
+      ChatGPT de escritorio y otros programas no avisan de lo que hacen, así que el
+      teclado nunca sabrá si están pensando. Lo que sí puede es <b>acompañarte</b>: al
+      cambiar de aplicación, cambia de modo, y con el modo cambian sus cuatro teclas y
+      su pantalla. El patrón se busca en el nombre del programa y en el título de la
+      ventana; gana la primera regla que coincida.
+    </p>
+    <p class="nota" id="ventana-actual"></p>
+    <div class="tabla-envoltura">
+      <table class="tabla-reglas">
+        <thead><tr><th>Si contiene…</th><th>Dónde se busca</th><th>Cambia al modo</th><th></th></tr></thead>
+        <tbody id="aplicaciones"></tbody>
+      </table>
+    </div>
+    <div class="acciones">
+      <button type="button" class="btn btn-claro" id="btn-app-nueva">Añadir</button>
+      <button type="button" class="btn btn-claro" id="btn-app-actual">Añadir la que tengo delante</button>
+      <button type="button" class="btn btn-azul" id="btn-apps-guardar">Guardar</button>
+    </div>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Nombre del teclado</h2>
+    <p class="nota">Así se anuncia por Bluetooth. Máximo 21 caracteres.</p>
+    <div class="rejilla-campos">
+      <div class="campo ancho">
+        <label for="nombre-teclado">Nombre</label>
+        <input id="nombre-teclado" maxlength="21" placeholder="AhaKey X1">
+      </div>
+    </div>
+    <div class="acciones">
+      <button type="button" class="btn btn-claro" id="btn-nombre">Cambiar el nombre</button>
+    </div>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Últimas decisiones</h2>
+    <div class="tabla-envoltura">
+      <table>
+        <thead><tr><th>Hora</th><th>Programa</th><th>Acción</th><th>Decisión</th><th>Motivo</th></tr></thead>
+        <tbody id="historial"><tr><td colspan="5" class="vacio">Todavía no hay decisiones registradas.</td></tr></tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<!-- ============================== DESCARGAR ============================== -->
+<section class="seccion" id="seccion-descargar">
+  <article class="tarjeta">
+    <h2>Usar TecladoIA en tu equipo</h2>
+    <p>
+      El Bluetooth no viaja por Internet: para hablar con el teclado de verdad, la
+      aplicación tiene que correr en el ordenador que lo tiene cerca. Este panel puede
+      estar publicado en un servidor, pero el teclado está donde estás tú.
+    </p>
+    <p class="nota">
+      El paquete es el mismo código que estás usando ahora, empaquetado al vuelo. Solo
+      necesitas Python 3.10 o posterior.
+    </p>
+    <div class="acciones">
+      <a class="btn btn-azul grande" id="btn-zip" href="/descargar/tecladoia.zip">Descargar la aplicación</a>
+    </div>
+    <p class="nota" id="nota-paquete"></p>
+
+    <h3>Después de descargar</h3>
+    <ol class="pasos">
+      <li>Descomprime el archivo.</li>
+      <li>Instala: <code>pip install -e ".[ble]"</code></li>
+      <li>Pon los enganches: <code>tecladoia instalar</code></li>
+      <li>Arranca: <code>tecladoia servicio</code></li>
+      <li>Abre <code>http://127.0.0.1:8770</code></li>
+    </ol>
+  </article>
+</section>
+
+</main>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"><i></i><span id="aviso-texto"></span></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

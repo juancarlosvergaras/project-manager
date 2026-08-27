@@ -88,11 +88,25 @@ class Ajustes:
     modo_aprobacion: str = "palanca"  # palanca | siempre_preguntar | siempre_permitir
     transporte: str = "auto"  # auto | ble | puente | simulado
     nombre_dispositivo: str = ""
+    #: Dirección Bluetooth del teclado. Cuando está puesta se usa
+    #: directamente, sin rastrear: un teclado ya emparejado deja de
+    #: anunciarse y una búsqueda no lo encontraría.
+    direccion_dispositivo: str = ""
     puerto_hooks: int = PUERTO_PREDETERMINADO
     puerto_panel: int = PUERTO_PANEL
+    #: Interfaz donde escucha el panel. Fuera de la máquina local exige clave.
+    host_panel: str = "127.0.0.1"
+    #: Clave del panel. Vacía solo es aceptable escuchando en local.
+    clave_panel: str = ""
     puente_host: str = "127.0.0.1"
     puente_puerto: int = 9000
     vigencia_cache_ms: int = 1500
+    #: Segundos sin recibir eventos tras los cuales la barra vuelve al reposo.
+    #: Evita que la última animación se quede encendida para siempre cuando el
+    #: agente se cierra sin avisar o cambias de ventana.
+    segundos_hasta_reposo: int = 45
+    #: Cuánto dura en pantalla un estado momentáneo antes de volver al reposo.
+    milisegundos_estado_breve: int = 1500
     espera_palanca_s: float = 1.2
     #: Si es cierto, las reglas de tipo «permitir» pueden adelantar una acción
     #: con la palanca en manual. Viene apagado: la palanca manda.

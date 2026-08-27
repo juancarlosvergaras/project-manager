@@ -6,18 +6,20 @@ import argparse
 import asyncio
 import json
 import os
+import secrets
 import socket
 import sys
+from pathlib import Path
 from typing import Any, Optional
 
-from . import instalador, registro
+from . import __version__, instalador, registro
 from .config import Ajustes, directorio_base, ruta_config, ruta_socket
 from .dispositivo import GestorTeclado
 from .modelo import EfectoLuz, EstadoIA
 from .panel import PanelWeb
 from .registro import leer_bitacora
 from .servidor import ServidorEnganches
-from .transporte.base import ErrorTransporte, hay_bleak
+from .transporte.base import ErrorTransporte, hay_bleak, normalizar_direccion
 
 VERDE = "\033[32m"
 ROJO = "\033[31m"
@@ -89,6 +91,11 @@ def _palanca_legible(valor: Optional[int]) -> str:
 def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
     """Arranca el servicio: teclado, servidor de enganches y panel web."""
 
+    if args.host:
+        ajustes.host_panel = args.host
+    if args.puerto_panel:
+        ajustes.puerto_panel = args.puerto_panel
+
     async def ejecutar() -> int:
         gestor = GestorTeclado(ajustes)
         salida.titulo("Conectando con el teclado")
@@ -125,6 +132,14 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             await panel.arrancar()
             if panel.url:
                 salida.dato("Panel", panel.url)
+                if ajustes.clave_panel:
+                    salida.dato("Entrada", f"{panel.url}?clave={ajustes.clave_panel}")
+            elif not panel.solo_local:
+                salida.mal(
+                    "El panel no se abrió: escuchar fuera de esta máquina exige clave. "
+                    "Ponla con «tecladoia config --clave-panel generar»."
+                )
+                return 1
 
         salida.dato("Palanca", _palanca_legible(await gestor.palanca()))
         salida.linea("\nPulsa Ctrl+C para parar.")
@@ -178,6 +193,10 @@ def orden_estado(args, ajustes: Ajustes, salida: Salida) -> int:
     if respuesta.get("palanca_forzada"):
         salida.dato("", "(forzada desde el panel o la línea de órdenes)")
     salida.dato("Momento del agente", respuesta.get("estado_ia_etiqueta") or "—")
+    if "agente_activo" in respuesta:
+        salida.dato("Programa activo", respuesta.get("agente_activo") or "ninguno")
+        segundos = respuesta.get("segundos_sin_eventos")
+        salida.dato("Sin eventos desde", f"hace {segundos} s" if segundos is not None else "—")
     return 0
 
 
@@ -191,10 +210,19 @@ def orden_buscar(args, ajustes: Ajustes, salida: Salida) -> int:
     salida.titulo("Buscando teclados (unos segundos)")
     encontrados = asyncio.run(buscar_teclados(args.segundos))
     if not encontrados:
-        salida.mal("No se encontró ningún teclado compatible.")
+        salida.mal("No se encontró ningún teclado anunciándose.")
+        salida.linea(
+            "  Si en los ajustes de Bluetooth aparece como «Conectado», es lo esperado:\n"
+            "  un teclado ya emparejado deja de anunciarse. Dale su dirección con\n"
+            "  «tecladoia config --direccion XX:XX:XX:XX:XX:XX»."
+        )
         return 1
     for direccion, nombre in encontrados:
         salida.bien(f"{nombre or 'sin nombre'} — {direccion}")
+    if args.guardar:
+        ajustes.direccion_dispositivo = encontrados[0][0]
+        ajustes.guardar()
+        salida.bien(f"Dirección guardada: {ajustes.direccion_dispositivo}")
     return 0
 
 
@@ -272,6 +300,13 @@ def orden_enganche(args, ajustes: Ajustes, salida: Salida) -> int:
 def orden_teclas(args, ajustes: Ajustes, salida: Salida) -> int:
     """Programa una de las teclas del teclado."""
 
+    if _preguntar_al_servicio({"orden": "estado"}, ajustes) is not None:
+        salida.mal(
+            "Hay un servicio en marcha con el teclado ocupado. "
+            "Párale (Ctrl+C) antes de programar teclas."
+        )
+        return 1
+
     async def ejecutar() -> int:
         gestor = GestorTeclado(ajustes)
         try:
@@ -302,6 +337,16 @@ def orden_luz(args, ajustes: Ajustes, salida: Salida) -> int:
     except KeyError:
         salida.mal("Efectos disponibles: " + ", ".join(e.name.lower() for e in EfectoLuz))
         return 2
+
+    # Si hay un servicio en marcha, es él quien tiene el enlace BLE: abrir una
+    # segunda conexión chocaría con la suya.
+    respuesta = _preguntar_al_servicio({"orden": "efecto", "valor": int(efecto)}, ajustes)
+    if respuesta is not None:
+        if respuesta.get("ok"):
+            salida.bien(f"Efecto «{efecto.etiqueta}» aplicado por el servicio.")
+            return 0
+        salida.mal("El servicio no pudo aplicar el efecto; ¿está el teclado conectado?")
+        return 1
 
     async def ejecutar() -> int:
         gestor = GestorTeclado(ajustes)
@@ -343,17 +388,41 @@ def orden_bitacora(args, ajustes: Ajustes, salida: Salida) -> int:
 
 def orden_config(args, ajustes: Ajustes, salida: Salida) -> int:
     """Muestra la configuración y dónde vive."""
+    if args.direccion is not None:
+        ajustes.direccion_dispositivo = normalizar_direccion(args.direccion)
+        ruta = ajustes.guardar()
+        if ajustes.direccion_dispositivo:
+            salida.bien(f"Teclado fijado en {ajustes.direccion_dispositivo} ({ruta})")
+        else:
+            salida.bien(f"Dirección borrada: se volverá a buscar el teclado ({ruta})")
+        return 0
+    if args.clave_panel is not None:
+        valor = args.clave_panel.strip()
+        if valor.lower() == "generar":
+            valor = secrets.token_urlsafe(24)
+        ajustes.clave_panel = valor
+        ruta = ajustes.guardar()
+        if valor:
+            salida.bien(f"Clave del panel: {valor}")
+            salida.linea(f"  Guardada en {ruta}. Entra con  ?clave={valor}")
+        else:
+            salida.bien(f"Clave borrada: el panel solo servirá en local ({ruta})")
+        return 0
     if args.crear:
         ruta = ajustes.guardar()
         salida.bien(f"Configuración escrita en {ruta}")
         return 0
     salida.titulo("Configuración")
+    salida.dato("Versión", f"{__version__} ({Path(__file__).resolve().parent})")
     salida.dato("Fichero", ruta_config())
     salida.dato("Carpeta", directorio_base())
     salida.dato("Modo de aprobación", ajustes.modo_aprobacion)
     salida.dato("Transporte", ajustes.transporte)
+    salida.dato("Teclado fijado", ajustes.direccion_dispositivo or "no (se busca)")
     salida.dato("Puerto de enganches", ajustes.puerto_hooks)
     salida.dato("Puerto del panel", ajustes.puerto_panel)
+    salida.dato("Panel escucha en", ajustes.host_panel)
+    salida.dato("Clave del panel", ajustes.clave_panel or "sin clave (solo local)")
     salida.dato("Caché de la palanca", f"{ajustes.vigencia_cache_ms} ms")
     salida.dato("Reglas", len(ajustes.reglas))
     salida.titulo("Reglas")
@@ -417,6 +486,12 @@ def construir_analizador() -> argparse.ArgumentParser:
         prog="tecladoia",
         description="Puente entre tu teclado AhaKey y los agentes de IA, en español.",
     )
+    analizador.add_argument(
+        "--version",
+        action="version",
+        version=f"TecladoIA {__version__} · {Path(__file__).resolve().parent}",
+        help="versión instalada y desde dónde se está ejecutando",
+    )
     analizador.add_argument("--sin-color", action="store_true", help="salida sin color ni adornos")
     analizador.add_argument(
         "--registro",
@@ -432,6 +507,12 @@ def construir_analizador() -> argparse.ArgumentParser:
     servicio.add_argument(
         "--sin-teclado", action="store_true", help="seguir en modo simulado si no hay teclado"
     )
+    servicio.add_argument(
+        "--host",
+        default=None,
+        help="interfaz del panel; fuera de 127.0.0.1 exige clave (p. ej. 0.0.0.0)",
+    )
+    servicio.add_argument("--puerto-panel", type=int, default=None, dest="puerto_panel")
     servicio.set_defaults(funcion=orden_servicio)
 
     estado = ordenes.add_parser("estado", help="muestra el estado del teclado")
@@ -439,6 +520,9 @@ def construir_analizador() -> argparse.ArgumentParser:
 
     buscar = ordenes.add_parser("buscar", help="busca teclados por Bluetooth")
     buscar.add_argument("--segundos", type=float, default=8.0)
+    buscar.add_argument(
+        "--guardar", action="store_true", help="fija el primer teclado encontrado"
+    )
     buscar.set_defaults(funcion=orden_buscar)
 
     palanca = ordenes.add_parser("palanca", help="fija la palanca virtual: auto, manual o fisica")
@@ -480,6 +564,22 @@ def construir_analizador() -> argparse.ArgumentParser:
 
     config = ordenes.add_parser("config", help="muestra la configuración")
     config.add_argument("--crear", action="store_true", help="escribe el fichero de configuración")
+    config.add_argument(
+        "--clave-panel",
+        default=None,
+        dest="clave_panel",
+        metavar="CLAVE",
+        help="clave del panel; «generar» crea una al azar y vacío la borra",
+    )
+    config.add_argument(
+        "--direccion",
+        default=None,
+        metavar="XX:XX:XX:XX:XX:XX",
+        help=(
+            "fija la dirección Bluetooth del teclado; admite el identificador de "
+            "instancia de Windows tal cual (cadena vacía para olvidarla)"
+        ),
+    )
     config.set_defaults(funcion=orden_config)
 
     probar = ordenes.add_parser("probar", help="prueba el flujo completo sin teclado")
@@ -498,3 +598,7 @@ def main(argumentos: Optional[list[str]] = None) -> int:
         return args.funcion(args, ajustes, salida)
     except KeyboardInterrupt:
         return 130
+    except BrokenPipeError:
+        # Alguien cortó la salida con «| head» o similar; no es un fallo nuestro.
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        return 0

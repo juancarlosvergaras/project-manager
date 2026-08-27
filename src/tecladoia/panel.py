@@ -14,8 +14,9 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import secrets
 from typing import Any, Optional
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from . import instalador
 from .config import Ajustes
@@ -130,6 +131,7 @@ function pinta(datos) {
     ["Firmware", e.firmware || "—"],
     ["Palanca", palanca],
     ["Momento del agente", e.estado_ia_etiqueta || "—"],
+    ["Programa activo", e.agente_activo || "ninguno"],
   ].map(([t, v]) => `<dt>${t}</dt><dd>${v}</dd>`).join("");
 
   $("#nota-palanca").textContent = e.palanca_forzada
@@ -200,19 +202,41 @@ class PanelWeb:
 
     @property
     def url(self) -> str:
-        return f"http://127.0.0.1:{self.puerto}/" if self.puerto else ""
+        if not self.puerto:
+            return ""
+        anfitrion = "127.0.0.1" if self.ajustes.host_panel == "0.0.0.0" else self.ajustes.host_panel
+        return f"http://{anfitrion}:{self.puerto}/"
+
+    @property
+    def solo_local(self) -> bool:
+        return self.ajustes.host_panel in ("127.0.0.1", "::1", "localhost")
 
     async def arrancar(self) -> None:
+        # El panel mueve la palanca de aprobación: publicarlo sin clave sería
+        # dejar que cualquiera que lo alcance ponga los agentes en «aprobar
+        # todo». Escuchar fuera de la máquina local exige clave, sin excepción.
+        if not self.solo_local and not self.ajustes.clave_panel:
+            _log.error(
+                "El panel iba a escuchar en %s sin clave y no se ha abierto. "
+                "Pon una con «tecladoia config --clave-panel generar».",
+                self.ajustes.host_panel,
+            )
+            return
+
         base = self.ajustes.puerto_panel
         for intento in range(10):
             try:
                 self._http = await asyncio.start_server(
-                    self._atender, "127.0.0.1", base + intento
+                    self._atender, self.ajustes.host_panel, base + intento
                 )
             except OSError:
                 continue
             self.puerto = base + intento
-            _log.info("Panel disponible en %s", self.url)
+            _log.info(
+                "Panel disponible en %s%s",
+                self.url,
+                "" if self.solo_local else " (con clave)",
+            )
             return
         _log.error("No se pudo abrir el panel entre los puertos %s y %s", base, base + 9)
 
@@ -230,18 +254,37 @@ class PanelWeb:
             peticion = await asyncio.wait_for(lector.readline(), timeout=5)
             if not peticion:
                 return
-            metodo, ruta, _ = peticion.decode("latin-1").split(" ", 2)
-            longitud = 0
+            metodo, destino, _ = peticion.decode("latin-1").split(" ", 2)
+            cabeceras: dict[str, str] = {}
             while True:
                 linea = await asyncio.wait_for(lector.readline(), timeout=5)
                 if linea in (b"\r\n", b"\n", b""):
                     break
                 nombre, _, valor = linea.decode("latin-1").partition(":")
-                if nombre.strip().lower() == "content-length":
-                    longitud = int(valor.strip() or 0)
+                cabeceras[nombre.strip().lower()] = valor.strip()
+            longitud = int(cabeceras.get("content-length") or 0)
             cuerpo = await lector.readexactly(longitud) if longitud else b""
-            estado, tipo, datos = await self._responder(metodo, urlparse(ruta).path, cuerpo)
-            escritor.write(self._envolver(estado, tipo, datos))
+
+            partes = urlparse(destino)
+            consulta = parse_qs(partes.query)
+            extras: list[str] = []
+            if not self._autorizado(cabeceras, consulta):
+                estado, tipo, datos = self._sin_permiso()
+            else:
+                if consulta.get("clave"):
+                    # Se recuerda la clave en una cookie y se reenvía a la misma
+                    # página sin ella. Así no se queda escrita en la barra de
+                    # direcciones, ni en el historial, ni en los registros de
+                    # ningún intermediario por los que pase la petición.
+                    extras.append(
+                        f"Set-Cookie: tecladoia={self.ajustes.clave_panel}; "
+                        "Path=/; HttpOnly; SameSite=Strict"
+                    )
+                    extras.append(f"Location: {partes.path or '/'}")
+                    estado, tipo, datos = "303 See Other", "text/plain; charset=utf-8", b""
+                else:
+                    estado, tipo, datos = await self._responder(metodo, partes.path, cuerpo)
+            escritor.write(self._envolver(estado, tipo, datos, extras))
             await escritor.drain()
         except (asyncio.TimeoutError, ValueError, ConnectionError, asyncio.IncompleteReadError):
             pass
@@ -250,16 +293,118 @@ class PanelWeb:
             with contextlib.suppress(Exception):
                 await escritor.wait_closed()
 
+    def _autorizado(self, cabeceras: dict[str, str], consulta: dict[str, list[str]]) -> bool:
+        """Comprueba la clave del panel, si la hay.
+
+        Se acepta por cabecera ``Authorization: Bearer``, por ``?clave=`` y por
+        la cookie que deja la primera visita. La comparación es de tiempo
+        constante para no filtrar la clave a base de medir respuestas.
+        """
+        esperada = self.ajustes.clave_panel
+        if not esperada:
+            return True
+
+        candidatas: list[str] = []
+        autorizacion = cabeceras.get("authorization", "")
+        if autorizacion.lower().startswith("bearer "):
+            candidatas.append(autorizacion[7:].strip())
+        if cabecera := cabeceras.get("x-tecladoia-clave"):
+            candidatas.append(cabecera.strip())
+        for trozo in cabeceras.get("cookie", "").split(";"):
+            nombre, _, valor = trozo.strip().partition("=")
+            if nombre == "tecladoia":
+                candidatas.append(valor.strip())
+        candidatas.extend(consulta.get("clave", []))
+        return any(secrets.compare_digest(c, esperada) for c in candidatas)
+
     @staticmethod
-    def _envolver(estado: str, tipo: str, cuerpo: bytes) -> bytes:
-        cabeceras = (
-            f"HTTP/1.1 {estado}\r\n"
-            f"Content-Type: {tipo}\r\n"
-            f"Content-Length: {len(cuerpo)}\r\n"
-            "Cache-Control: no-store\r\n"
-            "Connection: close\r\n\r\n"
-        )
-        return cabeceras.encode("latin-1") + cuerpo
+    def _sin_permiso() -> tuple[str, str, bytes]:
+        """La puerta: un formulario, no una instrucción.
+
+        Antes esta página pedía añadir «?clave=…» a la dirección a mano. Además
+        de incómodo, deja la clave escrita en el historial del navegador y en los
+        registros de cualquier intermediario. Con el formulario, la clave viaja
+        una vez y se queda en una cookie de sesión.
+        """
+        pagina = """<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TecladoIA · entrar</title>
+<style>
+  :root{color-scheme:light dark;--fondo:#F2F5F9;--tarjeta:#fff;--texto:#0F172A;
+        --tenue:#64748B;--borde:#E3E8EF;--azul:#2563EB}
+  @media (prefers-color-scheme:dark){:root{--fondo:#0B0F16;--tarjeta:#151A23;
+        --texto:#E8EDF5;--tenue:#97A3B6;--borde:#242B37;--azul:#7DA2FF}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--fondo);
+       color:var(--texto);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  form{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;
+       padding:2rem;width:min(25rem,92vw);display:grid;gap:.9rem;
+       box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.08)}
+  .marca{display:flex;align-items:center;gap:.6rem;font-weight:800;letter-spacing:-.02em}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+        background:linear-gradient(135deg,#2563EB,#0B2C6B)}
+  .logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round}
+  h1{font-size:1.1rem;margin:.3rem 0 0}
+  p{margin:0;color:var(--tenue);font-size:.9rem}
+  input,button{font:inherit;padding:.6rem .8rem;border-radius:9px;border:1px solid var(--borde)}
+  input{background:var(--fondo);color:var(--texto);width:100%}
+  input:focus{outline:2px solid var(--azul);outline-offset:1px}
+  button{background:var(--azul);color:#fff;border-color:var(--azul);cursor:pointer;font-weight:600}
+  .error{color:#c0392b;font-size:.88rem;min-height:1.2em}
+</style>
+</head>
+<body>
+<form id="acceso">
+  <div class="marca">
+    <span class="logo"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
+    TecladoIA
+  </div>
+  <h1>Hace falta la clave</h1>
+  <p>Este panel decide qué puede ejecutar un agente de IA sin preguntar,
+     así que no se abre sin identificarse.</p>
+  <input id="clave" type="password" placeholder="Clave del panel"
+         autocomplete="current-password" autofocus>
+  <button type="submit">Entrar</button>
+  <div class="error" id="error" role="alert"></div>
+  <p>Si no la recuerdas: <code>tecladoia config</code> en el equipo donde corre.</p>
+</form>
+<script>
+document.getElementById("acceso").addEventListener("submit", (evento) => {
+  evento.preventDefault();
+  const clave = document.getElementById("clave").value;
+  if (!clave) return;
+  // Se manda una vez por la dirección; el servicio contesta con la cookie y
+  // acto seguido se limpia la barra para no dejarla escrita ahí.
+  location.replace("/?clave=" + encodeURIComponent(clave));
+});
+if (location.search.includes("clave=")) {
+  document.getElementById("error").textContent = "Esa clave no es la del panel.";
+  history.replaceState(null, "", "/");
+}
+</script>
+</body>
+</html>
+"""
+        return "401 Unauthorized", "text/html; charset=utf-8", pagina.encode("utf-8")
+
+    @staticmethod
+    def _envolver(
+        estado: str, tipo: str, cuerpo: bytes, extras: Optional[list[str]] = None
+    ) -> bytes:
+        cabeceras = [
+            f"HTTP/1.1 {estado}",
+            f"Content-Type: {tipo}",
+            f"Content-Length: {len(cuerpo)}",
+            "Cache-Control: no-store",
+            "X-Content-Type-Options: nosniff",
+            "Referrer-Policy: no-referrer",
+            "Connection: close",
+        ]
+        cabeceras.extend(extras or [])
+        return ("\r\n".join(cabeceras) + "\r\n\r\n").encode("latin-1") + cuerpo
 
     async def _responder(self, metodo: str, ruta: str, cuerpo: bytes) -> tuple[str, str, bytes]:
         if ruta == "/" and metodo == "GET":
@@ -269,7 +414,7 @@ class PanelWeb:
         resultado: Any
         if ruta == "/api/estado":
             resultado = {
-                "estado": self.gestor.resumen(),
+                "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
                 "historial": self.servidor.historial[-25:],
                 "agentes": instalador.revisar(),
             }
@@ -282,7 +427,7 @@ class PanelWeb:
             valor = datos.get("valor")
             self.gestor.palanca_forzada = None if valor is None else int(valor)
             resultado = {
-                "estado": self.gestor.resumen(),
+                "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
                 "historial": self.servidor.historial[-25:],
                 "agentes": instalador.revisar(),
             }

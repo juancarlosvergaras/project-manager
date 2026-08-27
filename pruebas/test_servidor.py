@@ -196,3 +196,96 @@ class PruebaCache(PruebaAislada):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaBarraEnReposo(PruebaAislada):
+    """La barra no debe quedarse animada cuando ya no hay nadie trabajando."""
+
+    def montar(self, **opciones):
+        simulado = TransporteSimulado(palanca=1)
+        ajustes = Ajustes(sincronizar_config_agentes=False, **opciones)
+        gestor = GestorTeclado(ajustes, simulado)
+        return ServidorEnganches(gestor, ajustes), gestor, simulado
+
+    def test_un_momento_pasajero_vuelve_solo_al_reposo(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "claude", "evento": "PostToolUse"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_TERMINADA))
+            await asyncio.sleep(0.15)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
+            self.assertIsNone(servidor.agente_activo)
+        asyncio.run(caso())
+
+    def test_un_momento_sostenido_no_se_apaga_antes_de_tiempo(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "claude", "evento": "PreToolUse"})
+            )
+            await asyncio.sleep(0.15)
+            # Sigue trabajando: la luz azul se queda hasta que el vigilante actúe.
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO))
+            self.assertEqual(servidor.agente_activo, "claude")
+        asyncio.run(caso())
+
+    def test_el_vigilante_apaga_la_barra_si_el_agente_desaparece(self):
+        """Un agente cerrado de golpe no emite su evento de cierre."""
+        async def caso():
+            servidor, gestor, simulado = self.montar(segundos_hasta_reposo=5, puerto_hooks=8953)
+            await gestor.conectar()
+            await servidor.arrancar(con_tcp=False)
+            try:
+                await servidor.procesar(
+                    json.dumps({"orden": "evento", "agente": "claude", "evento": "PreToolUse"})
+                )
+                await asyncio.sleep(0.05)
+                self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO))
+                # Se finge que el último evento fue hace mucho.
+                servidor.ultimo_evento_en -= 60
+                await asyncio.sleep(0.8)  # el vigilante mira cada medio segundo
+                self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
+                self.assertIsNone(servidor.agente_activo)
+            finally:
+                await servidor.detener()
+        asyncio.run(caso())
+
+    def test_el_cierre_de_sesion_libera_la_barra(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar()
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "codex", "evento": "CodexPreToolUse"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertEqual(servidor.agente_activo, "codex")
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "codex", "evento": "CodexStop"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertIsNone(servidor.agente_activo)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
+        asyncio.run(caso())
+
+    def test_el_ultimo_agente_en_hablar_se_queda_con_la_barra(self):
+        async def caso():
+            servidor, gestor, _ = self.montar()
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "claude", "evento": "PreToolUse"})
+            )
+            self.assertEqual(servidor.agente_activo, "claude")
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "codex", "evento": "CodexPreToolUse"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertEqual(servidor.agente_activo, "codex")
+            resumen = await servidor.procesar('{"orden":"estado"}')
+            self.assertEqual(resumen["agente_activo"], "codex")
+            self.assertIsNotNone(resumen["segundos_sin_eventos"])
+        asyncio.run(caso())

@@ -3,12 +3,36 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
 
 class ErrorTransporte(RuntimeError):
     """No se pudo hablar con el teclado."""
+
+
+_PATRON_INSTANCIA_WINDOWS = re.compile(r"DEV_([0-9A-F]{12})")
+
+
+def normalizar_direccion(texto: str) -> str:
+    """Admite la dirección del teclado en cualquiera de sus formas habituales.
+
+    Windows la muestra dentro de un identificador de instancia
+    (``BTHLE\\DEV_D46C527CC725\\7&...``), y es lo que se acaba copiando y
+    pegando. También se aceptan los doce dígitos sueltos o separados por dos
+    puntos o guiones. En macOS el sistema no expone la MAC sino un UUID, así
+    que lo que no encaje se devuelve intacto.
+    """
+    if not texto:
+        return ""
+    crudo = texto.strip().upper()
+    if hallazgo := _PATRON_INSTANCIA_WINDOWS.search(crudo):
+        crudo = hallazgo.group(1)
+    digitos = re.sub(r"[^0-9A-F]", "", crudo)
+    if len(digitos) == 12:
+        return ":".join(digitos[i : i + 2] for i in range(0, 12, 2))
+    return texto.strip()
 
 
 def hay_bleak() -> bool:

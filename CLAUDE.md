@@ -1,0 +1,126 @@
+# TecladoIA — léeme antes de tocar nada
+
+Aplicación en español para el teclado **AhaKey X1**. Sustituye a «AhaKey Studio»,
+que está en inglés y en chino. Vive en `C:\Teclado Ahakey`.
+
+---
+
+## Arrancar el servicio (lo primero de cada sesión)
+
+```bash
+python -m tecladoia servicio --host 100.79.52.120
+```
+
+Con eso el panel queda en <http://100.79.52.120:8770> y, por el túnel del Mac
+mini, en <https://ahakey.proyectoia.org>. **Clave: `Unicartagena1`.**
+
+Antes de arrancar, mata lo que haya quedado de sesiones anteriores: si hay dos
+servicios vivos se pelean por el teclado y por el puerto, y el síntoma es una
+barra de luz congelada.
+
+```bash
+python -c "import subprocess; subprocess.run(['powershell','-NoProfile','-Command','Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \"*tecladoia*\" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }'])"
+```
+
+Comprobar que respondió, con la cabecera que toca:
+
+```bash
+curl -s -H "X-TecladoIA-Clave: Unicartagena1" http://100.79.52.120:8770/api/estado
+```
+
+---
+
+## Lo que hay que saber sí o sí
+
+**El teclado no se encuentra rastreando.** El AhaKey se empareja como teclado y
+entonces **deja de anunciarse**; además su dirección va rotando. `bleak` no lo
+encuentra nunca en ese estado. El único camino que funciona en Windows es
+`transporte/windows_emparejado.py`, que lo abre por la lista de dispositivos
+emparejados del sistema (WinRT). El transporte `auto` lo prueba primero.
+
+> Si alguien «simplifica» `transporte/__init__.py` para que `auto` devuelva
+> `TransporteBLE`, el teclado deja de conectarse. Ya pasó una vez.
+
+**Solo un programa a la vez.** Si está abierta la aplicación oficial de AhaKey o
+su `BLE_tcp_driver.exe`, tienen el teclado tomado y nosotros no entramos.
+Ciérralos. (Si prefieres convivir con ellos: `--transporte puente`, que habla con
+su puente por el puerto 9000.)
+
+**Subir una imagen bloquea el teclado varios minutos.** La memoria flash se
+escribe en exclusiva: ~4 s por fotograma, o sea 4-5 minutos para 60-70. Mientras
+dura, las luces y los modos no responden — no está roto. La web lo avisa y deja
+cancelar. No lances una subida y te olvides.
+
+---
+
+## El reparto de modos (del usuario, no el de fábrica)
+
+| Modo | Para | Pantalla | Ranuras |
+|---|---|---|---|
+| 1 | Claude | `claude_0.gif`, 70 fotogramas | 10 |
+| 2 | ChatGPT | | 80 |
+| 3 | Cursor | `cursor.gif` | 150 |
+| 4 | libre | | 220 |
+
+**Las diez primeras ranuras son de fábrica: no escribir ahí.** Cada modo tiene 70
+a partir de la 10. Está en `protocolo.ranura_inicial(modo)`.
+
+Las cuatro teclas, iguales en los cuatro modos:
+`win+h` dictado · `intro` aceptar · `esc` cancelar · `retroceso` borrar.
+
+---
+
+## Cómo decide (el corazón del asunto)
+
+La palanca física del teclado gobierna a los agentes de IA. Los enganches están
+puestos en `~/.claude/settings.json` (que comparten Claude Code **y** Claude
+Cowork), `~/.codex/hooks.json` y compañía.
+
+1. Un modo fijado en la configuración manda sobre todo.
+2. Las reglas de `denegar` y `preguntar` ganan **siempre**, incluso con la
+   palanca en automático. Ahí viven `rm -rf`, `mkfs`, `dd if=`…
+3. La palanca: `0` es automático, cualquier otra cosa devuelve el control.
+4. **Si la palanca no se puede leer, nunca se aprueba solo.** No saber equivale a
+   preguntar. Esta regla no se toca.
+
+---
+
+## Trampas que ya costaron tiempo
+
+- **`DataReader.read_bytes(x)` rellena el búfer que le pasas**; no devuelve uno
+  del tamaño que pidas. Con la firma equivocada lanza `TypeError` y las
+  notificaciones del teclado se pierden sin dejar rastro.
+- **La característica de comando `0x7343` solo admite escritura CON respuesta.**
+  Mandarle una sin respuesta no da error: simplemente no llega.
+- **Hay que apuntarse al acuse ANTES de enviar el comando.** El teclado contesta
+  en ~50 ms; si te apuntas después, el acuse llega sin nadie escuchando.
+- **RGB565 va en big-endian.** El codificador del fabricante se llama
+  `toRgb565BigEndian`. Al revés, la pantalla sale con los colores cambiados.
+- **No se puede elegir el color de la luz.** El firmware solo acepta un byte con
+  el número de efecto (`0x00`–`0x10`); el color va cocido dentro de cada uno.
+  Comprobado en los cuatro clientes del fabricante. No prometerlo.
+- **Editando archivos del Mac mini desde Windows**, `Path.write_text` mete CRLF y
+  `bash` revienta. Editar en binario y validar con `bash -n` antes de subir.
+
+---
+
+## Dónde está todo
+
+- **Código maestro**: `C:\Teclado Ahakey` (rama `claude/keyboard-app-spanish-pc5t9p`
+  del repo `juancarlosvergaras/project-manager`).
+- **Configuración**: `%APPDATA%\TecladoIA\config.json`. Ojo: los campos son
+  `clave_panel` y `host_panel` (se llamaron `panel_clave`/`panel_escuchar`).
+- **Código del fabricante**: `github.com/AhakeyAI/desktop`, Apache 2.0. **Mirar ahí
+  antes de adivinar cualquier cosa del protocolo.** Los GIF por omisión están en
+  `ahakeyconfig-mac/Resources/DefaultOLED/`.
+- **Servidor**: `ssh juancarlosvergaraschmalbach@macmini`, manual en
+  `~/Servidor/CLAUDE.md`. `ahakey.proyectoia.org` apunta al PC por Tailscale
+  (`rutas.conf`, cuarto campo). `teclado.proyectoia.org` es la portada estática.
+
+## Pruebas
+
+```bash
+python -m unittest discover -s pruebas -t .
+```
+
+123, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
