@@ -396,7 +396,7 @@ def _clic(x: int, y: int) -> None:
 #: Dónde cae el clic, como fracción del alto de la ventana medida desde abajo.
 #: En ChatGPT y en Claude el cuadro de escribir está en esa banda; si en algún
 #: programa cae mal, se ajusta por modo con «alto_cuadro».
-FRACCION_DEL_CUADRO = 0.14
+FRACCION_DEL_CUADRO = 0.10
 
 
 def poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro: int = 0) -> bool:
@@ -567,6 +567,7 @@ class Dictado:
         lanzar: str = "",
         pinchar_el_cuadro: bool = True,
         enviar_al_cerrar: bool = False,
+        alto_del_cuadro: int = 0,
     ) -> dict:
         """Abre el dictado, o lo cierra si ya estaba abierto."""
         if self.abierto:
@@ -581,7 +582,12 @@ class Dictado:
             self.abierto = False
             return {"accion": "cerrado", "programa": self.programa, "enviado": enviado}
 
-        hecho = dictar_en(programa, lanzar, pinchar_el_cuadro=pinchar_el_cuadro)
+        hecho = dictar_en(
+            programa,
+            lanzar,
+            pinchar_el_cuadro=pinchar_el_cuadro,
+            alto_del_cuadro=alto_del_cuadro,
+        )
         self.abierto = True
         self.programa = programa
         return {"accion": "abierto", **hecho}

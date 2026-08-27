@@ -264,3 +264,8 @@ class Modo:
     #: Cómo abrirlo si no está corriendo. En Windows, lo normal es
     #: «shell:appsFolder\...» para las aplicaciones de la Tienda.
     lanzar: str = ""
+    #: A cuántos píxeles del borde inferior está el cuadro de escribir de este
+    #: programa. Cero = se calcula como fracción del alto de la ventana, que
+    #: funciona en cualquier resolución. Se pone un número solo si en algún
+    #: programa concreto el clic cae mal.
+    alto_cuadro: int = 0

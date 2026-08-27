@@ -89,6 +89,16 @@ Las cuatro teclas, iguales en los cuatro modos:
 | K3 | `esc` | cancelar |
 | K4 | `retroceso` | borrar |
 
+**Si el clic no cae en el cuadro de texto de algún programa**, se ajusta por modo
+en `%APPDATA%\TecladoIA\config.json`: `"alto_cuadro": 140` en ese modo son los
+píxeles desde el borde inferior. Con `0` se calcula como el 10 % del alto de la
+ventana, que funciona en cualquier resolución.
+
+**El escalado de pantalla era el fallo gordo aquí.** Con Windows al 150 %,
+`GetWindowRect` devuelve coordenadas virtuales y `SetCursorPos` las usa físicas:
+el clic caía 325 px más arriba. `dictado.py` se declara consciente del DPI por
+monitor al importarse; **no quitar esa llamada**.
+
 **K1 no manda Win+H a secas, y es a propósito.** El dictado escribe donde esté
 el foco, así que si la ventana no era la correcta lo dictado se va a cualquier
 parte; y Win+H es un interruptor, de modo que si el dictado ya estaba abierto la

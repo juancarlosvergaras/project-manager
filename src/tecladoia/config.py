@@ -306,6 +306,7 @@ def _leer_modos(crudo: Any) -> list["Modo"]:
             luces=_leer_luces(entrada.get("luces") or {}),
             programa=str(entrada.get("programa") or ""),
             lanzar=str(entrada.get("lanzar") or ""),
+            alto_cuadro=int(entrada.get("alto_cuadro") or 0),
         ))
     return modos
 

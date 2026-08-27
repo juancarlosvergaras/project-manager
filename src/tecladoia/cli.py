@@ -103,20 +103,21 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             await gestor.conectar()
             salida.bien(f"Teclado listo por {await gestor.descripcion_transporte()}")
         except ErrorTransporte as error:
-            if args.sin_teclado:
-                salida.linea(f"  No hay teclado a mano: {error}")
-            else:
-                salida.mal(str(error))
-                salida.linea(
-                    "Puedes seguir con «--sin-teclado» para trabajar en modo simulado."
-                )
-                return 1
+            salida.linea(f"  Todavía no hay teclado: {error}")
+        except Exception as error:  # noqa: BLE001 - cada pila Bluetooth falla a su manera
+            salida.linea(f"  El teclado dio un problema al abrirse: {error}")
         if not gestor.conectado and args.sin_teclado:
             from .transporte.simulado import TransporteSimulado
 
             gestor = GestorTeclado(ajustes, TransporteSimulado())
             await gestor.conectar()
             salida.bien("Modo simulado: hay teclado virtual, pero no hardware.")
+        elif not gestor.conectado:
+            # No se aborta nunca. Un teclado Bluetooth se duerme, se aleja, o lo
+            # tiene tomado otro programa que aún no ha soltado. El servicio
+            # arranca igual y el vigilante lo recoge en cuanto aparezca; mientras
+            # tanto la palanca no se puede leer, y eso ya significa «pregunta».
+            salida.linea("  El servicio arranca igual y lo conectará en cuanto aparezca.")
 
         servidor = ServidorEnganches(gestor, ajustes)
         await servidor.arrancar(con_tcp=not args.sin_tcp)
@@ -204,6 +205,7 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                         pinchar_el_cuadro=getattr(
                             ajustes, "pinchar_cuadro_al_dictar", True
                         ),
+                        alto_del_cuadro=getattr(modo, "alto_cuadro", 0) if modo else 0,
                         enviar_al_cerrar=(palanca == 0),
                     )
                     salida.linea(
