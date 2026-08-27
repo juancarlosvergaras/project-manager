@@ -9,9 +9,10 @@ import os
 import secrets
 import socket
 import sys
+from pathlib import Path
 from typing import Any, Optional
 
-from . import instalador, registro
+from . import __version__, instalador, registro
 from .config import Ajustes, directorio_base, ruta_config, ruta_socket
 from .dispositivo import GestorTeclado
 from .modelo import EfectoLuz, EstadoIA
@@ -412,6 +413,7 @@ def orden_config(args, ajustes: Ajustes, salida: Salida) -> int:
         salida.bien(f"Configuración escrita en {ruta}")
         return 0
     salida.titulo("Configuración")
+    salida.dato("Versión", f"{__version__} ({Path(__file__).resolve().parent})")
     salida.dato("Fichero", ruta_config())
     salida.dato("Carpeta", directorio_base())
     salida.dato("Modo de aprobación", ajustes.modo_aprobacion)
@@ -483,6 +485,12 @@ def construir_analizador() -> argparse.ArgumentParser:
     analizador = argparse.ArgumentParser(
         prog="tecladoia",
         description="Puente entre tu teclado AhaKey y los agentes de IA, en español.",
+    )
+    analizador.add_argument(
+        "--version",
+        action="version",
+        version=f"TecladoIA {__version__} · {Path(__file__).resolve().parent}",
+        help="versión instalada y desde dónde se está ejecutando",
     )
     analizador.add_argument("--sin-color", action="store_true", help="salida sin color ni adornos")
     analizador.add_argument(

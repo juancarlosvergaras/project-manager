@@ -114,3 +114,26 @@ class PruebaDireccionDelTeclado(PruebaAislada):
         codigo, texto = self._correr(["--sin-color", "config"])
         self.assertEqual(codigo, 0)
         self.assertIn("se busca", texto)
+
+
+class PruebaVersion(PruebaAislada):
+    """Sin esto no hay forma de saber qué copia se está ejecutando."""
+
+    def test_version_dice_el_numero_y_de_donde_sale(self):
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida), self.assertRaises(SystemExit) as cm:
+            main(["--version"])
+        self.assertEqual(cm.exception.code, 0)
+        texto = salida.getvalue()
+        from tecladoia import __version__
+
+        self.assertIn(__version__, texto)
+        self.assertIn("tecladoia", texto)
+
+    def test_config_tambien_muestra_la_version(self):
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida), contextlib.redirect_stderr(io.StringIO()):
+            main(["--sin-color", "config"])
+        from tecladoia import __version__
+
+        self.assertIn(__version__, salida.getvalue())

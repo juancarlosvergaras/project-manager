@@ -78,6 +78,13 @@ cd project-manager
 pip install -e .          # o: pip install -e ".[ble]" para hablar con el teclado
 ```
 
+Al actualizar, comprueba siempre qué copia estás ejecutando —si el instalador
+no era editable, cambiar los ficheros no cambia nada—:
+
+```bash
+tecladoia --version       # versión y carpeta desde la que se ejecuta
+```
+
 `bleak` solo es necesario para conectarse al teclado real por Bluetooth. Sin él
 todo lo demás funciona, incluido el modo simulado.
 
@@ -212,6 +219,7 @@ sin distinguir mayúsculas. `agente` limita la regla a un solo programa.
 | `tecladoia bitacora -n 20` | últimas decisiones de aprobación |
 | `tecladoia config [--crear]` | muestra o escribe la configuración |
 | `tecladoia probar` | recorre el flujo completo con un teclado simulado |
+| `tecladoia --version` | qué versión hay instalada y desde qué carpeta se ejecuta |
 | `tecladoia enganche <programa> <evento>` | lo llaman los programas de IA, no tú |
 
 Añade `--sin-color` a cualquiera de ellas para una salida limpia, sin secuencias

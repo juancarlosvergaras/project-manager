@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tecladoia"
-version = "1.0.0"
+version = "1.1.0"
 description = "Puente en español entre un teclado AhaKey-X1 y los agentes de IA (Codex, Claude Code, Cursor, Kimi, Gemini)."
 readme = "README.md"
 requires-python = ">=3.10"
