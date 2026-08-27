@@ -104,3 +104,90 @@ class PruebaPanel(PruebaAislada):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaClaveDelPanel(PruebaAislada):
+    """El panel mueve la palanca: expuesto sin clave sería un botón abierto."""
+
+    async def _montar(self, **opciones):
+        ajustes = Ajustes(
+            sincronizar_config_agentes=False, puerto_panel=8881, puerto_hooks=8961, **opciones
+        )
+        simulado = TransporteSimulado(palanca=1)
+        gestor = GestorTeclado(ajustes, simulado)
+        await gestor.conectar()
+        servidor = ServidorEnganches(gestor, ajustes)
+        panel = PanelWeb(gestor, servidor, ajustes)
+        await panel.arrancar()
+        return panel
+
+    async def _pedir(self, panel, ruta, cabeceras=""):
+        lector, escritor = await asyncio.open_connection("127.0.0.1", panel.puerto)
+        escritor.write(
+            f"GET {ruta} HTTP/1.1\r\nHost: localhost\r\n{cabeceras}\r\n".encode()
+        )
+        await escritor.drain()
+        crudo = await asyncio.wait_for(lector.read(), 5)
+        escritor.close()
+        return crudo.decode("utf-8", "replace")
+
+    def test_sin_clave_configurada_se_entra_directo(self):
+        async def caso():
+            panel = await self._montar()
+            try:
+                self.assertIn("200 OK", await self._pedir(panel, "/api/estado"))
+            finally:
+                await panel.detener()
+        asyncio.run(caso())
+
+    def test_con_clave_se_rechaza_a_quien_no_la_trae(self):
+        async def caso():
+            panel = await self._montar(clave_panel="secreta")
+            try:
+                respuesta = await self._pedir(panel, "/api/estado")
+                self.assertIn("401", respuesta)
+                self.assertIn("Hace falta la clave", respuesta)
+                respuesta = await self._pedir(panel, "/api/estado?clave=otra")
+                self.assertIn("401", respuesta)
+            finally:
+                await panel.detener()
+        asyncio.run(caso())
+
+    def test_la_clave_vale_por_consulta_cabecera_y_galleta(self):
+        async def caso():
+            panel = await self._montar(clave_panel="secreta")
+            try:
+                respuesta = await self._pedir(panel, "/?clave=secreta")
+                self.assertIn("200 OK", respuesta)
+                # La primera visita deja la clave guardada para no arrastrarla.
+                self.assertIn("Set-Cookie: tecladoia=secreta", respuesta)
+
+                for cabecera in (
+                    "Authorization: Bearer secreta\r\n",
+                    "X-TecladoIA-Clave: secreta\r\n",
+                    "Cookie: tecladoia=secreta\r\n",
+                ):
+                    with self.subTest(cabecera=cabecera):
+                        self.assertIn(
+                            "200 OK", await self._pedir(panel, "/api/estado", cabecera)
+                        )
+            finally:
+                await panel.detener()
+        asyncio.run(caso())
+
+    def test_no_se_abre_al_exterior_sin_clave(self):
+        async def caso():
+            panel = await self._montar(host_panel="0.0.0.0")
+            self.assertIsNone(panel.puerto)
+            self.assertFalse(panel.solo_local)
+            await panel.detener()
+        asyncio.run(caso())
+
+    def test_con_clave_si_se_abre_al_exterior(self):
+        async def caso():
+            panel = await self._montar(host_panel="0.0.0.0", clave_panel="secreta")
+            try:
+                self.assertIsNotNone(panel.puerto)
+            finally:
+                await panel.detener()
+        asyncio.run(caso())

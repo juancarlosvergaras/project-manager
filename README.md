@@ -115,6 +115,32 @@ Con el servicio en marcha, abre <http://127.0.0.1:8770> y tendrás el estado del
 teclado, la palanca virtual, el efecto de la barra de luz y el historial de
 decisiones.
 
+### Llegar al panel desde fuera
+
+El panel decide qué puede ejecutar un agente sin preguntar, así que **no se abre
+al exterior sin clave**: si le pides que escuche fuera de la máquina local y no
+hay clave puesta, se niega a arrancar y te dice por qué.
+
+```bash
+tecladoia config --clave-panel generar     # crea una clave al azar
+tecladoia servicio --host 0.0.0.0          # ahora sí escucha fuera
+```
+
+Se entra con `?clave=…` una vez —la clave queda guardada en una cookie— y
+también vale por cabecera, `Authorization: Bearer …` o `X-TecladoIA-Clave`. La
+comparación es de tiempo constante.
+
+Lo más cómodo para usarlo desde cualquier sitio es un túnel de Cloudflare desde
+la propia máquina que tiene el teclado, sin abrir un solo puerto en el router:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8770
+```
+
+Ojo con dónde lo montas: el Bluetooth vive donde está el teclado. Un panel en un
+servidor remoto no lo verá, así que el túnel tiene que salir del equipo que lo
+tiene emparejado.
+
 Así se ve la demo:
 
 ```

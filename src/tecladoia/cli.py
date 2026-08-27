@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import os
+import secrets
 import socket
 import sys
 from typing import Any, Optional
@@ -17,7 +18,7 @@ from .modelo import EfectoLuz, EstadoIA
 from .panel import PanelWeb
 from .registro import leer_bitacora
 from .servidor import ServidorEnganches
-from .transporte.base import ErrorTransporte, hay_bleak
+from .transporte.base import ErrorTransporte, hay_bleak, normalizar_direccion
 
 VERDE = "\033[32m"
 ROJO = "\033[31m"
@@ -89,6 +90,11 @@ def _palanca_legible(valor: Optional[int]) -> str:
 def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
     """Arranca el servicio: teclado, servidor de enganches y panel web."""
 
+    if args.host:
+        ajustes.host_panel = args.host
+    if args.puerto_panel:
+        ajustes.puerto_panel = args.puerto_panel
+
     async def ejecutar() -> int:
         gestor = GestorTeclado(ajustes)
         salida.titulo("Conectando con el teclado")
@@ -125,6 +131,14 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             await panel.arrancar()
             if panel.url:
                 salida.dato("Panel", panel.url)
+                if ajustes.clave_panel:
+                    salida.dato("Entrada", f"{panel.url}?clave={ajustes.clave_panel}")
+            elif not panel.solo_local:
+                salida.mal(
+                    "El panel no se abrió: escuchar fuera de esta máquina exige clave. "
+                    "Ponla con «tecladoia config --clave-panel generar»."
+                )
+                return 1
 
         salida.dato("Palanca", _palanca_legible(await gestor.palanca()))
         salida.linea("\nPulsa Ctrl+C para parar.")
@@ -374,12 +388,24 @@ def orden_bitacora(args, ajustes: Ajustes, salida: Salida) -> int:
 def orden_config(args, ajustes: Ajustes, salida: Salida) -> int:
     """Muestra la configuración y dónde vive."""
     if args.direccion is not None:
-        ajustes.direccion_dispositivo = args.direccion.strip()
+        ajustes.direccion_dispositivo = normalizar_direccion(args.direccion)
         ruta = ajustes.guardar()
         if ajustes.direccion_dispositivo:
             salida.bien(f"Teclado fijado en {ajustes.direccion_dispositivo} ({ruta})")
         else:
             salida.bien(f"Dirección borrada: se volverá a buscar el teclado ({ruta})")
+        return 0
+    if args.clave_panel is not None:
+        valor = args.clave_panel.strip()
+        if valor.lower() == "generar":
+            valor = secrets.token_urlsafe(24)
+        ajustes.clave_panel = valor
+        ruta = ajustes.guardar()
+        if valor:
+            salida.bien(f"Clave del panel: {valor}")
+            salida.linea(f"  Guardada en {ruta}. Entra con  ?clave={valor}")
+        else:
+            salida.bien(f"Clave borrada: el panel solo servirá en local ({ruta})")
         return 0
     if args.crear:
         ruta = ajustes.guardar()
@@ -393,6 +419,8 @@ def orden_config(args, ajustes: Ajustes, salida: Salida) -> int:
     salida.dato("Teclado fijado", ajustes.direccion_dispositivo or "no (se busca)")
     salida.dato("Puerto de enganches", ajustes.puerto_hooks)
     salida.dato("Puerto del panel", ajustes.puerto_panel)
+    salida.dato("Panel escucha en", ajustes.host_panel)
+    salida.dato("Clave del panel", ajustes.clave_panel or "sin clave (solo local)")
     salida.dato("Caché de la palanca", f"{ajustes.vigencia_cache_ms} ms")
     salida.dato("Reglas", len(ajustes.reglas))
     salida.titulo("Reglas")
@@ -471,6 +499,12 @@ def construir_analizador() -> argparse.ArgumentParser:
     servicio.add_argument(
         "--sin-teclado", action="store_true", help="seguir en modo simulado si no hay teclado"
     )
+    servicio.add_argument(
+        "--host",
+        default=None,
+        help="interfaz del panel; fuera de 127.0.0.1 exige clave (p. ej. 0.0.0.0)",
+    )
+    servicio.add_argument("--puerto-panel", type=int, default=None, dest="puerto_panel")
     servicio.set_defaults(funcion=orden_servicio)
 
     estado = ordenes.add_parser("estado", help="muestra el estado del teclado")
@@ -523,10 +557,20 @@ def construir_analizador() -> argparse.ArgumentParser:
     config = ordenes.add_parser("config", help="muestra la configuración")
     config.add_argument("--crear", action="store_true", help="escribe el fichero de configuración")
     config.add_argument(
+        "--clave-panel",
+        default=None,
+        dest="clave_panel",
+        metavar="CLAVE",
+        help="clave del panel; «generar» crea una al azar y vacío la borra",
+    )
+    config.add_argument(
         "--direccion",
         default=None,
         metavar="XX:XX:XX:XX:XX:XX",
-        help="fija la dirección Bluetooth del teclado (cadena vacía para olvidarla)",
+        help=(
+            "fija la dirección Bluetooth del teclado; admite el identificador de "
+            "instancia de Windows tal cual (cadena vacía para olvidarla)"
+        ),
     )
     config.set_defaults(funcion=orden_config)
 

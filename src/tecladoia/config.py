@@ -94,6 +94,10 @@ class Ajustes:
     direccion_dispositivo: str = ""
     puerto_hooks: int = PUERTO_PREDETERMINADO
     puerto_panel: int = PUERTO_PANEL
+    #: Interfaz donde escucha el panel. Fuera de la máquina local exige clave.
+    host_panel: str = "127.0.0.1"
+    #: Clave del panel. Vacía solo es aceptable escuchando en local.
+    clave_panel: str = ""
     puente_host: str = "127.0.0.1"
     puente_puerto: int = 9000
     vigencia_cache_ms: int = 1500
