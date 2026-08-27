@@ -7,7 +7,8 @@ el proyecto original en las plataformas no nativas.
 
 from __future__ import annotations
 
-from typing import Optional
+import os
+from typing import Any, Optional
 
 from .. import protocolo
 from ..registro import obtener

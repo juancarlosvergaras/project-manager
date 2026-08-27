@@ -58,3 +58,32 @@ class PruebaDistribucionEspanola(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaObjetivoBLE(unittest.TestCase):
+    """En Windows hay que entregarle a bleak un BLEDevice, no una cadena."""
+
+    def test_fuera_de_windows_se_pasa_la_direccion_tal_cual(self):
+        import os
+        from unittest import mock
+
+        from tecladoia.transporte.ble import TransporteBLE
+
+        with mock.patch.object(os, "name", "posix"):
+            self.assertEqual(
+                TransporteBLE._objetivo("D4:6C:52:7C:C7:25", "AhaKey"),
+                "D4:6C:52:7C:C7:25",
+            )
+
+    def test_en_windows_sin_bleak_se_cae_con_elegancia(self):
+        import os
+        from unittest import mock
+
+        from tecladoia.transporte.ble import TransporteBLE
+
+        # Sin bleak instalado, la importación falla y se vuelve a la cadena:
+        # el arreglo nunca debe impedir que se intente la conexión normal.
+        with mock.patch.object(os, "name", "nt"):
+            self.assertEqual(
+                TransporteBLE._objetivo("D4:6C:52:7C:C7:25", ""), "D4:6C:52:7C:C7:25"
+            )
