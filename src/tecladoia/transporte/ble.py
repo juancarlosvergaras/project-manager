@@ -7,7 +7,8 @@ el proyecto original en las plataformas no nativas.
 
 from __future__ import annotations
 
-from typing import Optional
+import os
+from typing import Any, Optional
 
 from .. import protocolo
 from ..registro import obtener
@@ -90,11 +91,34 @@ class TransporteBLE(Transporte):
 
         await self._abrir(self._direccion, nombre)
 
+    @staticmethod
+    def _objetivo(direccion: str, nombre: str) -> Any:
+        """Prepara lo que se le entrega a ``BleakClient``.
+
+        En Windows, darle la dirección como texto no evita el rastreo: bleak
+        llama igualmente a ``find_device_by_address`` y falla con «Device with
+        address … was not found», porque un teclado ya emparejado no se anuncia.
+        Entregándole un ``BLEDevice`` en su lugar, bleak se salta esa búsqueda y
+        va directo a ``BluetoothLEDevice.from_bluetooth_address_async``, que es
+        la vía del sistema para abrir dispositivos ya emparejados.
+
+        En macOS y Linux no se hace: allí el objeto lleva datos nativos del
+        rastreo que no se pueden inventar.
+        """
+        if os.name != "nt":
+            return direccion
+        try:
+            from bleak.backends.device import BLEDevice
+
+            return BLEDevice(direccion, nombre or None, None)
+        except Exception:  # noqa: BLE001 - si bleak cambia, se sigue por lo normal
+            return direccion
+
     async def _abrir(self, direccion: str, nombre: str = "") -> None:
         from bleak import BleakClient
 
         _log.info("Conectando con «%s» (%s)", nombre or "el teclado", direccion)
-        cliente = BleakClient(direccion)
+        cliente = BleakClient(self._objetivo(direccion, nombre))
         try:
             await cliente.connect()
             await cliente.start_notify(protocolo.CARACTERISTICA_NOTIFICA, self._al_notificar)
@@ -102,7 +126,9 @@ class TransporteBLE(Transporte):
             raise ErrorTransporte(
                 f"No se pudo abrir el teclado en {direccion}: {error}. "
                 "Comprueba que está encendido, emparejado y que ninguna otra "
-                "aplicación (la original de AhaKey, por ejemplo) lo tiene ocupado."
+                "aplicación (la original de AhaKey, por ejemplo) lo tiene ocupado. "
+                "Si la dirección es correcta y aun así no aparece, prueba con la "
+                "otra que muestre el sistema para el mismo teclado."
             ) from error
         self._cliente = cliente
         self._direccion = direccion
