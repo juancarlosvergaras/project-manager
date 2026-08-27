@@ -228,9 +228,22 @@ class GestorTeclado:
         self.estado_ia = estado
         return True
 
-    def efecto_de(self, estado: EstadoIA) -> Optional[EfectoLuz]:
-        """El efecto elegido para ese momento del agente."""
-        crudo = getattr(self.ajustes, "luces_por_estado", {}).get(str(int(estado)))
+    def efecto_de(self, estado: EstadoIA, modo: Optional[int] = None) -> Optional[EfectoLuz]:
+        """El efecto elegido para ese momento del agente.
+
+        Manda la tabla del modo, si la tiene puesta; si no, la general. Así cada
+        modo puede reaccionar a su manera sin obligar a configurarlos todos.
+        """
+        clave = str(int(estado))
+        if modo is None:
+            estado_teclado = self.estado
+            modo = estado_teclado.modo_trabajo if estado_teclado else None
+        propias: dict = {}
+        if modo is not None and 0 <= modo < len(getattr(self.ajustes, "modos", [])):
+            propias = getattr(self.ajustes.modos[modo], "luces", {}) or {}
+        crudo = propias.get(clave)
+        if crudo is None:
+            crudo = getattr(self.ajustes, "luces_por_estado", {}).get(clave)
         if crudo is None:
             return EFECTO_POR_ESTADO.get(estado)
         try:

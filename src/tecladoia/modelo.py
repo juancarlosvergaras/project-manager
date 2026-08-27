@@ -243,16 +243,24 @@ class Tecla:
 
 @dataclass
 class Modo:
-    """Uno de los tres modos de trabajo del teclado."""
+    """Uno de los cuatro modos de trabajo del teclado.
+
+    Cada modo es un puesto de trabajo independiente: sus cuatro teclas, su
+    pantalla, su dueño y sus luces. Que tenga dueño es lo que permite que el
+    teclado no mezcle: si estás en el modo de ChatGPT, lo que haga Claude Code
+    por detrás no debe encenderte la barra, porque no es lo que estás mirando.
+    """
 
     nombre: str = ""
+    #: Qué programa manda en este modo: «claude», «chatgpt», «cursor», «codex»…
+    #: Vacío significa que el modo es libre y lo mueve cualquiera.
+    agente: str = ""
     teclas: list[Tecla] = field(default_factory=lambda: [Tecla() for _ in range(4)])
-
-
-_COLORES_EFECTO.update({
-    EfectoLuz.APAGADO: "apagado",
-    EfectoLuz.ARCOIRIS_MOVIL: "multicolor",
-    EfectoLuz.ONDA_ARCOIRIS: "multicolor",
-    EfectoLuz.ONDA_ARCOIRIS_LENTA: "multicolor",
-    EfectoLuz.PENSAMIENTO_AZUL: "azul",
-})
+    #: Efecto por cada momento del agente, solo para este modo. Vacío = se usa
+    #: la tabla general de los ajustes.
+    luces: dict[str, int] = field(default_factory=dict)
+    #: Nombre del programa que hay que traer al frente al pulsar el micrófono.
+    programa: str = ""
+    #: Cómo abrirlo si no está corriendo. En Windows, lo normal es
+    #: «shell:appsFolder\...» para las aplicaciones de la Tienda.
+    lanzar: str = ""

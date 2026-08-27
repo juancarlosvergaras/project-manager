@@ -367,8 +367,14 @@ class ServidorEnganches:
         luces seguirían moviéndose como si aún estuviera trabajando.
         """
         self._anotar_actividad(agente_id, evento.estado)
-        self._anotar_aviso(agente_id, evento.interno, evento.estado)
-        self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
+        # Se lleva la cuenta pase lo que pase —quién habló y cuándo— pero la
+        # barra solo la toca el programa que manda en el modo puesto. Si estás
+        # en el modo de ChatGPT, lo que haga Claude Code por detrás no debe
+        # encenderte la luz: enseñaría algo que no estás mirando.
+        le_toca = self._le_toca_a_este_modo(agente_id)
+        self._anotar_aviso(agente_id, evento.interno, evento.estado, atendido=le_toca)
+        if le_toca:
+            self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
 
         if self._reposo is not None:
             self._reposo.cancel()
@@ -427,7 +433,29 @@ class ServidorEnganches:
         self._ultimo_estado_registrado = ESTADO_EN_REPOSO
         await self.gestor.enviar_estado_ia(ESTADO_EN_REPOSO)
 
-    def _anotar_aviso(self, agente: str, evento: str, estado: EstadoIA) -> None:
+    def _le_toca_a_este_modo(self, agente_id: str) -> bool:
+        """¿Manda este programa en el modo que tiene puesto el teclado?
+
+        Cada modo tiene dueño. Si el teclado está en el modo de ChatGPT y quien
+        habla es Claude Code por detrás, la barra no se toca: enseñaría algo que
+        no estás mirando. Un modo sin dueño —el libre— lo mueve cualquiera, y si
+        no se sabe en qué modo está el teclado, tampoco se filtra: más vale
+        avisar de más que quedarse callado.
+        """
+        estado = self.gestor.estado
+        if estado is None or estado.modo_trabajo is None:
+            return True
+        modos = getattr(self.ajustes, "modos", [])
+        if not 0 <= estado.modo_trabajo < len(modos):
+            return True
+        dueno = (getattr(modos[estado.modo_trabajo], "agente", "") or "").strip().lower()
+        if not dueno:
+            return True
+        return dueno == (agente_id or "").strip().lower()
+
+    def _anotar_aviso(
+        self, agente: str, evento: str, estado: EstadoIA, atendido: bool = True
+    ) -> None:
         """Deja constancia de qué llegó y qué luz encendió."""
         from datetime import datetime
 
@@ -438,6 +466,7 @@ class ServidorEnganches:
             "evento": evento,
             "estado": estado.etiqueta,
             "efecto": efecto.etiqueta if efecto is not None else "—",
+            "atendido": atendido,
         }
         self.avisos.append(entrada)
         del self.avisos[:-40]

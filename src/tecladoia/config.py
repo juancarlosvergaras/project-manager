@@ -83,14 +83,34 @@ def _reglas_iniciales() -> list[Regla]:
 #: fabricante trae Claude/Cursor/Codex; este reparto es el de esta casa.
 NOMBRES_DE_MODO = ("Claude", "ChatGPT", "Cursor", "Modo 4")
 
+#: Qué programa manda en cada modo. El cuarto queda libre a propósito.
+DUENOS_DE_MODO = ("claude", "chatgpt", "cursor", "")
+
+#: Programa que se trae al frente al pulsar el micrófono, y cómo abrirlo si no
+#: está. Los nombres son los del ejecutable, sin «.exe».
+PROGRAMAS_DE_MODO = (
+    ("claude", r"shell:appsFolder\Claude_pzs8sxrjxfjjc!Claude"),
+    ("ChatGPT", r"shell:appsFolder\OpenAI.Codex_2p2nqsd0c76g0!App"),
+    ("Cursor", ""),
+    ("", ""),
+)
+
 
 def _modos_iniciales() -> list["Modo"]:
     """Los cuatro modos vacíos, con su nombre."""
     from .modelo import Modo, Tecla
 
     return [
-        Modo(nombre=nombre, teclas=[Tecla() for _ in range(4)])
-        for nombre in NOMBRES_DE_MODO
+        Modo(
+            nombre=nombre,
+            agente=dueno,
+            programa=programa,
+            lanzar=lanzar,
+            teclas=[Tecla() for _ in range(4)],
+        )
+        for nombre, dueno, (programa, lanzar) in zip(
+            NOMBRES_DE_MODO, DUENOS_DE_MODO, PROGRAMAS_DE_MODO
+        )
     ]
 
 
@@ -170,6 +190,28 @@ class Ajustes:
     #: queda encendida con lo último que pasó aunque hayas cambiado de programa.
     segundos_reposo: float = 25.0
     efecto_reposo: int = 0
+    #: La tecla del micrófono trae al frente el programa del modo y abre el
+    #: dictado dentro de él. Apagarlo la deja mandando la combinación a secas.
+    dictado_asistido: bool = True
+    #: Antes de abrir el dictado se hace clic en el cuadro de escribir. Sin eso,
+    #: el dictado se abre pero lo hablado no aterriza en ninguna parte. Se puede
+    #: apagar si en algún programa el clic cae donde no debe.
+    pinchar_cuadro_al_dictar: bool = True
+    #: De qué color se ve cada efecto, según lo que veas tú.
+    #:
+    #: El firmware NO deja elegir el color: solo viaja un byte con el número del
+    #: efecto y el color va cocido dentro de cada uno —comprobado en los cuatro
+    #: clientes del fabricante—. Pero elegir «el verde» sigue siendo lo natural,
+    #: así que se anota qué color tiene cada efecto y la interfaz deja buscar por
+    #: ahí. Vienen puestos los que el fabricante nombra por su color; el resto se
+    #: rellena mirando el teclado, con el recorrido de la propia página.
+    colores_efecto: dict[str, str] = field(default_factory=lambda: {
+        "0": "apagado",
+        "2": "multicolor",
+        "3": "multicolor",
+        "4": "multicolor",
+        "13": "azul",
+    })
     reglas: list[Regla] = field(default_factory=_reglas_iniciales)
     modos: list["Modo"] = field(default_factory=_modos_iniciales)
     luces_por_estado: dict[str, int] = field(default_factory=_luces_iniciales)
@@ -190,7 +232,12 @@ class Ajustes:
         modos = _leer_modos(crudo.pop("modos", []))
         luces = _leer_luces(crudo.pop("luces_por_estado", {}))
         aplicaciones = _leer_aplicaciones(crudo.pop("aplicaciones", []))
-        aparte = {"reglas", "modos", "luces_por_estado", "aplicaciones"}
+        colores = {
+            str(int(k)): str(v)
+            for k, v in (crudo.pop("colores_efecto", {}) or {}).items()
+            if str(v).strip()
+        } if isinstance(crudo.get("colores_efecto", {}), dict) else {}
+        aparte = {"reglas", "modos", "luces_por_estado", "aplicaciones", "colores_efecto"}
         conocidos = {c for c in cls.__dataclass_fields__ if c not in aparte}
         ajustes = cls(**{k: v for k, v in crudo.items() if k in conocidos})
         if reglas:
@@ -201,6 +248,8 @@ class Ajustes:
             ajustes.luces_por_estado = {**ajustes.luces_por_estado, **luces}
         if aplicaciones:
             ajustes.aplicaciones = aplicaciones
+        if colores:
+            ajustes.colores_efecto = {**ajustes.colores_efecto, **colores}
         return ajustes
 
     def guardar(self, ruta: Path | None = None) -> Path:
@@ -250,7 +299,14 @@ def _leer_modos(crudo: Any) -> list["Modo"]:
             )
         while len(teclas) < 4:
             teclas.append(Tecla())
-        modos.append(Modo(nombre=str(entrada.get("nombre") or ""), teclas=teclas))
+        modos.append(Modo(
+            nombre=str(entrada.get("nombre") or ""),
+            agente=str(entrada.get("agente") or "").strip().lower(),
+            teclas=teclas,
+            luces=_leer_luces(entrada.get("luces") or {}),
+            programa=str(entrada.get("programa") or ""),
+            lanzar=str(entrada.get("lanzar") or ""),
+        ))
     return modos
 
 

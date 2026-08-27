@@ -377,6 +377,7 @@ function editorLuz() {
     <div class="luces">${filas}</div>
     <div class="acciones">
       <button type="button" class="btn btn-azul" id="ed-guardar-luces">Guardar en el teclado</button>
+      <button type="button" class="btn btn-claro" id="ed-colores">Anotar colores</button>
     </div>
     <p class="nota" id="ed-luces-resultado"></p>
   </div>
@@ -541,6 +542,32 @@ function conectarEditor() {
       avisar(r.ok ? `Encendido: ${r.estado}` : "El teclado no está conectado.",
              r.ok ? "bien" : "mal");
     }));
+
+    // El firmware no deja elegir el color: solo viaja el número del efecto y el
+    // color va dentro de cada uno. Lo que sí se puede es anotar cuál es cuál,
+    // mirando el teclado, y a partir de ahí elegir por color.
+    $("#ed-colores").addEventListener("click", async () => {
+      const efectos = (estado.opciones?.efectos || []).filter((f) => f.codigo !== 0);
+      const caja = $("#ed-luces-resultado");
+      for (const efecto of efectos) {
+        await pedir("/api/luces/probar", {efecto: efecto.codigo});
+        caja.innerHTML = `Encendido <b>${esc(efecto.etiqueta)}</b> — mira el teclado.`;
+        const visto = prompt(
+          "¿De qué color se ve «" + efecto.etiqueta + "»?  " +
+          "Escríbelo (verde, rojo, azul, multicolor…), deja vacío para saltarlo, " +
+          "o pulsa Cancelar para terminar el recorrido.",
+          efecto.color || ""
+        );
+        if (visto === null) break;
+        if (visto.trim()) {
+          const r = await pedir("/api/colores", {colores: {[efecto.codigo]: visto.trim()}});
+          estado.opciones.efectos = r.efectos;
+        }
+      }
+      caja.textContent = "Colores anotados. Ya salen en la lista de cada momento.";
+      await pedir("/api/luces/probar", {efecto: 0});
+      pintarEditor();
+    });
 
     $("#ed-guardar-luces").addEventListener("click", async () => {
       const luces = {};

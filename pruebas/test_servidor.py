@@ -206,6 +206,10 @@ class PruebaBarraEnReposo(PruebaAislada):
     def montar(self, **opciones):
         simulado = TransporteSimulado(palanca=1)
         ajustes = Ajustes(sincronizar_config_agentes=False, **opciones)
+        # Aquí se prueba el reposo, no el reparto por modos: se deja el modo
+        # activo sin dueño para que lo mueva cualquier programa.
+        for modo in ajustes.modos:
+            modo.agente = ""
         gestor = GestorTeclado(ajustes, simulado)
         return ServidorEnganches(gestor, ajustes), gestor, simulado
 
@@ -291,3 +295,54 @@ class PruebaBarraEnReposo(PruebaAislada):
             self.assertEqual(resumen["agente_activo"], "codex")
             self.assertIsNotNone(resumen["segundos_sin_eventos"])
         asyncio.run(caso())
+
+
+class PruebaModosIndependientes(PruebaAislada):
+    """Cada modo del teclado atiende solo al programa que manda en él."""
+
+    def montar(self, modo_activo: int = 0):
+        simulado = TransporteSimulado(palanca=1)
+        simulado.modo_trabajo = modo_activo
+        ajustes = Ajustes(sincronizar_config_agentes=False)
+        gestor = GestorTeclado(ajustes, simulado)
+        return ServidorEnganches(gestor, ajustes), gestor, simulado
+
+    def _evento(self, agente: str, evento: str) -> str:
+        return json.dumps({"orden": "evento", "agente": agente, "evento": evento})
+
+    def test_el_dueno_del_modo_enciende_la_barra(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(modo_activo=0)  # Claude
+            await gestor.conectar()
+            await servidor.procesar(self._evento("claude", "PreToolUse"))
+            await asyncio.sleep(0.05)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO))
+        asyncio.run(caso())
+
+    def test_otro_programa_no_toca_la_barra_de_un_modo_ajeno(self):
+        """Estando en el modo de ChatGPT, Claude Code no debe encender nada."""
+
+        async def caso():
+            servidor, gestor, simulado = self.montar(modo_activo=1)  # ChatGPT
+            await gestor.conectar()
+            antes = simulado.ultimo_estado
+            await servidor.procesar(self._evento("claude", "PreToolUse"))
+            await asyncio.sleep(0.05)
+            self.assertEqual(simulado.ultimo_estado, antes)
+            # Se anota igual, para poder verlo luego en el panel.
+            self.assertTrue(servidor.avisos)
+            self.assertFalse(servidor.avisos[-1]["atendido"])
+        asyncio.run(caso())
+
+    def test_un_modo_sin_dueno_lo_mueve_cualquiera(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(modo_activo=3)  # el libre
+            await gestor.conectar()
+            await servidor.procesar(self._evento("codex", "CodexPreToolUse"))
+            await asyncio.sleep(0.05)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO))
+        asyncio.run(caso())
+
+
+if __name__ == "__main__":
+    unittest.main()

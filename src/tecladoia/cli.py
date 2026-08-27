@@ -142,12 +142,86 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                 return 1
 
         salida.dato("Palanca", _palanca_legible(await gestor.palanca()))
+        # Vigilantes de fondo. Sin el sondeo, mover la palanca o cambiar de
+        # modo en el teclado no se entera nadie hasta el siguiente evento; y
+        # sin el seguimiento de aplicaciones, el teclado no acompana a lo que
+        # tienes delante, que es lo unico que sirve con programas que no avisan.
+        vigilantes: list[asyncio.Task] = []
+        vigilantes.append(asyncio.create_task(gestor.vigilar_estado()))
+        if not args.sin_teclado:
+            vigilantes.append(asyncio.create_task(gestor.mantener_conexion()))
+
+        if getattr(ajustes, "seguir_aplicacion", True):
+            from .enfoque import Vigilante, modo_para
+
+            bucle = asyncio.get_running_loop()
+
+            def al_cambiar_de_aplicacion(ventana) -> None:
+                destino = modo_para(ventana, ajustes.aplicaciones)
+                if destino is None:
+                    return
+                lectura = gestor.estado
+                if lectura is not None and lectura.modo_trabajo == destino:
+                    return
+                nombre = ajustes.modos[destino].nombre if destino < len(ajustes.modos) else destino + 1
+                salida.linea(f"  {ventana.proceso} -> modo {nombre}")
+                bucle.create_task(gestor.cambiar_modo_trabajo(destino))
+
+            seguidor = Vigilante(al_cambiar_de_aplicacion)
+            vigilantes.append(asyncio.create_task(seguidor.correr()))
+            salida.dato("Sigue a", "la aplicacion activa")
+
+        # La tecla del microfono manda una combinacion que solo entendemos
+        # nosotros; aqui se traduce en «trae al frente el programa de este
+        # modo, ponte en su cuadro de texto y abre el dictado». La segunda
+        # pulsacion lo cierra, y con la palanca arriba manda lo dictado.
+        escucha = None
+        if getattr(ajustes, "dictado_asistido", True):
+            import threading
+
+            from .dictado import ATAJO_DICTADO, Dictado, EscuchaDictado, hay_soporte
+
+            if hay_soporte():
+                microfono = Dictado()
+
+                def al_pulsar_microfono() -> None:
+                    # El modo se lee de la ultima lectura del teclado, que el
+                    # sondeo mantiene fresca. Con un modo viejo se enfocaria
+                    # el programa equivocado, que es justo lo que pasaba.
+                    lectura = gestor.estado
+                    indice = lectura.modo_trabajo if lectura else None
+                    modo = None
+                    if indice is not None and 0 <= indice < len(ajustes.modos):
+                        modo = ajustes.modos[indice]
+                    palanca = lectura.palanca if lectura else None
+                    hecho = microfono.alternar(
+                        getattr(modo, "programa", "") if modo else "",
+                        getattr(modo, "lanzar", "") if modo else "",
+                        pinchar_el_cuadro=getattr(
+                            ajustes, "pinchar_cuadro_al_dictar", True
+                        ),
+                        enviar_al_cerrar=(palanca == 0),
+                    )
+                    salida.linea(
+                        "  microfono " + hecho["accion"] + " · " +
+                        (hecho.get("programa") or "donde este el foco") +
+                        (" · enviado" if hecho.get("enviado") else "")
+                    )
+
+                escucha = EscuchaDictado(al_pulsar_microfono)
+                threading.Thread(target=escucha.correr, daemon=True).start()
+                salida.dato("Microfono", "escuchando " + ATAJO_DICTADO)
+
         salida.linea("\nPulsa Ctrl+C para parar.")
         try:
             await servidor.servir_para_siempre()
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
         finally:
+            for tarea in vigilantes:
+                tarea.cancel()
+            if escucha is not None:
+                escucha.parar()
             if panel is not None:
                 await panel.detener()
             await servidor.detener()

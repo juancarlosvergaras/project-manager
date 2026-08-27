@@ -53,6 +53,17 @@ cancelar. No lances una subida y te olvides.
 
 ---
 
+## Instalar en otro PC
+
+```powershell
+powershell -ExecutionPolicy Bypass -File instalar.ps1 -Host 0.0.0.0 -Clave "la-que-quieras"
+```
+
+Hace todo lo automatizable: comprueba Python, instala con soporte Bluetooth,
+pone los enganches, abre el cortafuegos si va como administrador, crea la tarea
+programada y arranca. Lo único manual es emparejar el teclado en Configuración ›
+Bluetooth, y el script avisa si falta.
+
 ## El reparto de modos (del usuario, no el de fábrica)
 
 | Modo | Para | Pantalla | Ranuras |
@@ -65,8 +76,25 @@ cancelar. No lances una subida y te olvides.
 **Las diez primeras ranuras son de fábrica: no escribir ahí.** Cada modo tiene 70
 a partir de la 10. Está en `protocolo.ranura_inicial(modo)`.
 
+Cada modo tiene **dueño**: el programa que manda en él. Un evento de Claude Code
+no enciende la barra si el teclado está en el modo de ChatGPT — enseñaría algo
+que no estás mirando. El modo 4 no tiene dueño, así que lo mueve cualquiera.
+
 Las cuatro teclas, iguales en los cuatro modos:
-`win+h` dictado · `intro` aceptar · `esc` cancelar · `retroceso` borrar.
+
+| Tecla | Manda | Hace |
+|---|---|---|
+| K1 | `ctrl+alt+may+f13` | **dictado**: trae al frente el programa del modo y abre Win+H |
+| K2 | `intro` | aceptar |
+| K3 | `esc` | cancelar |
+| K4 | `retroceso` | borrar |
+
+**K1 no manda Win+H a secas, y es a propósito.** El dictado escribe donde esté
+el foco, así que si la ventana no era la correcta lo dictado se va a cualquier
+parte; y Win+H es un interruptor, de modo que si el dictado ya estaba abierto la
+pulsación lo cierra —de ahí el «a veces no se activa el micrófono»—. En su lugar
+manda una combinación que solo entiende TecladoIA (`dictado.py`), que enfoca el
+programa del modo —abriéndolo si está cerrado— y solo entonces abre el dictado.
 
 ---
 
@@ -116,6 +144,12 @@ Cowork), `~/.codex/hooks.json` y compañía.
 - **Servidor**: `ssh juancarlosvergaraschmalbach@macmini`, manual en
   `~/Servidor/CLAUDE.md`. `ahakey.proyectoia.org` apunta al PC por Tailscale
   (`rutas.conf`, cuarto campo). `teclado.proyectoia.org` es la portada estática.
+
+## Semáforo en otro aparato
+
+`SEMAFORO.md` es autosuficiente: qué evento dispara cada momento del agente, qué
+color le pega y las trampas conocidas. Dáselo a Claude en otro proyecto y podrá
+montar lo mismo en otro teclado sin leer este código.
 
 ## Pruebas
 

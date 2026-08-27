@@ -37,6 +37,16 @@ CARPETA_WEB = Path(__file__).resolve().parent / "web"
 #: Cada cuánto se manda un latido por el canal de sucesos.
 LATIDO_S = 20.0
 
+
+def _dictado_listo() -> bool:
+    """¿Tiene Windows el dictado activado? Fuera de Windows, no aplica."""
+    try:
+        from .dictado import dictado_configurado
+
+        return dictado_configurado()
+    except Exception:  # noqa: BLE001
+        return False
+
 #: Fin de línea de las cabeceras HTTP y salto de las tramas del canal.
 _FIN = chr(13) + chr(10)
 _SALTO = bytes([10])
@@ -579,6 +589,7 @@ if (location.search.includes("clave=")) {
                 "hay_bluetooth": hay_bleak(),
                 "subida": self.gestor.subida,
                 "solo_local": self.solo_local,
+                "dictado_listo": _dictado_listo(),
             },
         }
 
@@ -610,6 +621,21 @@ if (location.search.includes("clave=")) {
             if metodo == "POST":
                 return await self._guardar_luces(datos)
             return self._luces()
+        if ruta == "/api/colores":
+            if metodo == "POST":
+                crudos = datos.get("colores")
+                if not isinstance(crudos, dict):
+                    raise ValueError("Se esperaba una tabla de efecto a color.")
+                nuevos = dict(getattr(self.ajustes, "colores_efecto", {}))
+                for clave, valor in crudos.items():
+                    texto = str(valor or "").strip()
+                    if texto:
+                        nuevos[str(int(clave))] = texto[:24]
+                    else:
+                        nuevos.pop(str(int(clave)), None)
+                self.ajustes.colores_efecto = nuevos
+                self.ajustes.guardar()
+            return {"ok": True, "efectos": self._efectos_json()}
         if ruta == "/api/aplicaciones":
             if metodo == "POST":
                 return self._guardar_aplicaciones(datos)
@@ -635,8 +661,19 @@ if (location.search.includes("clave=")) {
             efecto = EfectoLuz(int(datos.get("efecto", 0)))
             return {"ok": await self.gestor.aplicar_efecto(efecto), "efecto": int(efecto)}
         if ruta == "/api/luces/probar":
+            # Llega el momento del agente, no el efecto: se enciende lo que ese
+            # momento tenga asignado ahora mismo, que es lo que se quiere ver.
+            if "estado" in datos:
+                momento = EstadoIA.desde_codigo(int(datos["estado"]))
+                efecto = self.gestor.efecto_de(momento) or EfectoLuz.APAGADO
+                encendido = await self.gestor.aplicar_efecto(efecto)
+                return {
+                    "ok": encendido,
+                    "estado": momento.etiqueta,
+                    "efecto": efecto.etiqueta,
+                }
             efecto = EfectoLuz(int(datos.get("efecto", 0)))
-            return {"ok": await self.gestor.aplicar_efecto(efecto)}
+            return {"ok": await self.gestor.aplicar_efecto(efecto), "efecto": efecto.etiqueta}
         if ruta == "/api/brillo":
             valor = max(0, min(100, int(datos.get("valor", 35))))
             hecho = await self.gestor.ajustar_brillo(valor)
@@ -682,17 +719,23 @@ if (location.search.includes("clave=")) {
         from .modelo import Decision, MotivoDecision
 
         return {
-            "efectos": [
-                {"codigo": int(f), "etiqueta": f.etiqueta, "color": f.color} for f in EfectoLuz
-            ],
+            "efectos": self._efectos_json(),
             "estados": [
                 {"codigo": int(e), "etiqueta": e.etiqueta, "descripcion": e.descripcion}
                 for e in EstadoIA
             ],
             "decisiones": [d.value for d in Decision],
             "motivos": {m.value: m.explicacion for m in MotivoDecision},
-            "modificadores": sorted(set(tabla_teclas.MODIFICADORES)),
-            "teclas": sorted(tabla_teclas.NOMBRES_HID),
+            # Nombre y código de cada una: la página los enseña juntos para
+            # que se vea qué se le va a escribir al teclado.
+            "modificadores": [
+                {"nombre": n, "codigo": c}
+                for n, c in sorted(tabla_teclas.MODIFICADORES.items())
+            ],
+            "teclas": [
+                {"nombre": n, "codigo": c}
+                for n, c in sorted(tabla_teclas.NOMBRES_HID.items())
+            ],
             "modos_disponibles": MODOS_DISPONIBLES,
             "teclas_por_modo": TECLAS_POR_MODO,
         }
@@ -812,6 +855,23 @@ if (location.search.includes("clave=")) {
             "aviso": None if atendida else "Esa petición ya se resolvió o caducó.",
         }
 
+    def _efectos_json(self) -> list[dict[str, Any]]:
+        """Los efectos con el color que se les haya anotado.
+
+        Manda lo que la persona haya visto en su teclado sobre lo que digamos
+        nosotros: el color no se puede consultar al aparato, así que la única
+        fuente fiable son sus ojos.
+        """
+        anotados = getattr(self.ajustes, "colores_efecto", {}) or {}
+        return [
+            {
+                "codigo": int(f),
+                "etiqueta": f.etiqueta,
+                "color": anotados.get(str(int(f)), f.color),
+            }
+            for f in EfectoLuz
+        ]
+
     def _luces(self) -> dict[str, Any]:
         return {
             "luces": [
@@ -823,9 +883,7 @@ if (location.search.includes("clave=")) {
                 }
                 for e in sorted(EstadoIA, key=int)
             ],
-            "efectos": [
-                {"codigo": int(f), "etiqueta": f.etiqueta, "color": f.color} for f in EfectoLuz
-            ],
+            "efectos": self._efectos_json(),
         }
 
     async def _guardar_luces(self, datos: dict[str, Any]) -> dict[str, Any]:
@@ -843,7 +901,14 @@ if (location.search.includes("clave=")) {
         escrito = False
         if datos.get("aplicar") and self.gestor.conectado:
             escrito = await self.gestor.guardar_luces_de_ia()
-        return {"ok": True, "escrito_en_el_teclado": escrito, **self._luces()}
+        return {
+            "ok": True,
+            "guardado_en_el_teclado": escrito,
+            "aviso": None if escrito or not self.gestor.conectado else (
+                "Se guardó aquí, pero el teclado no aceptó la escritura."
+            ),
+            **self._luces(),
+        }
 
     def _guardar_aplicaciones(self, datos: dict[str, Any]) -> dict[str, Any]:
         crudas = datos.get("aplicaciones")
