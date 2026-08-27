@@ -665,6 +665,9 @@ async function guardarTecla(vaciar) {
   const r = await pedir("/api/teclas", cuerpo);
   estado.modos = r.modos;
   pintarTeclas();
+  // El editor también, o se queda enseñando lo de antes y el siguiente guardado
+  // reescribe esos valores viejos encima de lo que acabas de guardar.
+  pintarEditor();
   $("#ed-resultado").textContent = r.escrita_en_el_teclado
     ? "Escrita en el teclado."
     : (r.aviso || "Guardada aquí. Se escribirá cuando el teclado esté conectado.");

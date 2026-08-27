@@ -22,6 +22,11 @@ from .transporte.base import ErrorTransporte, Transporte
 
 _log = obtener("dispositivo")
 
+#: Cuánto se respeta un modo elegido a mano antes de volver a seguir a la
+#: aplicación activa. Sin esta tregua, elegir un modo en el teclado duraba lo
+#: que tardabas en mirar otra ventana.
+TREGUA_DE_MODO_S = 45.0
+
 
 class GestorTeclado:
     """Punto único de acceso al teclado."""
@@ -43,6 +48,11 @@ class GestorTeclado:
         #: atiende otra cosa: escribir su memoria flash es exclusivo.
         self.subida: Optional[dict] = None
         self._cancelar_subida = asyncio.Event()
+        #: El último modo que pedimos nosotros. Sirve para distinguir un cambio
+        #: nuestro de uno que hizo la persona con el botón del teclado.
+        self._modo_pedido: Optional[int] = None
+        #: Hasta cuándo se respeta un cambio hecho a mano.
+        self.tregua_de_modo_hasta: float = 0.0
 
     # --- conexión -------------------------------------------------------
     @property
@@ -267,7 +277,36 @@ class GestorTeclado:
         return await self._orden(protocolo.brillo_luz(valor))
 
     async def cambiar_modo_trabajo(self, modo: int) -> bool:
-        return await self._orden(protocolo.modo_trabajo(modo))
+        hecho = await self._orden(protocolo.modo_trabajo(modo))
+        if hecho:
+            self._modo_pedido = modo
+        return hecho
+
+    def modo_cambiado_a_mano(self) -> bool:
+        """¿El modo que tiene el teclado lo puso la persona, no nosotros?
+
+        Si el aparato está en un modo que no pedimos, lo cambió alguien con el
+        botón. Eso vale más que cualquier automatismo: quien acaba de elegir un
+        modo con la mano no quiere que se lo cambien dos segundos después.
+        """
+        if self.estado is None or self.estado.modo_trabajo is None:
+            return False
+        if self._modo_pedido is None:
+            self._modo_pedido = self.estado.modo_trabajo
+            return False
+        if self.estado.modo_trabajo != self._modo_pedido:
+            self._modo_pedido = self.estado.modo_trabajo
+            self.tregua_de_modo_hasta = time.monotonic() + TREGUA_DE_MODO_S
+            _log.info(
+                "Modo cambiado a mano (%s): no se toca en %s s",
+                self.estado.modo_trabajo + 1, int(TREGUA_DE_MODO_S),
+            )
+            return True
+        return False
+
+    def hay_tregua_de_modo(self) -> bool:
+        self.modo_cambiado_a_mano()
+        return time.monotonic() < self.tregua_de_modo_hasta
 
     async def renombrar(self, nombre: str) -> bool:
         return await self._orden(protocolo.cambiar_nombre(nombre), guardar=True)

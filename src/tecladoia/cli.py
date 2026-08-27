@@ -163,6 +163,10 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                 lectura = gestor.estado
                 if lectura is not None and lectura.modo_trabajo == destino:
                     return
+                # Un modo elegido con el boton del teclado manda sobre esto: no
+                # se le devuelve a nadie al modo anterior por mirar otra ventana.
+                if gestor.hay_tregua_de_modo():
+                    return
                 nombre = ajustes.modos[destino].nombre if destino < len(ajustes.modos) else destino + 1
                 salida.linea(f"  {ventana.proceso} -> modo {nombre}")
                 bucle.create_task(gestor.cambiar_modo_trabajo(destino))

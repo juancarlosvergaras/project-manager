@@ -66,6 +66,38 @@ TECLA_EXTENDIDA = 0x0001
 ESPERA_FOCO_S = 0.35
 
 
+def _hacerse_consciente_del_escalado() -> None:
+    """Que las coordenadas signifiquen lo mismo al leerlas y al usarlas.
+
+    Con el escalado de Windows al 125 % o 150 % —lo normal en portátiles y en
+    pantallas 4K—, un proceso que no se declara consciente del DPI recibe
+    coordenadas «virtuales» de ``GetWindowRect`` pero ``SetCursorPos`` las
+    interpreta como físicas. El clic acaba desplazado, y cuanto mayor es el
+    escalado, más lejos. Declararse consciente por monitor arregla las dos
+    puntas a la vez y hace que esto funcione igual en cualquier pantalla.
+
+    Se intenta la forma moderna y se cae a la antigua; si el proceso ya venía
+    declarado, Windows contesta que no y no pasa nada.
+    """
+    if os.name != "nt":
+        return
+    try:
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        # -4 = PER_MONITOR_AWARE_V2, la buena con varios monitores distintos.
+        if hasattr(user32, "SetProcessDpiAwarenessContext"):
+            if user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
+                return
+        ctypes.WinDLL("shcore").SetProcessDpiAwareness(2)  # PER_MONITOR_DPI_AWARE
+    except Exception:  # noqa: BLE001 - en Windows viejos no existe; no es grave
+        try:
+            ctypes.WinDLL("user32").SetProcessDPIAware()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+_hacerse_consciente_del_escalado()
+
+
 def hay_soporte() -> bool:
     return os.name == "nt"
 
@@ -262,7 +294,6 @@ def enfocar(proceso: str) -> bool:
                 nombre = memoria.value.rsplit("\\", 1)[-1].lower().removesuffix(".exe")
                 if nombre == proceso:
                     objetivo.append(hwnd)
-                    return False
         finally:
             kernel32.CloseHandle(manejador)
         return True
@@ -272,7 +303,12 @@ def enfocar(proceso: str) -> bool:
         _log.info("No hay ninguna ventana de «%s» abierta", proceso)
         return False
 
-    hwnd = objetivo[0]
+    hwnd = _la_principal(objetivo)
+    # Restaurar sin preguntar. Un programa guardado en la bandeja no siempre se
+    # declara «minimizado»: Electron lo aparca fuera de la pantalla, con lo que
+    # IsIconic dice que no y la ventana sigue midiendo 158x26 en coordenadas
+    # negativas. Medirla ahí manda el clic a veinte mil píxeles de la nada.
+    user32.ShowWindow(hwnd, 5)  # SW_SHOW
     if user32.IsIconic(hwnd):
         user32.ShowWindow(hwnd, 9)  # SW_RESTORE
 
@@ -303,30 +339,98 @@ def _rectangulo(hwnd) -> tuple[int, int, int, int]:
     return r.left, r.top, r.right, r.bottom
 
 
-def poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro: int = 90) -> bool:
-    """Hace clic en la zona donde se escribe, y devuelve el ratón a su sitio.
+class _GUITHREADINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("hwndActive", wintypes.HWND),
+        ("hwndFocus", wintypes.HWND),
+        ("hwndCapture", wintypes.HWND),
+        ("hwndMenuOwner", wintypes.HWND),
+        ("hwndMoveSize", wintypes.HWND),
+        ("hwndCaret", wintypes.HWND),
+        ("rcCaret", ctypes.c_long * 4),
+    ]
 
-    El dictado de Windows escribe donde esté el cursor de texto, no donde esté
-    la ventana. Traer la aplicación al frente no basta: si el cuadro de escribir
-    no tiene el foco, lo dictado se pierde o acaba en cualquier otro sitio.
 
-    No hay una forma limpia de pedirle a una aplicación ajena «pon el foco en tu
-    cuadro de texto»: son ventanas web dentro de un envoltorio y no exponen sus
-    campos. Así que se hace lo que haría una persona —un clic en el cuadro— y se
-    devuelve el ratón a donde estaba, para no dejarlo movido.
+def hay_cursor_de_escritura() -> bool:
+    """¿Hay un cursor parpadeando en algún cuadro de texto?
 
-    El clic va abajo y al centro, que es donde está el cuadro de escribir en
-    ChatGPT, en Claude y en cualquier programa de conversación.
+    Es la única forma honesta de saber si el clic acertó. Windows lo cuenta en
+    ``GetGUIThreadInfo``: si hay ``hwndCaret``, hay dónde escribir. Sin esta
+    comprobación uno adivina la altura del cuadro y reza, que es lo que estaba
+    haciendo.
     """
     if not hay_soporte():
         return False
     user32 = ctypes.WinDLL("user32", use_last_error=True)
-
-    izquierda, arriba, derecha, abajo = _rectangulo(hwnd)
-    if derecha - izquierda < 200 or abajo - arriba < 200:
+    hwnd = user32.GetForegroundWindow()
+    hilo = user32.GetWindowThreadProcessId(hwnd, None)
+    info = _GUITHREADINFO()
+    info.cbSize = ctypes.sizeof(_GUITHREADINFO)
+    if not user32.GetGUIThreadInfo(hilo, ctypes.byref(info)):
         return False
+    # 0x00000001 = GUI_CARETBLINKING
+    return bool(info.hwndCaret) or bool(info.flags & 0x00000001)
+
+
+def _clic(x: int, y: int) -> None:
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+
+    class _PUNTO(ctypes.Structure):
+        _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+    antes = _PUNTO()
+    user32.GetCursorPos(ctypes.byref(antes))
+    try:
+        user32.SetCursorPos(x, y)
+        time.sleep(0.05)
+        user32.mouse_event(0x0002, 0, 0, 0, 0)
+        time.sleep(0.03)
+        user32.mouse_event(0x0004, 0, 0, 0, 0)
+        time.sleep(0.18)
+    finally:
+        user32.SetCursorPos(antes.x, antes.y)
+
+
+#: Dónde cae el clic, como fracción del alto de la ventana medida desde abajo.
+#: En ChatGPT y en Claude el cuadro de escribir está en esa banda; si en algún
+#: programa cae mal, se ajusta por modo con «alto_cuadro».
+FRACCION_DEL_CUADRO = 0.14
+
+
+def poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro: int = 0) -> bool:
+    """Hace clic en el cuadro de escribir y devuelve el ratón a su sitio.
+
+    El dictado de Windows escribe donde esté el cursor de texto, no donde esté
+    la ventana. Traerla al frente no basta: si el cuadro no tiene el foco, lo
+    dictado se pierde.
+
+    No hay forma limpia de pedirle a otra aplicación «pon el foco en tu cuadro
+    de texto»: ChatGPT y Claude son ventanas web dentro de un envoltorio y no
+    exponen sus campos al sistema —tampoco se puede comprobar si el clic acertó,
+    porque Chromium dibuja su propio cursor y Windows no lo ve—. Así que se hace
+    lo que haría una persona: un clic donde está el cuadro, y el ratón de vuelta
+    a donde estaba para no dejarlo movido.
+    """
+    if not hay_soporte():
+        return False
+    izquierda, arriba, derecha, abajo = _rectangulo(hwnd)
+    ancho, alto = derecha - izquierda, abajo - arriba
+    if ancho < 200 or alto < 200:
+        return False
+
+    # La posición se calcula en proporción al alto de la ventana, no en píxeles
+    # fijos: así cae en el mismo sitio con cualquier resolución y con la ventana
+    # a cualquier tamaño.
+    margen = alto_del_cuadro or int(alto * FRACCION_DEL_CUADRO)
     x = (izquierda + derecha) // 2
-    y = abajo - alto_del_cuadro
+    y = abajo - margen
+    # Por si acaso: nunca fuera de la ventana ni fuera del borde de la pantalla.
+    y = max(arriba + 40, min(y, abajo - 20))
+    x = max(izquierda + 20, min(x, derecha - 20))
+
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
 
     class _PUNTO(ctypes.Structure):
         _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
@@ -339,9 +443,10 @@ def poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro: int = 90) -> bool:
         user32.mouse_event(0x0002, 0, 0, 0, 0)  # botón izquierdo abajo
         time.sleep(0.03)
         user32.mouse_event(0x0004, 0, 0, 0, 0)  # y arriba
-        time.sleep(0.12)
+        time.sleep(0.18)
     finally:
         user32.SetCursorPos(antes.x, antes.y)
+    _log.debug("Clic en el cuadro a %s px del borde inferior", margen)
     return True
 
 
@@ -370,13 +475,53 @@ def _ventana_de(proceso: str):
                 nombre = memoria.value.rsplit("\\", 1)[-1].lower().removesuffix(".exe")
                 if nombre == proceso:
                     objetivo.append(hwnd)
-                    return False
         finally:
             kernel32.CloseHandle(manejador)
         return True
 
     user32.EnumWindows(mirar, 0)
-    return objetivo[0] if objetivo else None
+    return _la_principal(objetivo)
+
+
+def _esperar_a_que_se_asiente(proceso: str, plazo_s: float = 1.5) -> bool:
+    """Espera a que la ventana tenga un tamaño y una posición creíbles.
+
+    Restaurar una ventana no es instantáneo, y medirla a media animación da
+    números que no sirven. Se espera a que ocupe algo y esté dentro de la
+    pantalla, o hasta que se acabe el plazo.
+    """
+    limite = time.monotonic() + plazo_s
+    while time.monotonic() < limite:
+        hwnd = _ventana_de(proceso)
+        if hwnd:
+            izquierda, arriba, derecha, abajo = _rectangulo(hwnd)
+            if derecha - izquierda > 300 and abajo - arriba > 300 and derecha > 0 and abajo > 0:
+                return True
+        time.sleep(0.15)
+    return False
+
+
+def _la_principal(ventanas: list) -> Optional[int]:
+    """De todas las ventanas de un programa, la que de verdad usa la persona.
+
+    Un programa moderno tiene varias: la del icono de la bandeja, alguna oculta
+    fuera de pantalla, ventanas de apoyo. ChatGPT tiene una de 158x26 colocada en
+    coordenadas negativas, y quedarse con la primera que aparece —como se hacía—
+    mandaba el clic a veinte mil píxeles fuera de la pantalla. La buena es la
+    más grande.
+    """
+    if not ventanas:
+        return None
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+
+    def superficie(hwnd) -> int:
+        izquierda, arriba, derecha, abajo = _rectangulo(hwnd)
+        ancho, alto = derecha - izquierda, abajo - arriba
+        if ancho <= 0 or alto <= 0:
+            return 0
+        return ancho * alto
+
+    return max(ventanas, key=superficie)
 
 
 def abrir_programa(orden: str) -> bool:
@@ -447,6 +592,7 @@ def dictar_en(
     lanzar: str = "",
     espera_arranque_s: float = 6.0,
     pinchar_el_cuadro: bool = True,
+    alto_del_cuadro: int = 0,
 ) -> dict:
     """Enfoca el programa —abriéndolo si hace falta— y dicta dentro de él."""
     if not proceso:
@@ -473,6 +619,7 @@ def dictar_en(
         _log.debug("«%s» no se pudo traer al frente; se dicta donde esté el foco", proceso)
 
     time.sleep(ESPERA_FOCO_S)
+    _esperar_a_que_se_asiente(proceso)
 
     # El paso que faltaba: poner el cursor en el cuadro de escribir. Sin esto,
     # el dictado se abre pero lo hablado no aterriza en ninguna parte.
@@ -480,7 +627,7 @@ def dictar_en(
     if pinchar_el_cuadro:
         hwnd = _ventana_de(proceso)
         if hwnd:
-            en_el_cuadro = poner_el_cursor_en_el_prompt(hwnd)
+            en_el_cuadro = poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro)
 
     abrir_dictado()
     return {
@@ -546,6 +693,7 @@ __all__ = [
     "EscuchaDictado",
     "abrir_dictado",
     "dictar_en",
+    "FRACCION_DEL_CUADRO",
     "poner_el_cursor_en_el_prompt",
     "enfocar",
     "hay_soporte",
