@@ -76,14 +76,26 @@ class PruebaObjetivoBLE(unittest.TestCase):
             )
 
     def test_en_windows_sin_bleak_se_cae_con_elegancia(self):
+        """Sin bleak, el atajo se rinde y devuelve la dirección tal cual.
+
+        La prueba simula de verdad que la biblioteca no está: antes daba por
+        hecho que no estaba instalada, así que pasaba o fallaba según la máquina
+        donde se corriera, que es justo lo que una prueba no debe hacer.
+        """
+        import builtins
         import os
         from unittest import mock
 
         from tecladoia.transporte.ble import TransporteBLE
 
-        # Sin bleak instalado, la importación falla y se vuelve a la cadena:
-        # el arreglo nunca debe impedir que se intente la conexión normal.
-        with mock.patch.object(os, "name", "nt"):
+        importar = builtins.__import__
+
+        def sin_bleak(nombre, *resto):
+            if nombre.startswith("bleak"):
+                raise ImportError("bleak no está instalado")
+            return importar(nombre, *resto)
+
+        with mock.patch.object(os, "name", "nt"),              mock.patch.object(builtins, "__import__", sin_bleak):
             self.assertEqual(
                 TransporteBLE._objetivo("D4:6C:52:7C:C7:25", ""), "D4:6C:52:7C:C7:25"
             )
