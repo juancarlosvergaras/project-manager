@@ -84,6 +84,7 @@ class ServidorEnganches:
         #: Qué agente movió la barra por última vez, y cuándo.
         self.agente_activo: Optional[str] = None
         self.ultimo_evento_en: float = 0.0
+        self._bucle: Optional[asyncio.AbstractEventLoop] = None
         self._reposo: Optional[asyncio.Task] = None
         self._vigilante: Optional[asyncio.Task] = None
         self._ultimo_estado_registrado: Optional[EstadoIA] = None
@@ -100,6 +101,9 @@ class ServidorEnganches:
 
     # --- ciclo de vida --------------------------------------------------
     async def arrancar(self, con_tcp: bool = True) -> None:
+        # Se guarda el bucle para que el vigía de ChatGPT, que vive en su
+        # propio hilo, pueda cruzar hasta aquí sin tocar asyncio desde fuera.
+        self._bucle = asyncio.get_running_loop()
         if os.name != "nt":
             self.ruta_socket = ruta_socket()
             with contextlib.suppress(FileNotFoundError):
@@ -461,7 +465,32 @@ class ServidorEnganches:
             return True
         return dueno == (agente_id or "").strip().lower()
 
+    def le_toca_al_modo(self, agente_id: str) -> bool:
+        """¿Manda este programa en el modo que tiene puesto el teclado?
+
+        Pública porque el vigía de ChatGPT la consulta desde su hilo para saber
+        si merece la pena mirar la ventana. Solo lee, así que se puede llamar
+        desde donde sea.
+        """
+        return self._le_toca_a_este_modo(agente_id)
+
     # --- lo que pasa en el teclado, en vivo -------------------------------
+    def avisar_de_chatgpt(self, que: str) -> None:
+        """Refleja lo que hace ChatGPT, que no tiene enganches con que avisar.
+
+        Llega desde el hilo del vigía, así que hay que cruzar al bucle de
+        sucesos antes de tocar nada: ``_marcar_actividad`` crea tareas y no se
+        puede llamar desde otro hilo.
+        """
+        estado = {
+            "trabajando": EstadoIA.HERRAMIENTA_EN_CURSO,
+            "terminado": EstadoIA.TAREA_COMPLETADA,
+        }.get(que)
+        if estado is None or self._bucle is None or self._bucle.is_closed():
+            return
+        evento = EventoEnganche(f"ChatGPT{que.capitalize()}", que, estado)
+        self._bucle.call_soon_threadsafe(self._marcar_actividad, "chatgpt", evento)
+
     def avisar_de_pulsacion(self, pieza: str, detalle: dict[str, Any]) -> None:
         """Cuenta al panel que algo se ha tocado, para que lo señale.
 

@@ -835,7 +835,23 @@ const REGLAS_DE_FABRICA = [
 /* -------------------------------- agentes -------------------------------- */
 
 function pintarAgentes(lista) {
-  $("#agentes").innerHTML = lista.map((a) => `<div class="agente" data-agente="${esc(a.id)}">
+  $("#agentes").innerHTML = lista.map((a) => {
+    // ChatGPT no tiene enganches y no puede tenerlos, asi que su ficha se
+    // cuenta distinta: ni ruta de configuracion ni «reinstalar», que darian a
+    // entender que se escribe algo en alguna parte. Lo que se enciende y se
+    // apaga ahi es el vigia que le lee la ventana.
+    if (a.sin_enganches) {
+      return `<div class="agente" data-agente="${esc(a.id)}">
+        <h3>${esc(a.nombre)}</h3>
+        <div class="nota">${a.instalado ? "Vigilado · se le lee la ventana" : "Sin vigilar · el modo se queda a oscuras"}</div>
+        <div class="ruta">${esc(a.nota || "")}</div>
+        <div class="acciones">
+          <button type="button" class="btn ${a.instalado ? "btn-claro" : "btn-azul"}"
+            data-${a.instalado ? "desinstalar" : "instalar"}>
+            ${a.instalado ? "Dejar de vigilar" : "Vigilar"}</button>
+        </div></div>`;
+    }
+    return `<div class="agente" data-agente="${esc(a.id)}">
     <h3>${esc(a.nombre)}</h3>
     <div class="nota">${a.instalado ? `Enganches puestos · ${a.eventos} eventos` : "Sin enganches"}
       ${a.existe_config ? "" : " · no parece instalado en este equipo"}</div>
@@ -844,7 +860,8 @@ function pintarAgentes(lista) {
       <button type="button" class="btn ${a.instalado ? "btn-claro" : "btn-azul"}" data-instalar>
         ${a.instalado ? "Reinstalar" : "Instalar"}</button>
       ${a.instalado ? '<button type="button" class="btn btn-claro peligro" data-desinstalar>Quitar</button>' : ""}
-    </div></div>`).join("");
+    </div></div>`;
+  }).join("");
 
   $$("#agentes [data-instalar]").forEach((b) => b.addEventListener("click", async () => {
     const id = b.closest("[data-agente]").dataset.agente;

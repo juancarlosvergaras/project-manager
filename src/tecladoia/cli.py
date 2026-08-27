@@ -173,6 +173,23 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
         if not args.sin_teclado:
             vigilantes.append(asyncio.create_task(gestor.mantener_conexion()))
 
+        # ChatGPT no tiene enganches y no puede tenerlos, así que su estado se
+        # lee mirándole la ventana. Solo mientras el teclado esté en su modo:
+        # fuera de ahí no habría a quién encenderle la luz.
+        vigia = None
+        if getattr(ajustes, "vigilar_chatgpt", True):
+            from .vigia_chatgpt import VigiaChatGPT
+
+            vigia = VigiaChatGPT(
+                servidor.avisar_de_chatgpt,
+                lambda: servidor.le_toca_al_modo("chatgpt"),
+            )
+            if vigia.arrancar():
+                salida.bien("ChatGPT vigilado por la capa de accesibilidad")
+            else:
+                salida.linea("  ChatGPT no se puede vigilar en este equipo")
+                vigia = None
+
         if getattr(ajustes, "seguir_aplicacion", True):
             from .enfoque import Vigilante, modo_para
 
@@ -211,6 +228,9 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                 microfono = Dictado()
 
                 bucle_microfono = asyncio.get_running_loop()
+                #: Ultimo modo que se pudo leer del teclado. En una lista para
+                #: que la funcion de dentro pueda cambiarlo.
+                ultimo_modo = [0]
 
                 def al_pulsar_microfono() -> None:
                     # Se le pregunta al teclado en ese mismo momento en que modo
@@ -229,17 +249,28 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
 
                     lectura = gestor.estado
                     indice = lectura.modo_trabajo if lectura else None
-                    modo = None
-                    if indice is not None and 0 <= indice < len(ajustes.modos):
-                        modo = ajustes.modos[indice]
+                    if indice is None or not 0 <= indice < len(ajustes.modos):
+                        # Sin modo no se dicta «donde este el foco»: eso es lo
+                        # que mandaba el dictado del modo 1 a la ventana de
+                        # ChatGPT si esa era la que estaba delante. Se usa el
+                        # ultimo modo que se leyo bien, que es una suposicion
+                        # honesta; y si no hay ninguno, el 1.
+                        indice = ultimo_modo[0]
+                        registro.obtener("microfono").warning(
+                            "No se pudo leer el modo del teclado; se usa el %s",
+                            indice + 1,
+                        )
+                    else:
+                        ultimo_modo[0] = indice
+                    modo = ajustes.modos[indice]
                     palanca = lectura.palanca if lectura else None
                     hecho = microfono.alternar(
-                        getattr(modo, "programa", "") if modo else "",
-                        getattr(modo, "lanzar", "") if modo else "",
+                        getattr(modo, "programa", ""),
+                        getattr(modo, "lanzar", ""),
                         pinchar_el_cuadro=getattr(
                             ajustes, "pinchar_cuadro_al_dictar", True
                         ),
-                        alto_del_cuadro=getattr(modo, "alto_cuadro", 0) if modo else 0,
+                        alto_del_cuadro=getattr(modo, "alto_cuadro", 0),
                         enviar_al_cerrar=(palanca == 0),
                     )
                     # Enfocar el programa del modo hace que el seguidor lo vea
@@ -254,8 +285,8 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                     registro.obtener("microfono").info(
                         "%s · modo %s (%s) · programa %s · cuadro %s%s",
                         hecho["accion"],
-                        (indice or 0) + 1,
-                        getattr(modo, "nombre", "?") if modo else "?",
+                        indice + 1,
+                        getattr(modo, "nombre", "?"),
                         hecho.get("programa") or "el foco",
                         hecho.get("cuadro") or "no",
                         " · enviado" if hecho.get("enviado") else "",
@@ -267,11 +298,11 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                         "accion": hecho["accion"],
                         "programa": hecho.get("programa") or "",
                         "enviado": bool(hecho.get("enviado")),
-                        "modo": (indice or 0),
+                        "modo": indice,
                     })
                     salida.linea(
                         "  microfono " + hecho["accion"] + " · modo " +
-                        str((indice or 0) + 1) + " · " +
+                        str(indice + 1) + " · " +
                         (hecho.get("programa") or "donde este el foco") +
                         (" · enviado" if hecho.get("enviado") else "")
                     )

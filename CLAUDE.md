@@ -41,6 +41,31 @@ emparejados del sistema (WinRT). El transporte `auto` lo prueba primero.
 > Si alguien «simplifica» `transporte/__init__.py` para que `auto` devuelva
 > `TransporteBLE`, el teclado deja de conectarse. Ya pasó una vez.
 
+**ChatGPT no tiene enganches y no puede tenerlos.** Es una aplicación cerrada:
+no hay archivo donde declarar un comando ni evento al que apuntarse. Por eso el
+modo 2 se quedaba a oscuras mientras el 1 encendía luces — no era un fallo. Su
+estado se lee **mirándole la ventana** por la capa de accesibilidad de Windows
+(`vigia_chatgpt.py`): el botón «Detener» solo existe mientras genera. De ahí
+salen los dos momentos que se pueden sostener —está respondiendo y ha
+terminado— y no más: desde fuera no se distingue «pensando» de «ejecutando», ni
+se ve cuándo te pide permiso. Si ChatGPT renombra sus botones, el vigía se
+calla en vez de inventarse un estado.
+
+> **Codex CLI ya no se ofrece.** Su adaptador sigue en el código y quien lo
+> tenga puesto sigue funcionando, pero no aparece en la lista: quien usa la
+> aplicación de ChatGPT no tiene Codex, y ver un programa que no existe en el
+> equipo solo confunde. Está en `agentes.CONOCIDOS`, no en `agentes.AGENTES`.
+
+**No fiarse de lo que Windows dice sobre la conexión.** Un teclado Bluetooth
+dormido aparece como «desconectado» aunque despierte a la primera escritura.
+Creérselo montaba un círculo vicioso que costó una mañana: la web decía «todavía
+no hay teclado» con el teclado delante, el gestor dejaba de escribirle, y como
+el contacto solo se refresca escribiendo, no se refrescaba nunca. Peor aún,
+`consultar_estado()` devolvía `None`, así que **el micrófono no sabía en qué
+modo estaba** y dictaba donde hubiera el foco — de ahí «pulso el micrófono en el
+modo 1 y se va a ChatGPT». Ahora manda la escritura: mientras el canal esté
+abierto se le escribe, y si falla dos veces seguidas se suelta y se reabre solo.
+
 **Solo un programa a la vez.** Si está abierta la aplicación oficial de AhaKey o
 su `BLE_tcp_driver.exe`, tienen el teclado tomado y nosotros no entramos.
 Ciérralos. (Si prefieres convivir con ellos: `--transporte puente`, que habla con

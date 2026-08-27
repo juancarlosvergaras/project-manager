@@ -35,10 +35,38 @@ class PruebaRegistro(unittest.TestCase):
         self.assertIs(agente, AgenteClaude)
         self.assertIsNotNone(AgenteGenerico.evento("PreToolUse"))
 
-    def test_cada_agente_tiene_un_evento_que_decide(self):
+    def test_cada_agente_con_enganches_tiene_un_evento_que_decide(self):
+        """Quien nos pregunte, tiene que tener por dónde preguntarnos.
+
+        Se exceptúan los agentes marcados con ``sin_enganches``: ChatGPT no
+        tiene forma de consultarnos nada —su estado se lee mirándole la
+        ventana— así que exigirle un evento de permiso sería exigir algo que
+        no puede existir.
+        """
         for agente in agentes.AGENTES:
+            if getattr(agente, "sin_enganches", False):
+                continue
             with self.subTest(agente=agente.id):
                 self.assertTrue(any(e.permiso for e in agente.eventos))
+
+    def test_los_agentes_sin_enganches_lo_dicen(self):
+        """Si no puede decidir aprobaciones, debe explicar por qué."""
+        for agente in agentes.AGENTES:
+            if not getattr(agente, "sin_enganches", False):
+                continue
+            with self.subTest(agente=agente.id):
+                self.assertFalse(any(e.permiso for e in agente.eventos))
+                self.assertTrue((getattr(agente, "nota", "") or "").strip())
+
+    def test_codex_sigue_alcanzable_aunque_no_se_ofrezca(self):
+        """Se sacó de la lista, no del programa: quien lo tenga puesto sigue.
+
+        Los enganches de Codex ya instalados en un equipo siguen llamando, y
+        tienen que seguir reconociéndose aunque Codex ya no se ofrezca.
+        """
+        self.assertNotIn("codex", [a.id for a in agentes.AGENTES])
+        self.assertIsNotNone(agentes.obtener("codex"))
+        self.assertIsNotNone(agentes.buscar_evento("CodexPreToolUse"))
 
     def test_se_localiza_el_agente_por_el_nombre_del_evento(self):
         agente, evento = agentes.buscar_evento("KimiPreToolUse")

@@ -58,6 +58,11 @@ def revisar() -> list[dict]:
                 "existe_config": bool(ruta and ruta.exists()),
                 "instalado": instalado,
                 "eventos": len(agente.eventos),
+                # ChatGPT no tiene enganches y no puede tenerlos. El panel
+                # necesita saberlo para explicarlo en vez de ofrecer un botón
+                # de «instalar» que no escribe nada en ninguna parte.
+                "sin_enganches": bool(getattr(agente, "sin_enganches", False)),
+                "nota": (getattr(agente, "nota", "") or ""),
                 "permisos": sum(1 for e in agente.eventos if e.permiso),
             }
         )

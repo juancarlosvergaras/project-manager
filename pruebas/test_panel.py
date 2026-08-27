@@ -60,7 +60,7 @@ class PruebaPanel(PruebaAislada):
                 datos = json.loads(cuerpo)
                 self.assertTrue(datos["estado"]["conectado"])
                 self.assertEqual(datos["estado"]["palanca"], 1)
-                self.assertTrue(any(a["id"] == "codex" for a in datos["agentes"]))
+                self.assertTrue(any(a["id"] == "chatgpt" for a in datos["agentes"]))
             finally:
                 await panel.detener()
         asyncio.run(caso())

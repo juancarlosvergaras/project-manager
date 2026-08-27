@@ -35,6 +35,9 @@ _log = obtener("windows")
 #: diga Windows. Un teclado que contestó hace diez segundos sigue estando ahí.
 VIGENCIA_DEL_CONTACTO_S = 45.0
 
+#: Escrituras fallidas seguidas que hacen soltar el canal y reabrirlo.
+FALLOS_PARA_SOLTAR = 2
+
 #: Nombres con los que el teclado aparece en la lista de emparejados.
 NOMBRES_CONOCIDOS = ("ahakey", "vibecoding", "x1")
 
@@ -70,6 +73,8 @@ class TransporteWindowsEmparejado(Transporte):
         self._descripcion = ""
         #: Cuándo se habló con el teclado por última vez, de verdad.
         self._ultimo_contacto: float = 0.0
+        #: Escrituras fallidas seguidas; a partir de un tope se suelta el canal.
+        self._fallos: int = 0
 
     # --- estado -----------------------------------------------------------
     @property
@@ -91,12 +96,18 @@ class TransporteWindowsEmparejado(Transporte):
             return False
         if time.monotonic() - self._ultimo_contacto < VIGENCIA_DEL_CONTACTO_S:
             return True
-        try:
-            from winrt.windows.devices.bluetooth import BluetoothConnectionStatus
 
-            return self._dispositivo.connection_status == BluetoothConnectionStatus.CONNECTED
-        except Exception:  # noqa: BLE001 - si no se puede preguntar, se da por ido
-            return False
+        # Aquí estaba el círculo vicioso que dejaba la web diciendo «todavía no
+        # hay teclado» con el teclado encendido delante. Se le preguntaba a
+        # Windows, Windows contestaba «desconectado» porque el teclado dormía,
+        # y entonces el gestor ya no le escribía nada; como el contacto solo se
+        # refresca escribiendo, no volvía a refrescarse nunca. Un teclado
+        # dormido se quedaba muerto hasta reiniciar el servicio.
+        #
+        # Mientras tengamos el canal abierto se da por conectado y se le
+        # escribe: si de verdad se fue, la escritura falla y ``_escribir`` tira
+        # el canal, que es la única señal que no miente.
+        return True
 
     # --- búsqueda ---------------------------------------------------------
     async def buscar(self) -> list[tuple[str, str]]:
@@ -272,10 +283,42 @@ class TransporteWindowsEmparejado(Transporte):
                 escritor.detach_buffer(), opcion
             )
         except Exception as error:  # noqa: BLE001 - WinRT lanza sus propias excepciones
+            self._fallo_de_escritura()
             raise ErrorTransporte(f"Fallo al escribir en el teclado: {error}") from error
         if int(estado) != 0:
+            self._fallo_de_escritura()
             raise ErrorTransporte(f"El teclado rechazó la escritura (estado {int(estado)})")
         self._ultimo_contacto = time.monotonic()
+        self._fallos = 0
+
+    def _fallo_de_escritura(self) -> None:
+        """Tira el canal cuando el teclado deja de contestar de verdad.
+
+        Una escritura suelta puede fallar porque el teclado estaba despertando,
+        así que no se tira a la primera: eso provocaría reconexiones constantes.
+        A la segunda seguida se suelta el canal, y entonces ``mantener_conexion``
+        lo vuelve a abrir por su cuenta. Es lo que devuelve el teclado a la vida
+        sin tener que reiniciar el servicio.
+        """
+        self._fallos += 1
+        if self._fallos < FALLOS_PARA_SOLTAR:
+            return
+        _log.info("El teclado dejó de responder; se suelta para volver a abrirlo")
+        self._soltar_el_canal()
+
+    def _soltar_el_canal(self) -> None:
+        if self._notifica is not None and self._testigo is not None:
+            try:
+                self._notifica.remove_value_changed(self._testigo)
+            except Exception:  # noqa: BLE001 - ya podía estar suelto
+                pass
+        self._testigo = None
+        self._notifica = None
+        self._comando = None
+        self._datos = None
+        self._dispositivo = None
+        self._ultimo_contacto = 0.0
+        self._fallos = 0
 
     async def descripcion(self) -> str:
         if self._descripcion:

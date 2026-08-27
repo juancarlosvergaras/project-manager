@@ -194,6 +194,9 @@ class Ajustes:
     #:
     #: Se enciende desde Ajustes cuando se quiere ese automatismo.
     seguir_aplicacion: bool = False
+    #: Leerle a ChatGPT el estado por la capa de accesibilidad. Es la única vía
+    #: que hay: ChatGPT no tiene enganches. Se puede apagar si molesta.
+    vigilar_chatgpt: bool = True
     #: Segundos sin noticias tras los que la barra vuelve al reposo. Sin esto se
     #: queda encendida con lo último que pasó aunque hayas cambiado de programa.
     segundos_reposo: float = 25.0

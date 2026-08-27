@@ -65,10 +65,37 @@ entre programas.
 `~/.cursor/hooks.json` y `~/.gemini/settings.json`. Cursor usa `beforeShellExecution`
 y Gemini `BeforeTool`, ambos equivalentes a `PreToolUse`.
 
-### Los que NO avisan
-**Las aplicaciones de escritorio —ChatGPT, Claude de escritorio en su ventana
-propia— no tienen enganches ni forma de tenerlos.** Para esas, la única vía es
-mirar qué ventana tiene el foco. No esperes eventos que no van a llegar.
+### Los que NO avisan: hay que mirarlos
+
+**Las aplicaciones de escritorio —ChatGPT, Claude en su ventana propia— no
+tienen enganches ni forma de tenerlos.** No esperes eventos que no van a llegar.
+
+Pero no todo está perdido: se les puede **mirar**. Windows publica una capa de
+accesibilidad —la de los lectores de pantalla— y estas aplicaciones, que son
+Chromium por dentro, exponen ahí sus botones con su nombre. Basta encontrar uno
+que solo exista en un estado. En ChatGPT es **«Detener»**, que aparece mientras
+genera la respuesta y desaparece al terminar:
+
+```
+hay boton «Detener»      -> 3 · Herramienta en curso
+lo habia y ya no         -> 6 · Tarea completada
+no se reconoce ninguno   -> callarse
+```
+
+Tres cosas que hacen que esto sea sostenible y no un truco frágil:
+
+1. **Margen antes de dar por terminado.** El botón parpadea entre bloques de
+   texto; sin un par de segundos de gracia cantarías «terminado» cada dos
+   frases.
+2. **Callarse cuando no se reconoce nada.** Si un día renombran los botones,
+   más vale una luz apagada que una que miente.
+3. **Confirmar que estás leyendo lo que crees.** Busca también el botón de
+   enviar: si no ves ni uno ni otro, la ventana no está donde crees.
+
+Y lo que esta vía **no** da, para no prometerlo: no distingue «pensando» de
+«ejecutando una herramienta», y no ve cuándo te piden permiso —eso vive dentro
+de la conversación, no en un botón—. Es la mitad del semáforo, pero es la mitad
+que se puede sostener.
 
 ---
 
