@@ -191,3 +191,20 @@ class PruebaClaveDelPanel(PruebaAislada):
             finally:
                 await panel.detener()
         asyncio.run(caso())
+
+
+class PruebaAvisoSinClave(PruebaAislada):
+    def test_avisa_al_arrancar_sin_clave(self):
+        """Un túnel llega a 127.0.0.1: escuchar en local no basta para estar a salvo."""
+        async def caso():
+            ajustes = Ajustes(
+                sincronizar_config_agentes=False, puerto_panel=8891, puerto_hooks=8971
+            )
+            gestor = GestorTeclado(ajustes, TransporteSimulado())
+            await gestor.conectar()
+            panel = PanelWeb(gestor, ServidorEnganches(gestor, ajustes), ajustes)
+            with self.assertLogs("tecladoia.panel", level="WARNING") as registro:
+                await panel.arrancar()
+            await panel.detener()
+            self.assertTrue(any("túnel" in linea for linea in registro.output))
+        asyncio.run(caso())

@@ -223,6 +223,17 @@ class PanelWeb:
             )
             return
 
+        if not self.ajustes.clave_panel:
+            # Escuchar en local no basta para estar a salvo: un túnel
+            # (cloudflared, ngrok…) corre en esta misma máquina y llega a
+            # 127.0.0.1, así que publicaría el panel sin que nadie se lo
+            # impidiera. Como no hay forma de detectarlo, al menos se avisa.
+            _log.warning(
+                "El panel no tiene clave: solo es seguro en esta máquina. "
+                "No lo publiques por un túnel sin poner una con "
+                "«tecladoia config --clave-panel generar»."
+            )
+
         base = self.ajustes.puerto_panel
         for intento in range(10):
             try:
