@@ -28,6 +28,26 @@ TENUE = "\033[2m"
 FIN = "\033[0m"
 
 
+def _salida_en_utf8() -> None:
+    """Que la consola acepte acentos y flechas sin tumbar el servicio.
+
+    La consola de Windows viene en cp1252, que no sabe escribir «↔» ni media
+    docena de caracteres más que usamos en los mensajes. Al intentarlo lanza
+    UnicodeEncodeError, y como eso ocurría dentro del arranque, el servicio se
+    moría entero por no poder imprimir una línea informativa. Ha pasado dos
+    veces; de ahí el ``errors="replace"``: en el peor caso sale un interrogante,
+    pero el servicio sigue en pie.
+    """
+    for flujo in (sys.stdout, sys.stderr):
+        try:
+            flujo.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001 - flujo redirigido o sin reconfigure
+            pass
+
+
+_salida_en_utf8()
+
+
 class Salida:
     """Impresión con color opcional, apagable para lectores de pantalla."""
 

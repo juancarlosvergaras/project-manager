@@ -41,7 +41,7 @@ ATAJO_DICTADO = "ctrl+alt+may+f13"
 
 #: Dos pulsaciones más juntas que esto son la misma. Ni el dedo más rápido abre
 #: y cierra el dictado en medio segundo.
-REBOTE_S = 0.6
+REBOTE_S = 1.0
 
 # --- constantes de Windows ---------------------------------------------------
 MOD_ALT, MOD_CONTROL, MOD_SHIFT = 0x0001, 0x0002, 0x0004
@@ -259,6 +259,24 @@ def abrir_dictado() -> None:
     _soltar_modificadores()
     time.sleep(0.06)  # que Windows procese el soltar antes del atajo
     _pulsar(VK_LWIN, VK_H)
+
+
+def cerrar_dictado() -> None:
+    """Cierra el dictado con Escape, no con Win+H.
+
+    Win+H es un interruptor, y desde fuera no hay forma de saber en qué posición
+    está: el panel de dictado no aparece como ventana ni se asoma a la capa de
+    accesibilidad, se buscó y no está. Así que si Windows lo había cerrado solo
+    —se cierra tras un silencio— el Win+H de «cerrar» lo volvía a abrir. Ese era
+    el «se activa cuando lo cierro».
+
+    Escape no tiene ese problema: cierra el dictado si está abierto y no hace
+    nada si no lo está. Deja el cursor donde estaba, así que lo dictado sigue en
+    el cuadro listo para enviarse.
+    """
+    _soltar_modificadores()
+    time.sleep(0.06)
+    _pulsar(VK_ESC)
 
 
 # --- traer una ventana al frente ---------------------------------------------
@@ -551,6 +569,7 @@ def abrir_programa(orden: str) -> bool:
 
 
 VK_INTRO = 0x0D
+VK_ESC = 0x1B
 
 
 class Dictado:
@@ -581,19 +600,22 @@ class Dictado:
         # primera al instante: cerrabas el micrófono y se volvía a abrir.
         ahora = time.monotonic()
         if ahora - self._ultima < REBOTE_S:
-            _log.debug("Pulsación repetida a los %.2f s: se ignora", ahora - self._ultima)
+            _log.info("Pulsación repetida a los %.2f s: se ignora", ahora - self._ultima)
             return {"accion": "repetida", "programa": self.programa}
         self._ultima = ahora
 
         if self.abierto:
-            abrir_dictado()
             enviado = False
             if enviar_al_cerrar:
-                # La palanca en automático significa «no me preguntes»: se
-                # manda lo dictado sin esperar a que lo confirmes.
-                time.sleep(0.45)  # que el dictado termine de escribir
+                # Con la palanca arriba se envía PRIMERO y se cierra después.
+                # El orden importa: cerrar antes puede quitarle el foco al
+                # cuadro, y entonces el Intro no llega a ninguna parte y lo
+                # dictado se queda escrito sin mandar.
+                time.sleep(0.5)   # que el dictado termine de escribir
                 _pulsar(VK_INTRO)
                 enviado = True
+                time.sleep(0.25)
+            cerrar_dictado()
             self.abierto = False
             return {"accion": "cerrado", "programa": self.programa, "enviado": enviado}
 
@@ -683,6 +705,7 @@ class EscuchaDictado:
         self.al_pulsar = al_pulsar
         self.identificador = identificador
         self._parar = False
+        self._ultimo_disparo = 0.0
 
     def correr(self) -> None:
         """Bucle de mensajes. Bloquea: va en su propio hilo."""
@@ -722,6 +745,12 @@ class EscuchaDictado:
                 if user32.GetMessageW(ctypes.byref(mensaje), None, 0, 0) <= 0:
                     break
                 if mensaje.message == WM_HOTKEY and mensaje.wParam == self.identificador:
+                    ahora = time.monotonic()
+                    _log.info(
+                        "Combinación recibida (%.2f s desde la anterior)",
+                        ahora - self._ultimo_disparo if self._ultimo_disparo else -1,
+                    )
+                    self._ultimo_disparo = ahora
                     try:
                         self.al_pulsar()
                     except Exception:  # noqa: BLE001 - un fallo no debe callar la tecla
@@ -753,6 +782,7 @@ __all__ = [
     "abrir_programa",
     "EscuchaDictado",
     "abrir_dictado",
+    "cerrar_dictado",
     "dictar_en",
     "FRACCION_DEL_CUADRO",
     "poner_el_cursor_en_el_prompt",
