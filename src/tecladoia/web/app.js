@@ -437,35 +437,42 @@ function editorPantalla(nombreModo) {
 }
 
 /* ---- palanca ---- */
+/* La palanca es física y no se toca desde aquí: mandarla a distancia sería
+   contradecir el interruptor que tienes en la mano. Esta pantalla solo cuenta
+   en qué posición está y qué hace cada una. */
 function editorPalanca() {
   const e = estado.panorama?.estado || {};
   const modo = estado.panorama?.ajustes?.modo_aprobacion || "palanca";
-  const forzada = e.palanca_forzada;
-  return cabecera("palanca", "Palanca · modo de aprobación",
-                  "Decide si el agente ejecuta sus herramientas solo") + `
-  <div class="bloque">
-    <p class="bloque-titulo">Palanca</p>
-    <div class="acciones">
-      <button type="button" class="btn ${forzada && e.palanca === 0 ? "btn-azul" : "btn-claro"}" data-palanca="0">Automático</button>
-      <button type="button" class="btn ${forzada && e.palanca !== 0 ? "btn-azul" : "btn-claro"}" data-palanca="1">Manual</button>
-      <button type="button" class="btn ${forzada ? "btn-claro" : "btn-azul"}" data-palanca="">Seguir la física</button>
-    </div>
-    <p class="nota">${forzada
-      ? "Ahora manda la palanca virtual de esta página; la física queda ignorada."
-      : "Manda la palanca física del teclado."}</p>
-    <p class="nota">La palanca no escribe nada en el teclado: cambia lo que el servicio
-       hace con las peticiones de permiso.</p>
-  </div>
+  const arriba = e.palanca === 0;
+  const sinLectura = e.palanca === null || e.palanca === undefined;
 
+  const posicion = sinLectura ? "sin lectura" : (arriba ? "arriba" : "abajo");
+  const clase = sinLectura ? "aviso" : (arriba ? "bien" : "info");
+
+  return cabecera("palanca", "Palanca",
+                  "El interruptor físico del teclado") + `
   <div class="bloque">
-    <p class="bloque-titulo">Modo de aprobación</p>
-    <div class="acciones">
-      <button type="button" class="btn ${modo === "palanca" ? "btn-azul" : "btn-claro"}" data-modo-ap="palanca">Manda la palanca</button>
-      <button type="button" class="btn ${modo === "siempre_preguntar" ? "btn-azul" : "btn-claro"}" data-modo-ap="siempre_preguntar">Preguntar siempre</button>
-      <button type="button" class="btn ${modo === "siempre_permitir" ? "btn-azul" : "btn-claro"}" data-modo-ap="siempre_permitir">Permitir siempre</button>
+    <p class="bloque-titulo">Ahora está <b>${esc(posicion)}</b></p>
+    <div class="posiciones">
+      <div class="posicion ${arriba && !sinLectura ? "activa" : ""}">
+        <span class="posicion-donde">Arriba</span>
+        <span class="posicion-que">Al cerrar el micrófono, <b>el texto se envía solo</b>.</span>
+        <span class="posicion-que">El agente ejecuta sus herramientas sin preguntarte.</span>
+      </div>
+      <div class="posicion ${!arriba && !sinLectura ? "activa" : ""}">
+        <span class="posicion-donde">Abajo</span>
+        <span class="posicion-que">Al cerrar el micrófono, <b>revisas y envías tú</b>.</span>
+        <span class="posicion-que">Cada acción del agente vuelve a tus manos.</span>
+      </div>
     </div>
-    <p class="nota">Un modo fijado manda sobre la palanca. Las reglas que deniegan
-       siguen ganando en cualquier caso.</p>
+    ${sinLectura ? `<p class="nota atencion">No se puede leer la palanca. Mientras
+       tanto no se aprueba nada solo: no saber equivale a preguntar.</p>` : ""}
+    <p class="nota">La palanca no escribe nada en el ordenador. Cambia dos cosas:
+       si lo dictado se manda solo, y qué hace el servicio con las peticiones de
+       permiso de los agentes.</p>
+    <p class="nota">Se mueve con la mano, en el teclado. Desde aquí solo se mira,
+       a propósito: un interruptor que se pueda cambiar a distancia deja de ser
+       un interruptor.</p>
   </div>`;
 }
 
@@ -639,16 +646,7 @@ function conectarEditor() {
     });
   }
 
-  if (s.pieza === "palanca") {
-    $$("[data-palanca]").forEach((b) => b.addEventListener("click", async () => {
-      const v = b.dataset.palanca;
-      pintarEstado(await pedir("/api/palanca", {valor: v === "" ? null : Number(v)}));
-    }));
-    $$("[data-modo-ap]").forEach((b) => b.addEventListener("click", async () => {
-      pintarEstado(await pedir("/api/modo-aprobacion", {modo: b.dataset.modoAp}));
-      avisar("Modo de aprobación guardado.", "bien");
-    }));
-  }
+
 }
 
 async function guardarTecla(vaciar) {

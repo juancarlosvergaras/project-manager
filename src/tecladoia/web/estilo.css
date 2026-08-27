@@ -479,3 +479,17 @@ td.vacio { color:var(--tenue); text-align:center; padding:1.4rem; }
   animation:aparecer .25s ease both;
 }
 .actividad .hora { font-variant-numeric:tabular-nums; opacity:.7; font-weight:400; }
+
+/* --------------------- las dos posiciones de la palanca ---------------- */
+.posiciones { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.7rem; margin:.6rem 0; }
+.posicion {
+  display:grid; gap:.3rem; padding:.8rem .9rem;
+  border:1.5px solid var(--borde); border-radius:12px; background:var(--fondo);
+  opacity:.55; transition:.2s;
+}
+.posicion.activa { opacity:1; border-color:var(--azul); background:var(--azul-suave); }
+.posicion-donde { font-weight:700; font-size:.95rem; }
+.posicion.activa .posicion-donde { color:var(--azul); }
+.posicion-que { font-size:.85rem; color:var(--tenue); line-height:1.45; }
+.posicion.activa .posicion-que { color:var(--texto); }
+.nota.atencion { color:var(--duda); font-weight:500; }
