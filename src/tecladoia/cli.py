@@ -228,6 +228,18 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                     gestor.tregua_de_modo_hasta = max(
                         gestor.tregua_de_modo_hasta, time.monotonic() + 20.0
                     )
+                    if hecho["accion"] == "repetida":
+                        return   # rebote de la misma pulsacion
+                    # Al registro, que es lo que queda cuando algo va mal.
+                    registro.obtener("microfono").info(
+                        "%s · modo %s (%s) · programa %s · cuadro %s%s",
+                        hecho["accion"],
+                        (indice or 0) + 1,
+                        getattr(modo, "nombre", "?") if modo else "?",
+                        hecho.get("programa") or "el foco",
+                        hecho.get("cuadro") or "no",
+                        " · enviado" if hecho.get("enviado") else "",
+                    )
                     # Que se vea en la web: es la unica de las cuatro teclas
                     # que pasa por aqui, asi que es la unica que se puede
                     # comprobar sin mirar el teclado.

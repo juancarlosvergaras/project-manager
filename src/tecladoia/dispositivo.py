@@ -277,6 +277,8 @@ class GestorTeclado:
         return await self._orden(protocolo.brillo_luz(valor))
 
     async def cambiar_modo_trabajo(self, modo: int) -> bool:
+        # Se anota siempre: si el modo salta solo, aquí queda quién lo movió.
+        _log.info("Se pide al teclado el modo %s", modo + 1)
         hecho = await self._orden(protocolo.modo_trabajo(modo))
         if hecho:
             self._modo_pedido = modo

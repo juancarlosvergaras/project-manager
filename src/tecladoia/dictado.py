@@ -39,6 +39,10 @@ _log = obtener("dictado")
 #: una tecla que ningún programa usa, para no pisarle el atajo a nadie.
 ATAJO_DICTADO = "ctrl+alt+may+f13"
 
+#: Dos pulsaciones más juntas que esto son la misma. Ni el dedo más rápido abre
+#: y cierra el dictado en medio segundo.
+REBOTE_S = 0.6
+
 # --- constantes de Windows ---------------------------------------------------
 MOD_ALT, MOD_CONTROL, MOD_SHIFT = 0x0001, 0x0002, 0x0004
 MOD_NOREPEAT = 0x4000
@@ -561,6 +565,7 @@ class Dictado:
     def __init__(self) -> None:
         self.abierto = False
         self.programa = ""
+        self._ultima = 0.0
 
     def alternar(
         self,
@@ -571,6 +576,15 @@ class Dictado:
         alto_del_cuadro: int = 0,
     ) -> dict:
         """Abre el dictado, o lo cierra si ya estaba abierto."""
+        # Antirrebote. La combinación llega dos veces por pulsación —el teclado
+        # la manda al pulsar y al soltar—, y sin esto la segunda deshacía la
+        # primera al instante: cerrabas el micrófono y se volvía a abrir.
+        ahora = time.monotonic()
+        if ahora - self._ultima < REBOTE_S:
+            _log.debug("Pulsación repetida a los %.2f s: se ignora", ahora - self._ultima)
+            return {"accion": "repetida", "programa": self.programa}
+        self._ultima = ahora
+
         if self.abierto:
             abrir_dictado()
             enviado = False

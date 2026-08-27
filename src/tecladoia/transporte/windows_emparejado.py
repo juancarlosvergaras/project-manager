@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from typing import Any, Optional
 
 from .. import protocolo
@@ -29,6 +30,10 @@ from ..registro import obtener
 from .base import ErrorTransporte, Transporte
 
 _log = obtener("windows")
+
+#: Cuánto vale la última conversación con el teclado antes de fiarse de lo que
+#: diga Windows. Un teclado que contestó hace diez segundos sigue estando ahí.
+VIGENCIA_DEL_CONTACTO_S = 45.0
 
 #: Nombres con los que el teclado aparece en la lista de emparejados.
 NOMBRES_CONOCIDOS = ("ahakey", "vibecoding", "x1")
@@ -63,12 +68,29 @@ class TransporteWindowsEmparejado(Transporte):
         self._memoria = bytearray()
         self._bucle: Optional[asyncio.AbstractEventLoop] = None
         self._descripcion = ""
+        #: Cuándo se habló con el teclado por última vez, de verdad.
+        self._ultimo_contacto: float = 0.0
 
     # --- estado -----------------------------------------------------------
     @property
     def conectado(self) -> bool:
+        """¿Se puede hablar con el teclado ahora mismo?
+
+        No basta con preguntárselo a Windows. Un teclado Bluetooth de bajo
+        consumo se duerme entre pulsación y pulsación, y mientras duerme el
+        sistema lo da por **desconectado** aunque siga emparejado y despierte al
+        primer intento de escribirle. Creerse esa respuesta tenía dos efectos
+        feos: la web decía «todavía no hay teclado» con el teclado delante y
+        contestando, y la barra de luz se quedaba congelada, porque las órdenes
+        ni se intentaban.
+
+        Así que también cuenta la experiencia: si hace poco que hablamos con él,
+        está ahí. Cuando de verdad se va, deja de contestar y el plazo vence.
+        """
         if self._dispositivo is None or self._comando is None:
             return False
+        if time.monotonic() - self._ultimo_contacto < VIGENCIA_DEL_CONTACTO_S:
+            return True
         try:
             from winrt.windows.devices.bluetooth import BluetoothConnectionStatus
 
@@ -161,6 +183,7 @@ class TransporteWindowsEmparejado(Transporte):
         self._datos = por_uuid.get(protocolo.CARACTERISTICA_DATOS)
         self._notifica = notifica
         self._descripcion = nombre or identificador
+        self._ultimo_contacto = time.monotonic()
         _log.info("Teclado «%s» abierto por el Bluetooth de Windows", self._descripcion)
 
     @staticmethod
@@ -213,6 +236,7 @@ class TransporteWindowsEmparejado(Transporte):
             return
         if self._bucle is None or self._bucle.is_closed():
             return
+        self._ultimo_contacto = time.monotonic()
         self._bucle.call_soon_threadsafe(self._procesar, datos)
 
     def _procesar(self, datos: bytes) -> None:
@@ -251,6 +275,7 @@ class TransporteWindowsEmparejado(Transporte):
             raise ErrorTransporte(f"Fallo al escribir en el teclado: {error}") from error
         if int(estado) != 0:
             raise ErrorTransporte(f"El teclado rechazó la escritura (estado {int(estado)})")
+        self._ultimo_contacto = time.monotonic()
 
     async def descripcion(self) -> str:
         if self._descripcion:
