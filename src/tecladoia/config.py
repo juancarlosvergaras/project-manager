@@ -183,9 +183,17 @@ class Ajustes:
     #: Cada cuánto se le pregunta al teclado por su estado. Es lo que hace que
     #: mover la palanca con la mano se note al momento.
     intervalo_sondeo_s: float = 2.0
-    #: El teclado cambia de modo al cambiar tú de aplicación. Hace falta porque
-    #: los programas de escritorio —ChatGPT, sin ir más lejos— no avisan de nada.
-    seguir_aplicacion: bool = True
+    #: El teclado cambia de modo al cambiar tú de aplicación.
+    #:
+    #: Viene APAGADO a propósito. La idea es buena —los programas de escritorio
+    #: no avisan de nada, así que mirar cuál tienes delante es la única pista—
+    #: pero en la práctica pelea con quien elige un modo a mano: pulsas el
+    #: micrófono en el modo de ChatGPT, vuelves a la ventana de Claude para
+    #: seguir trabajando, y el teclado se va al modo de Claude. Desde fuera
+    #: parece que el micrófono cambia de modo solo.
+    #:
+    #: Se enciende desde Ajustes cuando se quiere ese automatismo.
+    seguir_aplicacion: bool = False
     #: Segundos sin noticias tras los que la barra vuelve al reposo. Sin esto se
     #: queda encendida con lo último que pasó aunque hayas cambiado de programa.
     segundos_reposo: float = 25.0

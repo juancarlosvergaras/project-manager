@@ -33,6 +33,11 @@ from .registro import anotar, obtener
 
 _log = obtener("servidor")
 
+#: Lo que hace que merezca la pena avisar al panel de una lectura nueva.
+_CAMPOS_QUE_IMPORTAN = (
+    "conectado", "bateria", "firmware", "modo_trabajo", "palanca", "palanca_forzada",
+)
+
 #: Nombres de evento del proyecto original que se aceptan tal cual, para que
 #: quien ya tenga sus enganches instalados no tenga que rehacerlos.
 #: Estado al que vuelve la barra cuando no hay nada que contar.
@@ -89,6 +94,9 @@ class ServidorEnganches:
         #: Los últimos avisos recibidos. Sin esto, cuando la barra hace algo
         #: raro no hay forma de saber qué programa lo pidió ni por qué.
         self.avisos: list[dict[str, Any]] = []
+        #: Lo último que se le vio al teclado, para avisar solo de lo que cambia.
+        self._ultimo_resumen: dict[str, Any] = {}
+        self.gestor.observar(self._al_cambiar_el_teclado)
 
     # --- ciclo de vida --------------------------------------------------
     async def arrancar(self, con_tcp: bool = True) -> None:
@@ -452,6 +460,36 @@ class ServidorEnganches:
         if not dueno:
             return True
         return dueno == (agente_id or "").strip().lower()
+
+    # --- lo que pasa en el teclado, en vivo -------------------------------
+    def avisar_de_pulsacion(self, pieza: str, detalle: dict[str, Any]) -> None:
+        """Cuenta al panel que algo se ha tocado, para que lo señale.
+
+        De las cuatro teclas solo se ve la del micrófono: las otras tres mandan
+        sus pulsaciones directamente a Windows sin pasar por aquí, que es
+        exactamente lo que se busca de ellas.
+        """
+        self.bus.publicar("pulsacion", {"pieza": pieza, **detalle})
+
+    def _al_cambiar_el_teclado(self, _estado) -> None:
+        """Cada lectura del teclado llega al panel, pero solo si cambia algo.
+
+        Se sondea cada dos segundos; avisar de cada lectura llenaría el canal de
+        mensajes idénticos y haría trabajar al navegador para nada.
+        """
+        resumen = self.gestor.resumen()
+        interesa = {c: resumen.get(c) for c in _CAMPOS_QUE_IMPORTAN}
+        if interesa == self._ultimo_resumen:
+            return
+        anterior = dict(self._ultimo_resumen)
+        self._ultimo_resumen = interesa
+
+        if anterior:
+            if anterior.get("palanca") != interesa.get("palanca"):
+                self.avisar_de_pulsacion("palanca", {"valor": interesa.get("palanca")})
+            if anterior.get("modo_trabajo") != interesa.get("modo_trabajo"):
+                self.avisar_de_pulsacion("modo", {"valor": interesa.get("modo_trabajo")})
+        self.bus.publicar("estado", resumen)
 
     def _anotar_aviso(
         self, agente: str, evento: str, estado: EstadoIA, atendido: bool = True

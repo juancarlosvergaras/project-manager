@@ -26,6 +26,10 @@ dependencies = []
 
 [project.optional-dependencies]
 ble = ["bleak>=0.22"]
+# Para que la tecla del microfono sepa donde esta el cuadro de escribir de cada
+# programa en vez de adivinarlo. Sin esto se cae a un clic a ojo, que falla en
+# cuanto el cuadro cambia de sitio.
+cuadro = ["comtypes>=1.2"]
 
 [project.scripts]
 tecladoia = "tecladoia.cli:main"

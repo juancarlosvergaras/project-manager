@@ -9,6 +9,7 @@ import os
 import secrets
 import socket
 import sys
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -189,10 +190,23 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             if hay_soporte():
                 microfono = Dictado()
 
+                bucle_microfono = asyncio.get_running_loop()
+
                 def al_pulsar_microfono() -> None:
-                    # El modo se lee de la ultima lectura del teclado, que el
-                    # sondeo mantiene fresca. Con un modo viejo se enfocaria
-                    # el programa equivocado, que es justo lo que pasaba.
+                    # Se le pregunta al teclado en ese mismo momento en que modo
+                    # esta. El sondeo de fondo va cada dos segundos, y dos
+                    # segundos bastan: si acabas de cambiar al modo 2 con el
+                    # boton, una lectura vieja diria «modo 1», enfocaria Claude,
+                    # y entonces el seguidor de aplicaciones veria Claude delante
+                    # y te dejaria en el modo 1 de verdad. El fallo se cerraba
+                    # sobre si mismo.
+                    try:
+                        asyncio.run_coroutine_threadsafe(
+                            gestor.consultar_estado(), bucle_microfono
+                        ).result(timeout=2.0)
+                    except Exception:  # noqa: BLE001 - si no contesta, se usa lo ultimo
+                        pass
+
                     lectura = gestor.estado
                     indice = lectura.modo_trabajo if lectura else None
                     modo = None
@@ -208,8 +222,24 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                         alto_del_cuadro=getattr(modo, "alto_cuadro", 0) if modo else 0,
                         enviar_al_cerrar=(palanca == 0),
                     )
+                    # Enfocar el programa del modo hace que el seguidor lo vea
+                    # y quiera actuar. No debe: el modo ya es el correcto y
+                    # tocarlo ahora solo puede empeorarlo.
+                    gestor.tregua_de_modo_hasta = max(
+                        gestor.tregua_de_modo_hasta, time.monotonic() + 20.0
+                    )
+                    # Que se vea en la web: es la unica de las cuatro teclas
+                    # que pasa por aqui, asi que es la unica que se puede
+                    # comprobar sin mirar el teclado.
+                    servidor.avisar_de_pulsacion("microfono", {
+                        "accion": hecho["accion"],
+                        "programa": hecho.get("programa") or "",
+                        "enviado": bool(hecho.get("enviado")),
+                        "modo": (indice or 0),
+                    })
                     salida.linea(
-                        "  microfono " + hecho["accion"] + " · " +
+                        "  microfono " + hecho["accion"] + " · modo " +
+                        str((indice or 0) + 1) + " · " +
                         (hecho.get("programa") or "donde este el foco") +
                         (" · enviado" if hecho.get("enviado") else "")
                     )

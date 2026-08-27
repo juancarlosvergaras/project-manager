@@ -961,6 +961,73 @@ function pintarAjustes(ajustes) {
   }).join("");
 }
 
+
+/* ------------------------- pulsaciones en vivo -------------------------- */
+/* Sirve para comprobar de un vistazo que el teclado responde. De las cuatro
+   teclas solo se ve la del micrófono: las otras tres mandan sus pulsaciones
+   directamente a Windows sin pasar por el servicio, que es lo que se busca de
+   ellas. La palanca y el cambio de modo sí se ven, porque se leen del aparato. */
+
+const NOMBRES_DE_PIEZA = {
+  palanca: "Palanca",
+  modo: "Modo",
+  microfono: "Micrófono",
+  luz: "Barra de luz",
+  pantalla: "Pantalla",
+};
+
+function _horaCorta() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" +
+         String(d.getMinutes()).padStart(2, "0") + ":" +
+         String(d.getSeconds()).padStart(2, "0");
+}
+
+function destellar(selector) {
+  const pieza = document.querySelector(selector);
+  if (!pieza) return;
+  pieza.classList.remove("pulsada");
+  void pieza.offsetWidth;   // reinicia la animación si ya estaba puesta
+  pieza.classList.add("pulsada");
+  setTimeout(() => pieza.classList.remove("pulsada"), 700);
+}
+
+function anotarActividad(texto) {
+  const tira = document.querySelector("#actividad");
+  if (!tira) return;
+  const marca = document.createElement("span");
+  marca.className = "marca";
+  marca.innerHTML = `${esc(texto)} <span class="hora">${_horaCorta()}</span>`;
+  tira.prepend(marca);
+  // Solo las últimas: esto es un vistazo, no un registro. Para eso está la bitácora.
+  while (tira.children.length > 4) tira.lastChild.remove();
+  setTimeout(() => marca.remove(), 12000);
+}
+
+function mostrarPulsacion(datos) {
+  const pieza = datos.pieza;
+  if (pieza === "palanca") {
+    const donde = datos.valor === 0 ? "arriba · envío automático"
+                : datos.valor === null || datos.valor === undefined ? "sin lectura"
+                : "abajo · manual";
+    destellar(".pieza-palanca");
+    anotarActividad(`Palanca ${donde}`);
+  } else if (pieza === "modo") {
+    const nombre = estado.modos[datos.valor]?.nombre || `Modo ${(datos.valor ?? 0) + 1}`;
+    destellar("#modos");
+    anotarActividad(`Modo ${nombre}`);
+  } else if (pieza === "microfono") {
+    destellar('.tecla[data-indice="0"]');
+    const que = datos.accion === "abierto"
+      ? `Micrófono abierto${datos.programa ? " en " + datos.programa : ""}`
+      : `Micrófono cerrado${datos.enviado ? " · texto enviado" : ""}`;
+    anotarActividad(que);
+  } else {
+    destellar(`.pieza-${pieza}`);
+    anotarActividad(NOMBRES_DE_PIEZA[pieza] || pieza);
+  }
+}
+
 /* --------------------------- canal de sucesos --------------------------- */
 
 function escuchar() {
@@ -983,6 +1050,7 @@ function escuchar() {
     if (marca) marca.textContent =
       `Enviando la pantalla del modo ${s.modo + 1}: ${s.hecho} de ${s.total} fotogramas.`;
   });
+  canal.addEventListener("pulsacion", (e) => mostrarPulsacion(JSON.parse(e.data)));
   canal.addEventListener("aprobacion_pendiente", (e) => anadirPendiente(JSON.parse(e.data)));
   canal.addEventListener("aprobacion_resuelta", (e) => quitarPendiente(JSON.parse(e.data).id));
   canal.addEventListener("aprobacion_caducada", (e) => quitarPendiente(JSON.parse(e.data).id));

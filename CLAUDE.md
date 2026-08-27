@@ -73,6 +73,12 @@ Bluetooth, y el script avisa si falta.
 | 3 | Cursor | `cursor.gif` | 150 |
 | 4 | libre | | 220 |
 
+**El seguimiento de la aplicación activa viene APAGADO** (`seguir_aplicacion`).
+La idea es buena pero peleaba con quien elige un modo a mano: pulsabas el
+micrófono en el modo de ChatGPT, volvías a la ventana de Claude para seguir
+trabajando, y el teclado se iba al modo de Claude. Desde fuera parecía que el
+micrófono cambiaba de modo solo. Se enciende desde Ajustes si se quiere.
+
 **Las diez primeras ranuras son de fábrica: no escribir ahí.** Cada modo tiene 70
 a partir de la 10. Está en `protocolo.ranura_inicial(modo)`.
 

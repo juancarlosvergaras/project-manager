@@ -24,6 +24,7 @@ Solo tiene sentido en Windows; en los demás sistemas se queda quieto.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import ctypes
 import os
 import time
@@ -628,12 +629,27 @@ def dictar_en(
     _esperar_a_que_se_asiente(proceso)
 
     # El paso que faltaba: poner el cursor en el cuadro de escribir. Sin esto,
-    # el dictado se abre pero lo hablado no aterriza en ninguna parte.
+    # Windows contesta «selecciona un cuadro de texto» y no dicta nada.
+    #
+    # Se le pregunta a la capa de accesibilidad, que sabe dónde está el cuadro y
+    # deja darle el foco sin tocar el ratón. Adivinar la posición no vale: en
+    # ChatGPT el cuadro está a media altura con la conversación vacía y abajo
+    # cuando hay mensajes, y en Claude está en otro sitio distinto.
     en_el_cuadro = False
+    como = "no"
     if pinchar_el_cuadro:
         hwnd = _ventana_de(proceso)
         if hwnd:
-            en_el_cuadro = poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro)
+            from .cuadro_de_texto import enfocar_cuadro
+
+            hallado = enfocar_cuadro(hwnd)
+            if hallado:
+                en_el_cuadro, como = True, hallado.get("nombre") or "por accesibilidad"
+            else:
+                # Sin accesibilidad queda el clic a ojo: peor, pero mejor que nada.
+                en_el_cuadro = poner_el_cursor_en_el_prompt(hwnd, alto_del_cuadro)
+                como = "clic a ciegas" if en_el_cuadro else "no"
+        time.sleep(0.2)
 
     abrir_dictado()
     return {
@@ -641,6 +657,7 @@ def dictar_en(
         "enfocado": enfocado,
         "abierto": abierto,
         "en_el_cuadro": en_el_cuadro,
+        "cuadro": como,
     }
 
 
@@ -660,10 +677,28 @@ class EscuchaDictado:
             return
         user32 = ctypes.WinDLL("user32", use_last_error=True)
         modificadores = MOD_CONTROL | MOD_ALT | MOD_SHIFT | MOD_NOREPEAT
-        if not user32.RegisterHotKey(None, self.identificador, modificadores, VK_F13):
-            _log.warning(
-                "No se pudo reservar la combinación del micrófono; puede que otro "
-                "programa la tenga cogida."
+
+        # Al reiniciar el servicio, Windows tarda un poco en soltar la
+        # combinación que tenía reservada el proceso anterior. Rendirse al
+        # primer intento dejaba el micrófono muerto hasta el siguiente
+        # arranque, que es exactamente lo que pasaba al reiniciar la web.
+        reservada = False
+        for intento in range(20):
+            if user32.RegisterHotKey(None, self.identificador, modificadores, VK_F13):
+                reservada = True
+                if intento:
+                    _log.info(
+                        "La combinación del micrófono se liberó al cabo de %.1f s",
+                        intento * 0.5,
+                    )
+                break
+            time.sleep(0.5)
+        if not reservada:
+            _log.error(
+                "No se pudo reservar la combinación del micrófono (%s) en diez "
+                "segundos. Suele ser otra copia del servicio todavía viva: "
+                "ciérrala y vuelve a arrancar.",
+                ATAJO_DICTADO,
             )
             return
         _log.info("Escuchando la tecla del micrófono (%s)", ATAJO_DICTADO)
@@ -681,7 +716,13 @@ class EscuchaDictado:
             user32.UnregisterHotKey(None, self.identificador)
 
     def parar(self) -> None:
+        """Suelta la combinación para que el siguiente arranque la encuentre libre."""
         self._parar = True
+        if hay_soporte():
+            with contextlib.suppress(Exception):
+                ctypes.WinDLL("user32", use_last_error=True).UnregisterHotKey(
+                    None, self.identificador
+                )
         if hay_soporte():
             user32 = ctypes.WinDLL("user32", use_last_error=True)
             user32.PostThreadMessageW(
