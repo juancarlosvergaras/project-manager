@@ -158,9 +158,12 @@ class PruebaClaveDelPanel(PruebaAislada):
             panel = await self._montar(clave_panel="secreta")
             try:
                 respuesta = await self._pedir(panel, "/?clave=secreta")
-                self.assertIn("200 OK", respuesta)
-                # La primera visita deja la clave guardada para no arrastrarla.
+                # La primera visita guarda la clave y reenvía a la misma página
+                # sin ella, para no dejarla escrita en la barra de direcciones
+                # ni en el historial del navegador.
+                self.assertIn("303 See Other", respuesta)
                 self.assertIn("Set-Cookie: tecladoia=secreta", respuesta)
+                self.assertIn("Location: /", respuesta)
 
                 for cabecera in (
                     "Authorization: Bearer secreta\r\n",

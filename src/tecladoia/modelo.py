@@ -90,6 +90,18 @@ class EfectoLuz(IntEnum):
     def etiqueta(self) -> str:
         return _ETIQUETAS_EFECTO[self]
 
+    @property
+    def color(self) -> str:
+        """El color que enseña, cuando se sabe.
+
+        El firmware no deja elegirlo: solo viaja un byte con el número del
+        efecto y el color va cocido dentro. Así que «elegir color» se reduce a
+        elegir el efecto que lo tiene, y para eso hay que saber cuál es cuál.
+        De los que el fabricante no nombra por su color no se dice nada, antes
+        que inventarlo.
+        """
+        return _COLORES_EFECTO.get(self, "")
+
 
 _ETIQUETAS_EFECTO = {
     EfectoLuz.APAGADO: "Apagado",
@@ -110,6 +122,10 @@ _ETIQUETAS_EFECTO = {
     EfectoLuz.CARGANDO: "Cargando",
     EfectoLuz.ESPERA_DE_APROBACION: "Espera de aprobación",
 }
+
+#: Lo poco que se sabe con certeza del color de cada efecto.
+_COLORES_EFECTO: dict["EfectoLuz", str] = {}
+
 
 #: Efecto que se enciende por defecto en cada estado del agente.
 EFECTO_POR_ESTADO: dict[EstadoIA, EfectoLuz] = {
@@ -144,6 +160,9 @@ class MotivoDecision(str, Enum):
     REGLA_PREGUNTAR = "regla_preguntar"
     REGLA_DENEGAR = "regla_denegar"
     MODO_FORZADO = "modo_forzado"
+    APROBADA_EN_LA_WEB = "aprobada_en_la_web"
+    DENEGADA_EN_LA_WEB = "denegada_en_la_web"
+    SIN_RESPUESTA_EN_LA_WEB = "sin_respuesta_en_la_web"
 
     @property
     def explicacion(self) -> str:
@@ -163,6 +182,11 @@ _EXPLICACIONES_MOTIVO = {
     MotivoDecision.REGLA_PREGUNTAR: "Una regla de la configuración exige confirmación.",
     MotivoDecision.REGLA_DENEGAR: "Una regla de la configuración bloquea esta acción.",
     MotivoDecision.MODO_FORZADO: "El modo de aprobación está fijado desde la configuración.",
+    MotivoDecision.APROBADA_EN_LA_WEB: "Alguien lo aprobó desde el panel web.",
+    MotivoDecision.DENEGADA_EN_LA_WEB: "Alguien lo denegó desde el panel web.",
+    MotivoDecision.SIN_RESPUESTA_EN_LA_WEB: (
+        "Nadie contestó en el panel dentro del plazo, así que decides tú."
+    ),
 }
 
 
@@ -223,3 +247,12 @@ class Modo:
 
     nombre: str = ""
     teclas: list[Tecla] = field(default_factory=lambda: [Tecla() for _ in range(4)])
+
+
+_COLORES_EFECTO.update({
+    EfectoLuz.APAGADO: "apagado",
+    EfectoLuz.ARCOIRIS_MOVIL: "multicolor",
+    EfectoLuz.ONDA_ARCOIRIS: "multicolor",
+    EfectoLuz.ONDA_ARCOIRIS_LENTA: "multicolor",
+    EfectoLuz.PENSAMIENTO_AZUL: "azul",
+})

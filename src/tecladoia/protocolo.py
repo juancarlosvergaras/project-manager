@@ -36,10 +36,23 @@ OLED_MAXIMO_FOTOGRAMAS = 292
 OLED_TAMANO_BLOQUE = 4096
 OLED_TAMANO_PAQUETE = 180
 
-MODOS_DISPONIBLES = 3
+#: Ranuras de imagen que el firmware se reserva. Son las que trae el teclado de
+#: serie y escribir ahí se lleva por delante sus pantallas de fábrica.
+OLED_RANURAS_DE_FABRICA = 10
+
+MODOS_DISPONIBLES = 4
 TECLAS_POR_MODO = 4
 MAXIMO_BYTES_DESCRIPCION = 20
 MAXIMO_BYTES_NOMBRE = 21
+
+#: Fotogramas que le tocan a cada modo: lo que queda tras las de fábrica,
+#: repartido a partes iguales. Con 292 en total y cuatro modos, salen 70.
+RANURAS_POR_MODO = (OLED_MAXIMO_FOTOGRAMAS - OLED_RANURAS_DE_FABRICA) // MODOS_DISPONIBLES
+
+
+def ranura_inicial(modo: int) -> int:
+    """Primera ranura de imagen que le corresponde a un modo."""
+    return OLED_RANURAS_DE_FABRICA + int(modo) * RANURAS_POR_MODO
 
 
 class Comando(IntEnum):

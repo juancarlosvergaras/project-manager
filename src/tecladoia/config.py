@@ -79,6 +79,47 @@ def _reglas_iniciales() -> list[Regla]:
     ]
 
 
+#: Los cuatro modos del teclado con el nombre que les da el usuario. El
+#: fabricante trae Claude/Cursor/Codex; este reparto es el de esta casa.
+NOMBRES_DE_MODO = ("Claude", "ChatGPT", "Cursor", "Modo 4")
+
+
+def _modos_iniciales() -> list["Modo"]:
+    """Los cuatro modos vacíos, con su nombre."""
+    from .modelo import Modo, Tecla
+
+    return [
+        Modo(nombre=nombre, teclas=[Tecla() for _ in range(4)])
+        for nombre in NOMBRES_DE_MODO
+    ]
+
+
+def _luces_iniciales() -> dict[str, int]:
+    """Qué efecto enciende cada momento del agente.
+
+    La barra no es un adorno que se elige una vez: es lo que te dice, sin mirar
+    la pantalla, si el agente piensa, si terminó o si te está esperando. Por eso
+    el efecto va atado al estado, no al gusto del día.
+    """
+    from .modelo import EFECTO_POR_ESTADO
+
+    return {str(int(estado)): int(efecto) for estado, efecto in EFECTO_POR_ESTADO.items()}
+
+
+def _aplicaciones_iniciales() -> list[dict]:
+    """Qué modo del teclado le toca a cada programa.
+
+    Gana la primera regla que coincida. El patrón se busca en el nombre del
+    programa; mirar además el título hay que pedirlo con ``en``, porque los
+    títulos cambian solos y disparan cambios de modo que nadie pidió.
+    """
+    return [
+        {"patron": "chatgpt", "modo": 1, "en": "proceso"},
+        {"patron": "cursor", "modo": 2, "en": "proceso"},
+        {"patron": "claude", "modo": 0, "en": "proceso"},
+    ]
+
+
 @dataclass
 class Ajustes:
     """Configuración completa de la aplicación."""
@@ -114,7 +155,25 @@ class Ajustes:
     sincronizar_config_agentes: bool = True
     avisar_en_escritorio: bool = True
     brillo: int = 35
+    #: Si es cierto, lo que quede en «preguntar» se publica en el panel y se
+    #: puede contestar desde el navegador. Si nadie contesta a tiempo, se
+    #: responde «preguntar»: activarlo no permite nada por sí solo.
+    aprobacion_remota: bool = False
+    espera_aprobacion_s: float = 25.0
+    #: Cada cuánto se le pregunta al teclado por su estado. Es lo que hace que
+    #: mover la palanca con la mano se note al momento.
+    intervalo_sondeo_s: float = 2.0
+    #: El teclado cambia de modo al cambiar tú de aplicación. Hace falta porque
+    #: los programas de escritorio —ChatGPT, sin ir más lejos— no avisan de nada.
+    seguir_aplicacion: bool = True
+    #: Segundos sin noticias tras los que la barra vuelve al reposo. Sin esto se
+    #: queda encendida con lo último que pasó aunque hayas cambiado de programa.
+    segundos_reposo: float = 25.0
+    efecto_reposo: int = 0
     reglas: list[Regla] = field(default_factory=_reglas_iniciales)
+    modos: list["Modo"] = field(default_factory=_modos_iniciales)
+    luces_por_estado: dict[str, int] = field(default_factory=_luces_iniciales)
+    aplicaciones: list[dict] = field(default_factory=_aplicaciones_iniciales)
 
     @classmethod
     def cargar(cls, ruta: Path | None = None) -> "Ajustes":
@@ -128,10 +187,20 @@ class Ajustes:
         reglas = [
             Regla(**r) for r in crudo.pop("reglas", []) if isinstance(r, dict) and "patron" in r
         ]
-        conocidos = {c for c in cls.__dataclass_fields__ if c != "reglas"}
+        modos = _leer_modos(crudo.pop("modos", []))
+        luces = _leer_luces(crudo.pop("luces_por_estado", {}))
+        aplicaciones = _leer_aplicaciones(crudo.pop("aplicaciones", []))
+        aparte = {"reglas", "modos", "luces_por_estado", "aplicaciones"}
+        conocidos = {c for c in cls.__dataclass_fields__ if c not in aparte}
         ajustes = cls(**{k: v for k, v in crudo.items() if k in conocidos})
         if reglas:
             ajustes.reglas = reglas
+        if modos:
+            ajustes.modos = modos
+        if luces:
+            ajustes.luces_por_estado = {**ajustes.luces_por_estado, **luces}
+        if aplicaciones:
+            ajustes.aplicaciones = aplicaciones
         return ajustes
 
     def guardar(self, ruta: Path | None = None) -> Path:
@@ -147,3 +216,70 @@ class Ajustes:
     def es_accesible(self) -> bool:
         """Modo sin color ni emojis, pensado para lectores de pantalla."""
         return self.accesible or os.environ.get("TECLADOIA_ACCESIBLE") == "1"
+
+
+# --- lectores tolerantes -----------------------------------------------------
+# Un fichero editado a mano no debe dejar la aplicación sin arrancar: lo que no
+# se entiende se descarta y se sigue con lo demás.
+
+def _leer_modos(crudo: Any) -> list["Modo"]:
+    from .modelo import Modo, Tecla
+
+    if not isinstance(crudo, list):
+        return []
+    modos: list[Modo] = []
+    for entrada in crudo[:4]:
+        if not isinstance(entrada, dict):
+            continue
+        teclas: list[Tecla] = []
+        for tecla in (entrada.get("teclas") or [])[:4]:
+            if not isinstance(tecla, dict):
+                teclas.append(Tecla())
+                continue
+            pasos = [
+                (int(x[0]), int(x[1]))
+                for x in (tecla.get("macro") or [])
+                if isinstance(x, (list, tuple)) and len(x) == 2
+            ]
+            teclas.append(
+                Tecla(
+                    atajo=str(tecla.get("atajo") or ""),
+                    descripcion=str(tecla.get("descripcion") or ""),
+                    macro=pasos,
+                )
+            )
+        while len(teclas) < 4:
+            teclas.append(Tecla())
+        modos.append(Modo(nombre=str(entrada.get("nombre") or ""), teclas=teclas))
+    return modos
+
+
+def _leer_luces(crudo: Any) -> dict[str, int]:
+    if not isinstance(crudo, dict):
+        return {}
+    limpio: dict[str, int] = {}
+    for clave, valor in crudo.items():
+        try:
+            limpio[str(int(clave))] = int(valor) & 0xFF
+        except (TypeError, ValueError):
+            continue
+    return limpio
+
+
+def _leer_aplicaciones(crudo: Any) -> list[dict]:
+    if not isinstance(crudo, list):
+        return []
+    limpio: list[dict] = []
+    for entrada in crudo:
+        if not isinstance(entrada, dict) or not entrada.get("patron"):
+            continue
+        try:
+            modo = int(entrada.get("modo", 0))
+        except (TypeError, ValueError):
+            continue
+        limpio.append({
+            "patron": str(entrada["patron"]),
+            "modo": modo,
+            "en": str(entrada.get("en") or "proceso"),
+        })
+    return limpio

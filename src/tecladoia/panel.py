@@ -18,14 +18,35 @@ import secrets
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
+from pathlib import Path
+
 from . import instalador
 from .config import Ajustes
 from .dispositivo import GestorTeclado
 from .modelo import EfectoLuz, EstadoIA
 from .registro import obtener
+from .protocolo import MODOS_DISPONIBLES, TECLAS_POR_MODO
 from .servidor import ServidorEnganches
+from .transporte.base import ErrorTransporte
 
 _log = obtener("panel")
+
+#: Carpeta con la página, el estilo y el guion del navegador.
+CARPETA_WEB = Path(__file__).resolve().parent / "web"
+
+#: Cada cuánto se manda un latido por el canal de sucesos.
+LATIDO_S = 20.0
+
+#: Fin de línea de las cabeceras HTTP y salto de las tramas del canal.
+_FIN = chr(13) + chr(10)
+_SALTO = bytes([10])
+
+
+def _suceso(tipo: str, carga: str, identificador: Optional[int] = None) -> bytes:
+    """Arma una trama del canal de sucesos, con sus saltos de línea."""
+    salto = chr(10)
+    cabeza = f"id: {identificador}{salto}" if identificador is not None else ""
+    return f"{cabeza}event: {tipo}{salto}data: {carga}{salto}{salto}".encode("utf-8")
 
 _PAGINA = """<!doctype html>
 <html lang="es">
@@ -199,6 +220,7 @@ class PanelWeb:
         self.ajustes = ajustes or gestor.ajustes
         self.puerto: Optional[int] = None
         self._http: Optional[asyncio.AbstractServer] = None
+        self._adjunto: Optional[str] = None
 
     @property
     def url(self) -> str:
@@ -282,8 +304,19 @@ class PanelWeb:
                     )
                     extras.append(f"Location: {partes.path or '/'}")
                     estado, tipo, datos = "303 See Other", "text/plain; charset=utf-8", b""
+                elif partes.path == "/api/sucesos" and metodo == "GET":
+                    # Conexión larga: se queda abierta escribiendo lo que pasa.
+                    await self._transmitir_sucesos(escritor)
+                    return
                 else:
-                    estado, tipo, datos = await self._responder(metodo, partes.path, cuerpo)
+                    estado, tipo, datos = await self._responder(
+                        metodo, partes.path, cuerpo, consulta
+                    )
+            if self._adjunto:
+                extras.append(
+                    f'Content-Disposition: attachment; filename="{self._adjunto}"'
+                )
+                self._adjunto = None
             escritor.write(self._envolver(estado, tipo, datos, extras))
             await escritor.drain()
         except (asyncio.TimeoutError, ValueError, ConnectionError, asyncio.IncompleteReadError):
@@ -406,48 +439,622 @@ if (location.search.includes("clave=")) {
         cabeceras.extend(extras or [])
         return ("\r\n".join(cabeceras) + "\r\n\r\n").encode("latin-1") + cuerpo
 
-    async def _responder(self, metodo: str, ruta: str, cuerpo: bytes) -> tuple[str, str, bytes]:
-        if ruta == "/" and metodo == "GET":
-            return "200 OK", "text/html; charset=utf-8", _PAGINA.encode("utf-8")
+    # --- canal de sucesos -------------------------------------------------
+    async def _transmitir_sucesos(self, escritor: asyncio.StreamWriter) -> None:
+        """Deja la conexión abierta y va escribiendo lo que ocurre.
 
-        datos = self._json(cuerpo)
-        resultado: Any
-        if ruta == "/api/estado":
-            resultado = {
-                "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
-                "historial": self.servidor.historial[-25:],
-                "agentes": instalador.revisar(),
-            }
-        elif ruta == "/api/efectos":
-            resultado = {
-                "efectos": [{"codigo": int(f), "etiqueta": f.etiqueta} for f in EfectoLuz],
-                "estados": [{"codigo": int(e), "etiqueta": e.etiqueta} for e in EstadoIA],
-            }
-        elif ruta == "/api/palanca" and metodo == "POST":
-            valor = datos.get("valor")
-            self.gestor.palanca_forzada = None if valor is None else int(valor)
-            resultado = {
-                "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
-                "historial": self.servidor.historial[-25:],
-                "agentes": instalador.revisar(),
-            }
-        elif ruta == "/api/luz" and metodo == "POST":
-            efecto = EfectoLuz(int(datos.get("efecto", 0)))
-            resultado = {"ok": await self.gestor.aplicar_efecto(efecto)}
-        elif ruta == "/api/agentes":
-            resultado = {"agentes": instalador.revisar()}
-        else:
+        Es lo que evita que la página pregunte «¿ha cambiado algo?» cada pocos
+        segundos: se queda escuchando y el servicio le cuenta.
+        """
+        cabeceras = (
+            "HTTP/1.1 200 OK" + _FIN +
+            "Content-Type: text/event-stream; charset=utf-8" + _FIN +
+            "Cache-Control: no-store" + _FIN +
+            "Connection: keep-alive" + _FIN +
+            "X-Accel-Buffering: no" + _FIN + _FIN
+        )
+        escritor.write(cabeceras.encode("latin-1"))
+        await escritor.drain()
+
+        cola = self.servidor.bus.suscribir()
+        try:
+            saludo = json.dumps(
+                {"estado": self.gestor.resumen()}, ensure_ascii=False, default=str
+            )
+            escritor.write(_suceso("bienvenida", saludo))
+            await escritor.drain()
+            while True:
+                try:
+                    suceso = await asyncio.wait_for(cola.get(), timeout=LATIDO_S)
+                except asyncio.TimeoutError:
+                    # Un latido de vez en cuando: sin él, cualquier intermediario
+                    # da la conexión por muerta y la corta.
+                    escritor.write(b": latido" + _SALTO + _SALTO)
+                    await escritor.drain()
+                    continue
+                carga = json.dumps(suceso["datos"], ensure_ascii=False, default=str)
+                escritor.write(_suceso(suceso["tipo"], carga, suceso["id"]))
+                await escritor.drain()
+        except (ConnectionError, asyncio.CancelledError, RuntimeError):
+            pass
+        finally:
+            self.servidor.bus.cancelar(cola)
+            escritor.close()
+            with contextlib.suppress(Exception):
+                await escritor.wait_closed()
+
+    # --- enrutado ---------------------------------------------------------
+    async def _responder(
+        self,
+        metodo: str,
+        ruta: str,
+        cuerpo: bytes,
+        consulta: Optional[dict[str, list[str]]] = None,
+    ) -> tuple[str, str, bytes]:
+        if ruta.startswith("/api/") or ruta.startswith("/descargar"):
+            try:
+                return await self._api(metodo, ruta, self._json(cuerpo), consulta or {})
+            except (ValueError, KeyError) as error:
+                return self._error("400 Bad Request", str(error))
+            except ErrorTransporte as error:
+                return self._error("503 Service Unavailable", str(error))
+        return self._estatico(ruta)
+
+    def _adjuntar(self, nombre: str) -> None:
+        """Marca la respuesta para que el navegador la guarde con ese nombre.
+
+        Sin esto, un CSV o un zip se abren dentro de la página en vez de
+        descargarse, que es justo lo contrario de lo que quiere quien pulsa.
+        """
+        self._adjunto = nombre
+
+    def _error(self, estado: str, mensaje: str) -> tuple[str, str, bytes]:
+        cuerpo = json.dumps({"error": mensaje}, ensure_ascii=False).encode("utf-8")
+        return estado, "application/json; charset=utf-8", cuerpo
+
+    def _estatico(self, ruta: str) -> tuple[str, str, bytes]:
+        """Sirve la página desde disco, sin dejar salir de su carpeta."""
+        import mimetypes
+
+        nombre = "index.html" if ruta in ("/", "") else ruta.lstrip("/")
+        raiz = CARPETA_WEB.resolve()
+        destino = (raiz / nombre).resolve()
+        try:
+            destino.relative_to(raiz)
+        except ValueError:
+            destino = raiz / "index.html"
+        if not destino.is_file():
+            return "404 Not Found", "text/plain; charset=utf-8", b"No existe esa pagina."
+        tipo = mimetypes.guess_type(destino.name)[0] or "application/octet-stream"
+        if tipo.startswith("text/") or tipo in ("application/javascript", "image/svg+xml"):
+            tipo = f"{tipo}; charset=utf-8"
+        return "200 OK", tipo, destino.read_bytes()
+
+    # --- la API -----------------------------------------------------------
+    async def _api(
+        self,
+        metodo: str,
+        ruta: str,
+        datos: dict[str, Any],
+        consulta: dict[str, list[str]],
+    ) -> tuple[str, str, bytes]:
+        tipo = "application/json; charset=utf-8"
+
+        if ruta == "/descargar/tecladoia.zip":
+            from .empaquetado import construir_zip
+
+            self._adjuntar("tecladoia.zip")
+            return "200 OK", "application/zip", construir_zip()
+        if ruta == "/api/bitacora.csv":
+            self._adjuntar("bitacora.csv")
+            return "200 OK", "text/csv; charset=utf-8", self._bitacora_csv(consulta)
+        if ruta == "/api/bitacora":
             return (
-                "404 Not Found",
-                "application/json; charset=utf-8",
-                json.dumps({"error": "No existe esa ruta"}, ensure_ascii=False).encode("utf-8"),
+                "200 OK",
+                tipo,
+                json.dumps(
+                    {"entradas": self._bitacora(consulta)}, ensure_ascii=False, default=str
+                ).encode("utf-8"),
             )
 
-        return (
-            "200 OK",
-            "application/json; charset=utf-8",
-            json.dumps(resultado, ensure_ascii=False).encode("utf-8"),
+        resultado = await self._resolver(metodo, ruta, datos)
+        if resultado is None:
+            return self._error("404 Not Found", "No existe esa ruta")
+        cuerpo = json.dumps(resultado, ensure_ascii=False, default=str).encode("utf-8")
+        return "200 OK", tipo, cuerpo
+
+    def _panorama(self) -> dict[str, Any]:
+        """Todo lo que la página necesita para pintarse de cero."""
+        from .transporte.base import hay_bleak
+
+        return {
+            "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
+            "historial": self.servidor.historial[-25:],
+            "avisos": self.servidor.avisos[-20:],
+            "agentes": instalador.revisar(),
+            "pendientes": self.servidor.aprobaciones.listar(),
+            "ajustes": self._ajustes_json(),
+            "servicio": {
+                "puerto_enganches": self.servidor.puerto,
+                "hay_bluetooth": hay_bleak(),
+                "subida": self.gestor.subida,
+                "solo_local": self.solo_local,
+            },
+        }
+
+    async def _resolver(self, metodo: str, ruta: str, datos: dict[str, Any]) -> Optional[Any]:
+        # ---- lectura -----------------------------------------------------
+        if ruta == "/api/estado":
+            return self._panorama()
+        if ruta == "/api/opciones":
+            return self._opciones()
+        if ruta == "/api/agentes":
+            return {"agentes": instalador.revisar()}
+        if ruta == "/api/paquete":
+            from .empaquetado import resumen as resumen_paquete
+
+            return resumen_paquete()
+        if ruta == "/api/reglas":
+            if metodo == "POST":
+                return self._guardar_reglas(datos)
+            return {"reglas": [vars(r) for r in self.ajustes.reglas]}
+        if ruta == "/api/teclas":
+            if metodo == "POST":
+                return await self._guardar_tecla(datos)
+            return {"modos": self._modos_json()}
+        if ruta == "/api/ajustes":
+            if metodo == "POST":
+                return self._guardar_ajustes(datos)
+            return {"ajustes": self._ajustes_json()}
+        if ruta == "/api/luces":
+            if metodo == "POST":
+                return await self._guardar_luces(datos)
+            return self._luces()
+        if ruta == "/api/aplicaciones":
+            if metodo == "POST":
+                return self._guardar_aplicaciones(datos)
+            return {"aplicaciones": list(self.ajustes.aplicaciones)}
+
+        # ---- acciones ----------------------------------------------------
+        if metodo != "POST":
+            return None
+
+        if ruta == "/api/palanca":
+            valor = datos.get("valor")
+            self.gestor.palanca_forzada = None if valor is None else int(valor)
+            self.servidor.bus.publicar("estado", self.gestor.resumen())
+            return self._panorama()
+        if ruta == "/api/modo-aprobacion":
+            modo = str(datos.get("modo") or "palanca")
+            if modo not in ("palanca", "siempre_preguntar", "siempre_permitir"):
+                raise ValueError(f"Modo de aprobación desconocido: {modo}")
+            self.ajustes.modo_aprobacion = modo
+            self.ajustes.guardar()
+            return self._panorama()
+        if ruta == "/api/luz":
+            efecto = EfectoLuz(int(datos.get("efecto", 0)))
+            return {"ok": await self.gestor.aplicar_efecto(efecto), "efecto": int(efecto)}
+        if ruta == "/api/luces/probar":
+            efecto = EfectoLuz(int(datos.get("efecto", 0)))
+            return {"ok": await self.gestor.aplicar_efecto(efecto)}
+        if ruta == "/api/brillo":
+            valor = max(0, min(100, int(datos.get("valor", 35))))
+            hecho = await self.gestor.ajustar_brillo(valor)
+            if hecho:
+                self.ajustes.brillo = valor
+                self.ajustes.guardar()
+            return {"ok": hecho, "valor": valor}
+        if ruta == "/api/modo-trabajo":
+            modo = int(datos.get("modo", 0))
+            if not 0 <= modo < MODOS_DISPONIBLES:
+                raise ValueError(f"El teclado solo tiene {MODOS_DISPONIBLES} modos.")
+            return {"ok": await self.gestor.cambiar_modo_trabajo(modo), "modo": modo}
+        if ruta == "/api/nombre":
+            nombre = str(datos.get("nombre") or "").strip()
+            if not nombre:
+                raise ValueError("Escribe un nombre para el teclado.")
+            return {"ok": await self.gestor.renombrar(nombre), "nombre": nombre}
+        if ruta == "/api/conexion":
+            return await self._conexion(str(datos.get("accion") or "conectar"))
+        if ruta == "/api/buscar":
+            return await self._buscar(float(datos.get("segundos", 6)))
+        if ruta == "/api/aprobar":
+            return self._aprobar(datos)
+        if ruta == "/api/reglas/probar":
+            return self._probar_regla(datos)
+        if ruta == "/api/pantalla":
+            return await self._pantalla(datos)
+        if ruta == "/api/pantalla/cancelar":
+            cortada = self.gestor.cancelar_subida()
+            return {
+                "ok": cortada,
+                "aviso": None if cortada else "No había ninguna subida en marcha.",
+            }
+        if ruta == "/api/agentes/instalar":
+            return {"resultado": instalador.instalar(datos.get("agentes") or None)}
+        if ruta == "/api/agentes/desinstalar":
+            return {"resultado": instalador.desinstalar(datos.get("agentes") or None)}
+        return None
+
+    # --- piezas -----------------------------------------------------------
+    def _opciones(self) -> dict[str, Any]:
+        from . import teclas as tabla_teclas
+        from .modelo import Decision, MotivoDecision
+
+        return {
+            "efectos": [
+                {"codigo": int(f), "etiqueta": f.etiqueta, "color": f.color} for f in EfectoLuz
+            ],
+            "estados": [
+                {"codigo": int(e), "etiqueta": e.etiqueta, "descripcion": e.descripcion}
+                for e in EstadoIA
+            ],
+            "decisiones": [d.value for d in Decision],
+            "motivos": {m.value: m.explicacion for m in MotivoDecision},
+            "modificadores": sorted(set(tabla_teclas.MODIFICADORES)),
+            "teclas": sorted(tabla_teclas.NOMBRES_HID),
+            "modos_disponibles": MODOS_DISPONIBLES,
+            "teclas_por_modo": TECLAS_POR_MODO,
+        }
+
+    _CAMPOS_AJUSTES = (
+        "modo_aprobacion", "transporte", "nombre_dispositivo", "puerto_hooks",
+        "puerto_panel", "puente_host", "puente_puerto", "vigencia_cache_ms",
+        "espera_palanca_s", "intervalo_sondeo_s", "reglas_permisivas",
+        "sincronizar_config_agentes", "avisar_en_escritorio", "brillo", "accesible",
+        "aprobacion_remota", "espera_aprobacion_s", "seguir_aplicacion",
+        "segundos_reposo", "efecto_reposo",
+    )
+
+    def _ajustes_json(self) -> dict[str, Any]:
+        return {
+            campo: getattr(self.ajustes, campo)
+            for campo in self._CAMPOS_AJUSTES
+            if hasattr(self.ajustes, campo)
+        }
+
+    def _guardar_ajustes(self, datos: dict[str, Any]) -> dict[str, Any]:
+        """Solo se tocan los campos conocidos, y con el tipo que les toca."""
+        cambios: list[str] = []
+        for campo, actual in self._ajustes_json().items():
+            if campo not in datos:
+                continue
+            crudo = datos[campo]
+            try:
+                if isinstance(actual, bool):
+                    valor: Any = bool(crudo)
+                elif isinstance(actual, int):
+                    valor = int(crudo)
+                elif isinstance(actual, float):
+                    valor = float(crudo)
+                else:
+                    valor = str(crudo)
+            except (TypeError, ValueError):
+                raise ValueError(f"El valor de «{campo}» no tiene el formato esperado.")
+            if valor != actual:
+                setattr(self.ajustes, campo, valor)
+                cambios.append(campo)
+        if cambios:
+            self.ajustes.guardar()
+        return {"ok": True, "cambios": cambios, "ajustes": self._ajustes_json()}
+
+    def _guardar_reglas(self, datos: dict[str, Any]) -> dict[str, Any]:
+        from .config import Regla
+
+        crudas = datos.get("reglas")
+        if not isinstance(crudas, list):
+            raise ValueError("Se esperaba una lista de reglas.")
+        nuevas: list[Regla] = []
+        for entrada in crudas:
+            if not isinstance(entrada, dict):
+                continue
+            patron = str(entrada.get("patron") or "").strip()
+            if not patron:
+                continue
+            decision = str(entrada.get("decision") or "preguntar").strip().lower()
+            if decision not in ("permitir", "preguntar", "denegar"):
+                raise ValueError(
+                    f"«{decision}» no es una decisión válida. "
+                    "Usa permitir, preguntar o denegar."
+                )
+            nuevas.append(Regla(
+                patron=patron,
+                decision=decision,
+                nota=str(entrada.get("nota") or ""),
+                agente=str(entrada.get("agente") or "*").strip().lower() or "*",
+            ))
+        self.ajustes.reglas = nuevas
+        self.ajustes.guardar()
+        return {"ok": True, "reglas": [vars(r) for r in nuevas]}
+
+    def _probar_regla(self, datos: dict[str, Any]) -> dict[str, Any]:
+        """Enseña qué pasaría con una orden concreta, sin ejecutar nada."""
+        from .modelo import Contexto
+        from .politica import decidir, regla_aplicable
+
+        contexto = Contexto(
+            agente=str(datos.get("agente") or "claude").lower(),
+            evento="prueba",
+            herramienta=str(datos.get("herramienta") or "") or None,
+            comando=str(datos.get("comando") or "") or None,
+            ruta=str(datos.get("ruta") or "") or None,
         )
+        crudo = datos.get("palanca", "actual")
+        if crudo in (None, "", "ninguna"):
+            palanca: Optional[int] = None
+        elif crudo == "actual":
+            palanca = self.gestor.resumen().get("palanca")
+        else:
+            palanca = int(crudo)
+        veredicto = decidir(self.ajustes, palanca, contexto, conectado=self.gestor.conectado)
+        coincide = regla_aplicable(self.ajustes.reglas, contexto)
+        return {
+            "decision": veredicto.decision.value,
+            "motivo": veredicto.motivo.value,
+            "explicacion": veredicto.explicacion,
+            "palanca": palanca,
+            "regla": vars(coincide) if coincide else None,
+        }
+
+    def _aprobar(self, datos: dict[str, Any]) -> dict[str, Any]:
+        from .aprobaciones import RESPUESTAS
+
+        respuesta = str(datos.get("respuesta") or "").strip().lower()
+        if respuesta not in RESPUESTAS:
+            raise ValueError("Contesta «permitir» o «denegar».")
+        identificador = datos.get("id")
+        if identificador in (None, "", "todas"):
+            atendidas = self.servidor.aprobaciones.responder_todas(respuesta)
+            return {"ok": atendidas > 0, "atendidas": atendidas}
+        atendida = self.servidor.aprobaciones.responder(str(identificador), respuesta)
+        return {
+            "ok": atendida,
+            "aviso": None if atendida else "Esa petición ya se resolvió o caducó.",
+        }
+
+    def _luces(self) -> dict[str, Any]:
+        return {
+            "luces": [
+                {
+                    "estado": int(e),
+                    "etiqueta": e.etiqueta,
+                    "descripcion": e.descripcion,
+                    "efecto": int(self.gestor.efecto_de(e) or 0),
+                }
+                for e in sorted(EstadoIA, key=int)
+            ],
+            "efectos": [
+                {"codigo": int(f), "etiqueta": f.etiqueta, "color": f.color} for f in EfectoLuz
+            ],
+        }
+
+    async def _guardar_luces(self, datos: dict[str, Any]) -> dict[str, Any]:
+        crudas = datos.get("luces")
+        if not isinstance(crudas, dict):
+            raise ValueError("Se esperaba una tabla de estado a efecto.")
+        nuevas = dict(self.ajustes.luces_por_estado)
+        for clave, valor in crudas.items():
+            try:
+                nuevas[str(int(clave))] = int(EfectoLuz(int(valor)))
+            except (TypeError, ValueError):
+                raise ValueError(f"«{valor}» no es un efecto conocido.")
+        self.ajustes.luces_por_estado = nuevas
+        self.ajustes.guardar()
+        escrito = False
+        if datos.get("aplicar") and self.gestor.conectado:
+            escrito = await self.gestor.guardar_luces_de_ia()
+        return {"ok": True, "escrito_en_el_teclado": escrito, **self._luces()}
+
+    def _guardar_aplicaciones(self, datos: dict[str, Any]) -> dict[str, Any]:
+        crudas = datos.get("aplicaciones")
+        if not isinstance(crudas, list):
+            raise ValueError("Se esperaba una lista de aplicaciones.")
+        nuevas: list[dict] = []
+        for entrada in crudas:
+            if not isinstance(entrada, dict):
+                continue
+            patron = str(entrada.get("patron") or "").strip()
+            if not patron:
+                continue
+            modo = int(entrada.get("modo", 0))
+            if not 0 <= modo < MODOS_DISPONIBLES:
+                raise ValueError(f"El modo {modo + 1} no existe.")
+            donde = str(entrada.get("en") or "proceso")
+            if donde not in ("proceso", "titulo", "cualquiera"):
+                raise ValueError(f"«{donde}» no es un sitio donde buscar.")
+            nuevas.append({"patron": patron, "modo": modo, "en": donde})
+        self.ajustes.aplicaciones = nuevas
+        self.ajustes.guardar()
+        return {"ok": True, "aplicaciones": nuevas}
+
+    async def _conexion(self, accion: str) -> dict[str, Any]:
+        if accion == "desconectar":
+            await self.gestor.desconectar()
+            return {"ok": True, "estado": self.gestor.resumen()}
+        if accion != "conectar":
+            raise ValueError("La acción debe ser «conectar» o «desconectar».")
+        try:
+            await self.gestor.conectar()
+        except ErrorTransporte as error:
+            return {"ok": False, "error": str(error), "estado": self.gestor.resumen()}
+        return {"ok": True, "estado": self.gestor.resumen()}
+
+    async def _buscar(self, segundos: float) -> dict[str, Any]:
+        """Busca teclados: primero entre los emparejados, luego por el aire."""
+        encontrados: list[dict[str, str]] = []
+        try:
+            from .transporte.windows_emparejado import buscar_emparejados, hay_winrt
+
+            if hay_winrt():
+                encontrados += [
+                    {"direccion": d, "nombre": n, "origen": "emparejado"}
+                    for d, n in await buscar_emparejados()
+                ]
+        except Exception:  # noqa: BLE001 - fuera de Windows esto no existe
+            pass
+
+        from .transporte.base import hay_bleak
+
+        if hay_bleak() and not encontrados:
+            from .transporte.ble import buscar_teclados
+
+            encontrados += [
+                {"direccion": d, "nombre": n, "origen": "anunciándose"}
+                for d, n in await buscar_teclados(max(1.0, min(30.0, segundos)))
+            ]
+        return {
+            "ok": True,
+            "encontrados": encontrados,
+            "error": None if encontrados else (
+                "No apareció ninguno. Si el teclado está emparejado y encendido, "
+                "comprueba que ninguna otra aplicación lo tenga ocupado."
+            ),
+        }
+
+    # ---- teclas ----------------------------------------------------------
+    def _modos_json(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "nombre": modo.nombre,
+                "teclas": [
+                    {
+                        "atajo": t.atajo,
+                        "descripcion": t.descripcion,
+                        "macro": [list(p) for p in t.macro],
+                        "vacia": t.esta_vacia(),
+                    }
+                    for t in modo.teclas
+                ],
+            }
+            for modo in self.ajustes.modos
+        ]
+
+    async def _guardar_tecla(self, datos: dict[str, Any]) -> dict[str, Any]:
+        """Guarda la tecla en la configuración y, si hay teclado, la escribe."""
+        from . import teclas as tabla_teclas
+        from .modelo import Modo, Tecla
+
+        modo = int(datos.get("modo", 0))
+        indice = int(datos.get("indice", 0))
+        if not 0 <= modo < MODOS_DISPONIBLES:
+            raise ValueError(f"El teclado tiene {MODOS_DISPONIBLES} modos.")
+        if not 0 <= indice < TECLAS_POR_MODO:
+            raise ValueError(f"Cada modo tiene {TECLAS_POR_MODO} teclas.")
+        while len(self.ajustes.modos) <= modo:
+            self.ajustes.modos.append(Modo(nombre=f"Modo {len(self.ajustes.modos) + 1}"))
+        destino = self.ajustes.modos[modo]
+        while len(destino.teclas) <= indice:
+            destino.teclas.append(Tecla())
+        tecla = destino.teclas[indice]
+
+        atajo = str(datos.get("atajo") or "").strip()
+        descripcion = str(datos.get("descripcion") or "").strip()
+        texto_macro = str(datos.get("texto_macro") or "")
+
+        if atajo:
+            # Se valida antes de guardar: mejor un error claro aquí que una
+            # tecla que no hace nada cuando la pulsas.
+            tabla_teclas.atajo_a_codigos(atajo)
+        macro = tabla_teclas.texto_a_macro(texto_macro) if texto_macro else []
+        if atajo and macro:
+            raise ValueError("Una tecla lleva atajo o macro, no las dos cosas.")
+
+        tecla.atajo = atajo
+        tecla.descripcion = descripcion
+        tecla.macro = macro
+        if nombre := str(datos.get("nombre_modo") or "").strip():
+            destino.nombre = nombre
+        self.ajustes.guardar()
+
+        escrita = False
+        if self.gestor.conectado and (atajo or macro or descripcion):
+            escrita = await self.gestor.programar_tecla(
+                modo, indice, atajo, descripcion, macro
+            )
+        return {
+            "ok": True,
+            "escrita_en_el_teclado": escrita,
+            "aviso": None if escrita or not self.gestor.conectado else (
+                "Se guardó aquí, pero el teclado no aceptó la escritura."
+            ),
+            "modos": self._modos_json(),
+        }
+
+    # ---- bitácora --------------------------------------------------------
+    def _bitacora(self, consulta: dict[str, list[str]]) -> list[dict[str, Any]]:
+        """Las decisiones guardadas, filtradas como pida la página."""
+        from .registro import leer_bitacora
+
+        def uno(nombre: str, por_defecto: str = "") -> str:
+            return (consulta.get(nombre) or [por_defecto])[0]
+
+        try:
+            limite = max(1, min(2000, int(uno("n", "100"))))
+        except ValueError:
+            limite = 100
+        entradas = leer_bitacora(limite)
+        if agente := uno("agente").lower():
+            entradas = [e for e in entradas if str(e.get("agente", "")).lower() == agente]
+        if decision := uno("decision").lower():
+            entradas = [e for e in entradas if str(e.get("decision", "")).lower() == decision]
+        if texto := uno("texto").lower():
+            campos = ("herramienta", "comando", "regla", "motivo")
+            entradas = [
+                e for e in entradas
+                if texto in " ".join(str(e.get(c) or "") for c in campos).lower()
+            ]
+        return entradas
+
+    def _bitacora_csv(self, consulta: dict[str, list[str]]) -> bytes:
+        import csv
+        import io
+
+        columnas = [
+            "instante", "agente", "evento", "decision", "motivo",
+            "regla", "palanca", "herramienta", "comando",
+        ]
+        papel = io.StringIO(newline="")
+        escritor = csv.DictWriter(papel, fieldnames=columnas, extrasaction="ignore")
+        escritor.writeheader()
+        for entrada in self._bitacora(consulta):
+            escritor.writerow({c: entrada.get(c, "") for c in columnas})
+        # El BOM hace que Excel en español abra bien las tildes.
+        return bytes([0xEF, 0xBB, 0xBF]) + papel.getvalue().encode("utf-8")
+
+    # ---- pantalla --------------------------------------------------------
+    async def _pantalla(self, datos: dict[str, Any]) -> dict[str, Any]:
+        """Recibe una imagen o un GIF en base64 y lo escribe en la pantalla."""
+        import base64
+
+        from .imagen import ErrorImagen, fotogramas
+
+        modo = int(datos.get("modo", 0))
+        if not 0 <= modo < MODOS_DISPONIBLES:
+            raise ValueError(f"El teclado tiene {MODOS_DISPONIBLES} modos.")
+        crudo = str(datos.get("datos") or "")
+        if not crudo:
+            raise ValueError("No llegó ninguna imagen.")
+        if "," in crudo[:64]:  # viene como data:image/gif;base64,....
+            crudo = crudo.split(",", 1)[1]
+        try:
+            archivo = base64.b64decode(crudo, validate=False)
+        except Exception as error:  # noqa: BLE001
+            raise ValueError(f"La imagen no se pudo descifrar: {error}") from error
+
+        try:
+            cuadros, retardo = fotogramas(archivo)
+        except ErrorImagen as error:
+            raise ValueError(str(error)) from error
+
+        resultado = await self.gestor.enviar_imagen(
+            modo,
+            cuadros,
+            retardo,
+            al_avanzar=lambda hecho, total: self.servidor.bus.publicar(
+                "subida", {"modo": modo, "hecho": hecho, "total": total}
+            ),
+        )
+        return {"ok": True, **resultado}
 
     @staticmethod
     def _json(cuerpo: bytes) -> dict[str, Any]:

@@ -9,7 +9,7 @@ import unittest
 from pruebas.base import PruebaAislada
 from tecladoia.config import Ajustes
 from tecladoia.dispositivo import GestorTeclado
-from tecladoia.panel import ErrorPanel, PanelWeb
+from tecladoia.panel import PanelWeb
 from tecladoia.servidor import ServidorEnganches
 from tecladoia.transporte.simulado import TransporteSimulado
 
@@ -27,7 +27,9 @@ class BasePanel(PruebaAislada):
         gestor = GestorTeclado(ajustes, TransporteSimulado(palanca=1))
         await gestor.conectar()
         servidor = ServidorEnganches(gestor, ajustes)
-        panel = PanelWeb(gestor, servidor, ajustes, **extra)
+        for campo, valor in extra.items():
+            setattr(ajustes, campo, valor)
+        panel = PanelWeb(gestor, servidor, ajustes)
         await panel.arrancar()
         return panel
 
@@ -258,54 +260,63 @@ class PruebaClaveDeAcceso(BasePanel):
             cabeceras, cuerpo = await self.pedir(panel, "GET", "/api/estado")
             self.assertIn("401", cabeceras)
 
+            # La puerta se sirve con 401: es la respuesta honesta —no estás
+            # autorizado— y aun así trae el formulario para que puedas entrar.
             cabeceras, cuerpo = await self.pedir(panel, "GET", "/")
-            self.assertIn("200 OK", cabeceras)
+            self.assertIn("401", cabeceras)
             self.assertIn("Clave del panel", cuerpo.decode("utf-8"))
 
-        self.correr(caso, clave="secreta")
+        self.correr(caso, clave_panel="secreta")
 
     def test_con_la_clave_se_entra_por_cookie_o_por_cabecera(self):
         async def caso(panel):
             _, cuerpo = await self.pedir(
-                panel, "GET", "/api/estado", cabeceras="Cookie: tecladoia_clave=secreta\r\n"
+                panel, "GET", "/api/estado", cabeceras="Cookie: tecladoia=secreta\r\n"
             )
             self.assertTrue(json.loads(cuerpo)["estado"]["conectado"])
 
             _, cuerpo = await self.pedir(
-                panel, "GET", "/api/estado", cabeceras="X-Clave: secreta\r\n"
+                panel, "GET", "/api/estado", cabeceras="X-TecladoIA-Clave: secreta\r\n"
             )
             self.assertTrue(json.loads(cuerpo)["estado"]["conectado"])
 
             cabeceras, _ = await self.pedir(
-                panel, "GET", "/api/estado", cabeceras="X-Clave: otra\r\n"
+                panel, "GET", "/api/estado", cabeceras="X-TecladoIA-Clave: otra\r\n"
             )
             self.assertIn("401", cabeceras)
 
-        self.correr(caso, clave="secreta")
+        self.correr(caso, clave_panel="secreta")
 
     def test_entrar_deja_la_cookie_puesta(self):
         async def caso(panel):
-            cabeceras, _ = await self.pedir(panel, "POST", "/api/entrar", {"clave": "secreta"})
-            self.assertIn("Set-Cookie: tecladoia_clave=secreta", cabeceras)
+            cabeceras, _ = await self.pedir(panel, "GET", "/?clave=secreta")
+            self.assertIn("303 See Other", cabeceras)
+            self.assertIn("Set-Cookie: tecladoia=secreta", cabeceras)
             self.assertIn("HttpOnly", cabeceras)
+            # La clave no se queda escrita en la direccion.
+            self.assertIn("Location: /", cabeceras)
 
-            cabeceras, _ = await self.pedir(panel, "POST", "/api/entrar", {"clave": "mal"})
+            cabeceras, _ = await self.pedir(panel, "GET", "/?clave=mal")
             self.assertIn("401", cabeceras)
 
-        self.correr(caso, clave="secreta")
+        self.correr(caso, clave_panel="secreta")
 
     def test_salir_a_la_red_sin_clave_se_rechaza(self):
-        """Es la barrera que impide dejar el panel abierto sin querer."""
+        """La barrera que impide dejar el panel abierto sin querer."""
 
         async def caso_suelto():
             ajustes = Ajustes(
                 sincronizar_config_agentes=False, puerto_panel=8941, puerto_hooks=9011
             )
+            ajustes.host_panel = "0.0.0.0"
+            ajustes.clave_panel = ""
             gestor = GestorTeclado(ajustes, TransporteSimulado())
             servidor = ServidorEnganches(gestor, ajustes)
-            panel = PanelWeb(gestor, servidor, ajustes, escuchar="0.0.0.0")
-            with self.assertRaises(ErrorPanel):
-                await panel.arrancar()
+            panel = PanelWeb(gestor, servidor, ajustes)
+            await panel.arrancar()
+            # No se abre: sin clave, publicarlo seria dejar la palanca en manos
+            # de cualquiera que alcance el equipo por la red.
+            self.assertIsNone(panel.puerto)
 
         asyncio.run(caso_suelto())
 

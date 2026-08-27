@@ -26,7 +26,9 @@ from .agentes.base import AgenteIA, EventoEnganche
 from .config import Ajustes, ruta_socket
 from .dispositivo import GestorTeclado
 from .modelo import Contexto, Decision, EfectoLuz, EstadoIA, Veredicto
+from .aprobaciones import ColaAprobaciones
 from .politica import decidir
+from .sucesos import Bus
 from .registro import anotar, obtener
 
 _log = obtener("servidor")
@@ -80,6 +82,13 @@ class ServidorEnganches:
         self._reposo: Optional[asyncio.Task] = None
         self._vigilante: Optional[asyncio.Task] = None
         self._ultimo_estado_registrado: Optional[EstadoIA] = None
+        #: Canal por el que el panel se entera de todo sin ir preguntando.
+        self.bus = Bus()
+        #: Peticiones esperando que alguien conteste desde el navegador.
+        self.aprobaciones = ColaAprobaciones(self.bus)
+        #: Los últimos avisos recibidos. Sin esto, cuando la barra hace algo
+        #: raro no hay forma de saber qué programa lo pidió ni por qué.
+        self.avisos: list[dict[str, Any]] = []
 
     # --- ciclo de vida --------------------------------------------------
     async def arrancar(self, con_tcp: bool = True) -> None:
@@ -92,6 +101,13 @@ class ServidorEnganches:
             self.ruta_socket.chmod(0o600)  # solo quien lo ejecuta puede aprobar
             self._servidores.append(servidor)
             _log.info("Escuchando en %s", self.ruta_socket)
+
+        if not con_tcp and os.name == "nt":
+            _log.warning(
+                "En Windows no hay sockets Unix: se abre el puerto TCP de todos "
+                "modos, porque si no el servicio se quedaria sin escuchar."
+            )
+            con_tcp = True
 
         if con_tcp:
             puerto = self.ajustes.puerto_hooks
@@ -124,6 +140,7 @@ class ServidorEnganches:
             with contextlib.suppress(Exception):
                 await servidor.wait_closed()
         self._servidores.clear()
+        self.aprobaciones.cancelar_todo()
         for tarea in list(self._tareas):
             tarea.cancel()
         self._tareas.clear()
@@ -281,6 +298,15 @@ class ServidorEnganches:
         veredicto = decidir(self.ajustes, palanca, contexto, conectado=self.gestor.conectado)
         if self.ajustes.sincronizar_config_agentes:
             self._sincronizar(veredicto)
+        # Lo que queda en «preguntar» puede contestarse desde el navegador, si
+        # se activó. Lo que una regla deniega no llega hasta aquí: la red de
+        # seguridad no se puede saltar contestando en la web.
+        if veredicto.decision is Decision.PREGUNTAR and getattr(
+            self.ajustes, "aprobacion_remota", False
+        ):
+            veredicto = await self.aprobaciones.preguntar(
+                contexto, veredicto, getattr(self.ajustes, "espera_aprobacion_s", 25.0)
+            )
         return veredicto
 
     def _sincronizar(self, veredicto: Veredicto) -> None:
@@ -320,6 +346,7 @@ class ServidorEnganches:
         }
         anotar(entrada)
         self.historial.append(entrada)
+        self.bus.publicar("decision", entrada)
         del self.historial[:-100]
         if veredicto.decision is not Decision.PERMITIR:
             _log.info(
@@ -340,6 +367,7 @@ class ServidorEnganches:
         luces seguirían moviéndose como si aún estuviera trabajando.
         """
         self._anotar_actividad(agente_id, evento.estado)
+        self._anotar_aviso(agente_id, evento.interno, evento.estado)
         self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
 
         if self._reposo is not None:
@@ -398,6 +426,22 @@ class ServidorEnganches:
         self.agente_activo = None
         self._ultimo_estado_registrado = ESTADO_EN_REPOSO
         await self.gestor.enviar_estado_ia(ESTADO_EN_REPOSO)
+
+    def _anotar_aviso(self, agente: str, evento: str, estado: EstadoIA) -> None:
+        """Deja constancia de qué llegó y qué luz encendió."""
+        from datetime import datetime
+
+        efecto = self.gestor.efecto_de(estado)
+        entrada = {
+            "instante": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "agente": agente,
+            "evento": evento,
+            "estado": estado.etiqueta,
+            "efecto": efecto.etiqueta if efecto is not None else "—",
+        }
+        self.avisos.append(entrada)
+        del self.avisos[:-40]
+        self.bus.publicar("aviso", entrada)
 
     def _en_segundo_plano(self, corrutina) -> None:
         tarea = asyncio.create_task(corrutina)

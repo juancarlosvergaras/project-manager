@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import unittest
 
 from pruebas.base import PruebaAislada
@@ -149,6 +150,7 @@ class PruebaServidor(PruebaAislada):
             self.assertEqual(respuesta["decision"], "preguntar")
         self.correr(caso())
 
+    @unittest.skipIf(os.name == "nt", "Windows no tiene sockets de dominio Unix")
     def test_el_socket_atiende_de_verdad(self):
         async def caso():
             servidor, _ = self.montar(palanca=0, puerto_hooks=8917)

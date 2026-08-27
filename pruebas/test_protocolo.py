@@ -69,8 +69,9 @@ class PruebaTeclasYDescripciones(unittest.TestCase):
         self.assertEqual(len(larga), protocolo.MAXIMO_BYTES_DESCRIPCION)
 
     def test_rechaza_modo_o_tecla_fuera_de_rango(self):
+        protocolo.asignar_atajo(protocolo.MODOS_DISPONIBLES - 1, 0, [0x04])
         with self.assertRaises(protocolo.ErrorProtocolo):
-            protocolo.asignar_atajo(3, 0, [0x04])
+            protocolo.asignar_atajo(protocolo.MODOS_DISPONIBLES, 0, [0x04])
         with self.assertRaises(protocolo.ErrorProtocolo):
             protocolo.asignar_atajo(0, 9, [0x04])
 
