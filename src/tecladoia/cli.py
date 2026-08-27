@@ -178,6 +178,10 @@ def orden_estado(args, ajustes: Ajustes, salida: Salida) -> int:
     if respuesta.get("palanca_forzada"):
         salida.dato("", "(forzada desde el panel o la línea de órdenes)")
     salida.dato("Momento del agente", respuesta.get("estado_ia_etiqueta") or "—")
+    if "agente_activo" in respuesta:
+        salida.dato("Programa activo", respuesta.get("agente_activo") or "ninguno")
+        segundos = respuesta.get("segundos_sin_eventos")
+        salida.dato("Sin eventos desde", f"hace {segundos} s" if segundos is not None else "—")
     return 0
 
 
@@ -272,6 +276,13 @@ def orden_enganche(args, ajustes: Ajustes, salida: Salida) -> int:
 def orden_teclas(args, ajustes: Ajustes, salida: Salida) -> int:
     """Programa una de las teclas del teclado."""
 
+    if _preguntar_al_servicio({"orden": "estado"}, ajustes) is not None:
+        salida.mal(
+            "Hay un servicio en marcha con el teclado ocupado. "
+            "Párale (Ctrl+C) antes de programar teclas."
+        )
+        return 1
+
     async def ejecutar() -> int:
         gestor = GestorTeclado(ajustes)
         try:
@@ -302,6 +313,16 @@ def orden_luz(args, ajustes: Ajustes, salida: Salida) -> int:
     except KeyError:
         salida.mal("Efectos disponibles: " + ", ".join(e.name.lower() for e in EfectoLuz))
         return 2
+
+    # Si hay un servicio en marcha, es él quien tiene el enlace BLE: abrir una
+    # segunda conexión chocaría con la suya.
+    respuesta = _preguntar_al_servicio({"orden": "efecto", "valor": int(efecto)}, ajustes)
+    if respuesta is not None:
+        if respuesta.get("ok"):
+            salida.bien(f"Efecto «{efecto.etiqueta}» aplicado por el servicio.")
+            return 0
+        salida.mal("El servicio no pudo aplicar el efecto; ¿está el teclado conectado?")
+        return 1
 
     async def ejecutar() -> int:
         gestor = GestorTeclado(ajustes)

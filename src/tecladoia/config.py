@@ -93,6 +93,12 @@ class Ajustes:
     puente_host: str = "127.0.0.1"
     puente_puerto: int = 9000
     vigencia_cache_ms: int = 1500
+    #: Segundos sin recibir eventos tras los cuales la barra vuelve al reposo.
+    #: Evita que la última animación se quede encendida para siempre cuando el
+    #: agente se cierra sin avisar o cambias de ventana.
+    segundos_hasta_reposo: int = 45
+    #: Cuánto dura en pantalla un estado momentáneo antes de volver al reposo.
+    milisegundos_estado_breve: int = 1500
     espera_palanca_s: float = 1.2
     #: Si es cierto, las reglas de tipo «permitir» pueden adelantar una acción
     #: con la palanca en manual. Viene apagado: la palanca manda.

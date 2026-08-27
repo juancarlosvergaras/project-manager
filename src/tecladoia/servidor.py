@@ -17,6 +17,7 @@ import asyncio
 import contextlib
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -24,7 +25,7 @@ from . import agentes
 from .agentes.base import AgenteIA, EventoEnganche
 from .config import Ajustes, ruta_socket
 from .dispositivo import GestorTeclado
-from .modelo import Contexto, Decision, EstadoIA, Veredicto
+from .modelo import Contexto, Decision, EfectoLuz, EstadoIA, Veredicto
 from .politica import decidir
 from .registro import anotar, obtener
 
@@ -32,6 +33,22 @@ _log = obtener("servidor")
 
 #: Nombres de evento del proyecto original que se aceptan tal cual, para que
 #: quien ya tenga sus enganches instalados no tenga que rehacerlos.
+#: Estado al que vuelve la barra cuando no hay nada que contar.
+ESTADO_EN_REPOSO = EstadoIA.DETENIDO
+
+#: Momentos que duran un instante: se muestran y la barra vuelve al reposo.
+ESTADOS_BREVES = frozenset(
+    {
+        EstadoIA.NOTIFICACION,
+        EstadoIA.HERRAMIENTA_TERMINADA,
+        EstadoIA.TAREA_COMPLETADA,
+        EstadoIA.PETICION_ENVIADA,
+    }
+)
+
+#: Momentos que ya son de reposo: no hace falta programar nada tras ellos.
+ESTADOS_TRANQUILOS = frozenset({EstadoIA.DETENIDO, EstadoIA.SESION_FINALIZADA})
+
 _ESTADOS_HEREDADOS = {
     "SessionStart": EstadoIA.SESION_INICIADA,
     "SessionEnd": EstadoIA.SESION_FINALIZADA,
@@ -57,6 +74,12 @@ class ServidorEnganches:
         self.puerto: Optional[int] = None
         #: Últimas decisiones, para el panel web.
         self.historial: list[dict[str, Any]] = []
+        #: Qué agente movió la barra por última vez, y cuándo.
+        self.agente_activo: Optional[str] = None
+        self.ultimo_evento_en: float = 0.0
+        self._reposo: Optional[asyncio.Task] = None
+        self._vigilante: Optional[asyncio.Task] = None
+        self._ultimo_estado_registrado: Optional[EstadoIA] = None
 
     # --- ciclo de vida --------------------------------------------------
     async def arrancar(self, con_tcp: bool = True) -> None:
@@ -88,7 +111,14 @@ class ServidorEnganches:
                     "No se pudo abrir ningún puerto entre %s y %s", puerto, puerto + 9
                 )
 
+        if self.ajustes.segundos_hasta_reposo > 0:
+            self._vigilante = asyncio.create_task(self._vigilar_inactividad())
+
     async def detener(self) -> None:
+        for tarea in (self._vigilante, self._reposo):
+            if tarea is not None:
+                tarea.cancel()
+        self._vigilante = self._reposo = None
         for servidor in self._servidores:
             servidor.close()
             with contextlib.suppress(Exception):
@@ -105,6 +135,17 @@ class ServidorEnganches:
         if not self._servidores:
             raise RuntimeError("El servidor no está arrancado")
         await asyncio.gather(*(s.serve_forever() for s in self._servidores))
+
+    def resumen_actividad(self) -> dict[str, Any]:
+        """Quién movió la barra por última vez y hace cuánto."""
+        return {
+            "agente_activo": self.agente_activo,
+            "segundos_sin_eventos": (
+                round(time.monotonic() - self.ultimo_evento_en, 1)
+                if self.ultimo_evento_en
+                else None
+            ),
+        }
 
     # --- atención de clientes -------------------------------------------
     async def _atender(self, lector: asyncio.StreamReader, escritor: asyncio.StreamWriter) -> None:
@@ -131,7 +172,7 @@ class ServidorEnganches:
         orden = peticion.get("orden", "evento")
 
         if orden == "estado":
-            return {"ok": True, **self.gestor.resumen()}
+            return {"ok": True, **self.gestor.resumen(), **self.resumen_actividad()}
         if orden == "palanca":
             valor = peticion.get("valor")
             self.gestor.palanca_forzada = None if valor is None else int(valor)
@@ -140,6 +181,16 @@ class ServidorEnganches:
             estado = EstadoIA.desde_codigo(int(peticion.get("valor", 0)))
             enviado = await self.gestor.enviar_estado_ia(estado)
             return {"ok": enviado, "estado": int(estado)}
+        if orden == "efecto":
+            # Solo un proceso puede tener el enlace BLE abierto, así que las
+            # órdenes de luz de la línea de órdenes pasan por aquí en lugar de
+            # abrir una segunda conexión que chocaría con esta.
+            try:
+                efecto = EfectoLuz(int(peticion.get("valor", 0)))
+            except ValueError:
+                return {"ok": False, "error": "Efecto desconocido"}
+            enviado = await self.gestor.aplicar_efecto(efecto)
+            return {"ok": enviado, "efecto": int(efecto), "etiqueta": efecto.etiqueta}
         if orden != "evento":
             return {"ok": False, "error": f"Orden desconocida: {orden}"}
 
@@ -187,13 +238,14 @@ class ServidorEnganches:
                 return {"ok": False, "error": f"Evento desconocido: {nombre}"}
             # Enganche del proyecto original: solo se refleja la luz.
             await self.gestor.enviar_estado_ia(estado)
+            self._anotar_actividad("heredado", estado)
             return {"ok": True, "evento": nombre, "estado": int(estado)}
 
         assert agente is not None
         contexto = self._contexto(peticion, agente.id, evento)
 
         # La luz no debe retrasar la respuesta: se actualiza en paralelo.
-        self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
+        self._marcar_actividad(agente.id, evento)
 
         veredicto: Optional[Veredicto] = None
         if evento.permiso:
@@ -277,6 +329,75 @@ class ServidorEnganches:
                 veredicto.decision.value,
                 veredicto.explicacion,
             )
+
+    # --- la barra de luz -------------------------------------------------
+    def _marcar_actividad(self, agente_id: str, evento: EventoEnganche) -> None:
+        """Refleja el momento del agente y decide cuánto debe durar en pantalla.
+
+        Sin esto la barra se queda con la última animación para siempre: el
+        teclado no sabe qué programa tienes delante ni cuándo se cerró, así que
+        si un agente termina sin avisar -o simplemente cambias de ventana- las
+        luces seguirían moviéndose como si aún estuviera trabajando.
+        """
+        self._anotar_actividad(agente_id, evento.estado)
+        self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
+
+        if self._reposo is not None:
+            self._reposo.cancel()
+            self._reposo = None
+
+        if evento.estado in ESTADOS_TRANQUILOS:
+            self.agente_activo = None
+        elif evento.estado in ESTADOS_BREVES:
+            self._reposo = asyncio.create_task(
+                self._volver_al_reposo(self.ajustes.milisegundos_estado_breve / 1000)
+            )
+
+    def _anotar_actividad(self, agente_id: str, estado: EstadoIA) -> None:
+        self.agente_activo = agente_id
+        self.ultimo_evento_en = time.monotonic()
+        # Solo se registra el cambio: un agente activo dispara muchos eventos
+        # seguidos y repetirlos todos ahogaría lo que sí importa.
+        if estado is not self._ultimo_estado_registrado:
+            self._ultimo_estado_registrado = estado
+            _log.info("%s → %s", agente_id, estado.etiqueta)
+
+    async def _volver_al_reposo(self, espera_s: float) -> None:
+        try:
+            await asyncio.sleep(espera_s)
+        except asyncio.CancelledError:
+            return
+        await self._apagar_la_barra("el momento era pasajero")
+
+    async def _vigilar_inactividad(self) -> None:
+        """Devuelve la barra al reposo cuando nadie dice nada durante un rato.
+
+        Es la red que recoge lo que los enganches no cuentan: un agente cerrado
+        de golpe, una terminal que desaparece o una sesión que acaba sin emitir
+        su evento de cierre.
+        """
+        limite = max(5, self.ajustes.segundos_hasta_reposo)
+        paso = max(0.1, min(1.0, limite / 10))
+        try:
+            while True:
+                await asyncio.sleep(paso)
+                if self.agente_activo is None or not self.ultimo_evento_en:
+                    continue
+                if time.monotonic() - self.ultimo_evento_en >= limite:
+                    await self._apagar_la_barra(f"{limite} s sin noticias de {self.agente_activo}")
+        except asyncio.CancelledError:
+            return
+
+    async def _apagar_la_barra(self, motivo: str) -> None:
+        if self.agente_activo is None and self._ultimo_estado_registrado in (
+            None,
+            ESTADO_EN_REPOSO,
+        ):
+            return
+        _log.info("Barra en reposo: %s", motivo)
+        self.agente_activo = None
+        self._ultimo_estado_registrado = ESTADO_EN_REPOSO
+        await self.gestor.enviar_estado_ia(ESTADO_EN_REPOSO)
 
     def _en_segundo_plano(self, corrutina) -> None:
         tarea = asyncio.create_task(corrutina)

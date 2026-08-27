@@ -188,7 +188,12 @@ proyecto original: tramas `AA BB [comando] [datos] CC DD` sobre el servicio BLE
   translitera en vez de perderse.
 - **Barra de luz.** Diecisiete efectos, uno asignado por omisión a cada momento
   del agente: pensamiento azul mientras trabaja, espera de aprobación cuando
-  pregunta, barrido de éxito al terminar.
+  pregunta, barrido de éxito al terminar. Los momentos pasajeros se apagan solos
+  al segundo y medio, y si un agente deja de dar señales durante 45 segundos la
+  barra vuelve al reposo por su cuenta. Sin eso la última animación se quedaría
+  encendida para siempre: el teclado no sabe qué ventana tienes delante ni
+  cuándo se cerró un programa, así que alguien tiene que decírselo. Ambos plazos
+  se ajustan con `segundos_hasta_reposo` y `milisegundos_estado_breve`.
 - **Tres transportes.** BLE nativo con `bleak`, el puente BLE↔TCP del proyecto
   original y el teclado simulado. Con `transporte: "auto"` se elige el mejor
   disponible.

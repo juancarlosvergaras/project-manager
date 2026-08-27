@@ -130,6 +130,7 @@ function pinta(datos) {
     ["Firmware", e.firmware || "—"],
     ["Palanca", palanca],
     ["Momento del agente", e.estado_ia_etiqueta || "—"],
+    ["Programa activo", e.agente_activo || "ninguno"],
   ].map(([t, v]) => `<dt>${t}</dt><dd>${v}</dd>`).join("");
 
   $("#nota-palanca").textContent = e.palanca_forzada
@@ -269,7 +270,7 @@ class PanelWeb:
         resultado: Any
         if ruta == "/api/estado":
             resultado = {
-                "estado": self.gestor.resumen(),
+                "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
                 "historial": self.servidor.historial[-25:],
                 "agentes": instalador.revisar(),
             }
@@ -282,7 +283,7 @@ class PanelWeb:
             valor = datos.get("valor")
             self.gestor.palanca_forzada = None if valor is None else int(valor)
             resultado = {
-                "estado": self.gestor.resumen(),
+                "estado": {**self.gestor.resumen(), **self.servidor.resumen_actividad()},
                 "historial": self.servidor.historial[-25:],
                 "agentes": instalador.revisar(),
             }
