@@ -23,9 +23,13 @@ def crear(ajustes) -> Transporte:
     if elegido == "simulado":
         return TransporteSimulado()
     if elegido == "ble":
-        return TransporteBLE(nombre=ajustes.nombre_dispositivo)
+        return TransporteBLE(
+            nombre=ajustes.nombre_dispositivo, direccion=ajustes.direccion_dispositivo
+        )
     if elegido == "puente":
         return TransportePuenteTCP(ajustes.puente_host, ajustes.puente_puerto)
     if hay_bleak():
-        return TransporteBLE(nombre=ajustes.nombre_dispositivo)
+        return TransporteBLE(
+            nombre=ajustes.nombre_dispositivo, direccion=ajustes.direccion_dispositivo
+        )
     return TransportePuenteTCP(ajustes.puente_host, ajustes.puente_puerto)

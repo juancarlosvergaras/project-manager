@@ -88,6 +88,10 @@ class Ajustes:
     modo_aprobacion: str = "palanca"  # palanca | siempre_preguntar | siempre_permitir
     transporte: str = "auto"  # auto | ble | puente | simulado
     nombre_dispositivo: str = ""
+    #: Dirección Bluetooth del teclado. Cuando está puesta se usa
+    #: directamente, sin rastrear: un teclado ya emparejado deja de
+    #: anunciarse y una búsqueda no lo encontraría.
+    direccion_dispositivo: str = ""
     puerto_hooks: int = PUERTO_PREDETERMINADO
     puerto_panel: int = PUERTO_PANEL
     puente_host: str = "127.0.0.1"

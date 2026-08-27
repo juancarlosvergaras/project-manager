@@ -79,3 +79,38 @@ class PruebaOrdenes(PruebaAislada):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaDireccionDelTeclado(PruebaAislada):
+    """Un teclado ya emparejado no se anuncia: hay que poder fijarlo a mano."""
+
+    def _correr(self, argumentos) -> tuple[int, str]:
+        salida = io.StringIO()
+        with contextlib.redirect_stdout(salida), contextlib.redirect_stderr(io.StringIO()):
+            codigo = main(argumentos)
+        return codigo, salida.getvalue()
+
+    def test_se_puede_fijar_y_olvidar_la_direccion(self):
+        codigo, texto = self._correr(
+            ["--sin-color", "config", "--direccion", "AA:BB:CC:DD:EE:FF"]
+        )
+        self.assertEqual(codigo, 0)
+        self.assertIn("AA:BB:CC:DD:EE:FF", texto)
+        self.assertEqual(Ajustes.cargar().direccion_dispositivo, "AA:BB:CC:DD:EE:FF")
+
+        codigo, texto = self._correr(["--sin-color", "config", "--direccion", ""])
+        self.assertEqual(codigo, 0)
+        self.assertIn("borrada", texto)
+        self.assertEqual(Ajustes.cargar().direccion_dispositivo, "")
+
+    def test_la_direccion_llega_al_transporte(self):
+        from tecladoia.transporte import crear
+
+        ajustes = Ajustes(transporte="ble", direccion_dispositivo="AA:BB:CC:DD:EE:FF")
+        transporte = crear(ajustes)
+        self.assertEqual(transporte.direccion, "AA:BB:CC:DD:EE:FF")
+
+    def test_config_muestra_si_hay_teclado_fijado(self):
+        codigo, texto = self._correr(["--sin-color", "config"])
+        self.assertEqual(codigo, 0)
+        self.assertIn("se busca", texto)

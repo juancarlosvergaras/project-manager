@@ -195,10 +195,19 @@ def orden_buscar(args, ajustes: Ajustes, salida: Salida) -> int:
     salida.titulo("Buscando teclados (unos segundos)")
     encontrados = asyncio.run(buscar_teclados(args.segundos))
     if not encontrados:
-        salida.mal("No se encontró ningún teclado compatible.")
+        salida.mal("No se encontró ningún teclado anunciándose.")
+        salida.linea(
+            "  Si en los ajustes de Bluetooth aparece como «Conectado», es lo esperado:\n"
+            "  un teclado ya emparejado deja de anunciarse. Dale su dirección con\n"
+            "  «tecladoia config --direccion XX:XX:XX:XX:XX:XX»."
+        )
         return 1
     for direccion, nombre in encontrados:
         salida.bien(f"{nombre or 'sin nombre'} — {direccion}")
+    if args.guardar:
+        ajustes.direccion_dispositivo = encontrados[0][0]
+        ajustes.guardar()
+        salida.bien(f"Dirección guardada: {ajustes.direccion_dispositivo}")
     return 0
 
 
@@ -364,6 +373,14 @@ def orden_bitacora(args, ajustes: Ajustes, salida: Salida) -> int:
 
 def orden_config(args, ajustes: Ajustes, salida: Salida) -> int:
     """Muestra la configuración y dónde vive."""
+    if args.direccion is not None:
+        ajustes.direccion_dispositivo = args.direccion.strip()
+        ruta = ajustes.guardar()
+        if ajustes.direccion_dispositivo:
+            salida.bien(f"Teclado fijado en {ajustes.direccion_dispositivo} ({ruta})")
+        else:
+            salida.bien(f"Dirección borrada: se volverá a buscar el teclado ({ruta})")
+        return 0
     if args.crear:
         ruta = ajustes.guardar()
         salida.bien(f"Configuración escrita en {ruta}")
@@ -373,6 +390,7 @@ def orden_config(args, ajustes: Ajustes, salida: Salida) -> int:
     salida.dato("Carpeta", directorio_base())
     salida.dato("Modo de aprobación", ajustes.modo_aprobacion)
     salida.dato("Transporte", ajustes.transporte)
+    salida.dato("Teclado fijado", ajustes.direccion_dispositivo or "no (se busca)")
     salida.dato("Puerto de enganches", ajustes.puerto_hooks)
     salida.dato("Puerto del panel", ajustes.puerto_panel)
     salida.dato("Caché de la palanca", f"{ajustes.vigencia_cache_ms} ms")
@@ -460,6 +478,9 @@ def construir_analizador() -> argparse.ArgumentParser:
 
     buscar = ordenes.add_parser("buscar", help="busca teclados por Bluetooth")
     buscar.add_argument("--segundos", type=float, default=8.0)
+    buscar.add_argument(
+        "--guardar", action="store_true", help="fija el primer teclado encontrado"
+    )
     buscar.set_defaults(funcion=orden_buscar)
 
     palanca = ordenes.add_parser("palanca", help="fija la palanca virtual: auto, manual o fisica")
@@ -501,6 +522,12 @@ def construir_analizador() -> argparse.ArgumentParser:
 
     config = ordenes.add_parser("config", help="muestra la configuración")
     config.add_argument("--crear", action="store_true", help="escribe el fichero de configuración")
+    config.add_argument(
+        "--direccion",
+        default=None,
+        metavar="XX:XX:XX:XX:XX:XX",
+        help="fija la dirección Bluetooth del teclado (cadena vacía para olvidarla)",
+    )
     config.set_defaults(funcion=orden_config)
 
     probar = ordenes.add_parser("probar", help="prueba el flujo completo sin teclado")
@@ -519,3 +546,7 @@ def main(argumentos: Optional[list[str]] = None) -> int:
         return args.funcion(args, ajustes, salida)
     except KeyboardInterrupt:
         return 130
+    except BrokenPipeError:
+        # Alguien cortó la salida con «| head» o similar; no es un fallo nuestro.
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        return 0

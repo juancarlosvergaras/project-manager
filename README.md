@@ -92,6 +92,25 @@ tecladoia instalar        # pone los enganches en los programas que tengas
 tecladoia servicio        # arranca el servicio y el panel web
 ```
 
+**Si la búsqueda no encuentra nada** pero el teclado aparece como «Conectado» en
+los ajustes de Bluetooth, no está averiado: un dispositivo ya emparejado deja de
+anunciarse, así que un rastreo no lo ve. Dale su dirección y se conectará
+directamente:
+
+```bash
+tecladoia config --direccion AA:BB:CC:DD:EE:FF
+```
+
+En Windows, la dirección sale de aquí (los doce dígitos tras `DEV_`):
+
+```powershell
+Get-PnpDevice -Class Bluetooth | Where-Object FriendlyName -like "*AhaKey*" |
+  Select-Object FriendlyName, InstanceId
+```
+
+Y recuerda que **solo un programa a la vez puede tener el teclado abierto**:
+cierra la aplicación original de AhaKey antes de arrancar el servicio.
+
 Con el servicio en marcha, abre <http://127.0.0.1:8770> y tendrás el estado del
 teclado, la palanca virtual, el efecto de la barra de luz y el historial de
 decisiones.

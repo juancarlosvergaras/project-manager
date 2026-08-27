@@ -24,13 +24,19 @@ class TransporteBLE(Transporte):
 
     nombre_legible = "BLE nativo"
 
-    def __init__(self, nombre: str = "", tiempo_busqueda_s: float = 8.0) -> None:
+    def __init__(
+        self,
+        nombre: str = "",
+        direccion: str = "",
+        tiempo_busqueda_s: float = 8.0,
+    ) -> None:
         super().__init__()
         self.nombre = nombre
+        self.direccion = direccion
         self.tiempo_busqueda_s = tiempo_busqueda_s
         self._cliente = None
         self._memoria = bytearray()
-        self._direccion: Optional[str] = None
+        self._direccion: Optional[str] = direccion or None
 
     @property
     def conectado(self) -> bool:
@@ -56,24 +62,50 @@ class TransporteBLE(Transporte):
         return candidatos
 
     async def conectar(self) -> None:
+        """Se conecta al teclado, por dirección conocida o buscándolo.
+
+        La dirección tiene prioridad sobre la búsqueda a propósito: un teclado
+        ya emparejado y conectado al sistema **deja de anunciarse**, así que un
+        rastreo no lo encuentra por mucho que esté ahí mismo. Es justo el caso
+        de un AhaKey que aparece como «Conectado» en los ajustes de Bluetooth
+        de Windows.
+        """
         if not hay_bleak():
             raise ErrorTransporte(
                 "Falta la biblioteca «bleak». Instálala con: pip install 'tecladoia[ble]'"
             )
+        nombre = ""
+        if not self.direccion:
+            candidatos = await self.buscar()
+            if candidatos:
+                self._direccion, nombre = candidatos[0]
+
+        if not self._direccion:
+            raise ErrorTransporte(
+                "No se encontró ningún teclado AhaKey anunciándose. Si en los ajustes "
+                "de Bluetooth aparece como «Conectado», es normal: ya emparejado deja "
+                "de anunciarse. Dale su dirección con «tecladoia config --direccion "
+                "XX:XX:XX:XX:XX:XX» y se conectará directamente."
+            )
+
+        await self._abrir(self._direccion, nombre)
+
+    async def _abrir(self, direccion: str, nombre: str = "") -> None:
         from bleak import BleakClient
 
-        candidatos = await self.buscar()
-        if not candidatos:
+        _log.info("Conectando con «%s» (%s)", nombre or "el teclado", direccion)
+        cliente = BleakClient(direccion)
+        try:
+            await cliente.connect()
+            await cliente.start_notify(protocolo.CARACTERISTICA_NOTIFICA, self._al_notificar)
+        except Exception as error:  # noqa: BLE001 - bleak lanza excepciones variadas
             raise ErrorTransporte(
-                "No se encontró ningún teclado AhaKey cerca. "
-                "Comprueba que está encendido y emparejado."
-            )
-        self._direccion, nombre = candidatos[0]
-        _log.info("Conectando con «%s» (%s)", nombre or "sin nombre", self._direccion)
-        cliente = BleakClient(self._direccion)
-        await cliente.connect()
-        await cliente.start_notify(protocolo.CARACTERISTICA_NOTIFICA, self._al_notificar)
+                f"No se pudo abrir el teclado en {direccion}: {error}. "
+                "Comprueba que está encendido, emparejado y que ninguna otra "
+                "aplicación (la original de AhaKey, por ejemplo) lo tiene ocupado."
+            ) from error
         self._cliente = cliente
+        self._direccion = direccion
         _log.info("Teclado conectado")
 
     async def desconectar(self) -> None:
