@@ -250,18 +250,10 @@ class TransporteWindowsEmparejado(Transporte):
         return list(resultado.characteristics)
 
     async def desconectar(self) -> None:
-        if self._notifica is not None and self._testigo is not None:
-            try:
-                self._notifica.remove_value_changed(self._testigo)
-            except Exception:  # noqa: BLE001 - puede haberse ido antes
-                pass
-        if self._dispositivo is not None:
-            try:
-                self._dispositivo.close()
-            except Exception:  # noqa: BLE001
-                pass
-        self._dispositivo = self._comando = self._datos = None
-        self._notifica = self._testigo = None
+        # Un solo camino para soltar el teclado. Antes había dos y solo uno
+        # cerraba el aparato; el que no lo cerraba era justo el que se usa
+        # cuando deja de responder, o sea el que más falta hacía que lo hiciera.
+        self._soltar_el_canal()
         self._memoria.clear()
 
     # --- notificaciones ---------------------------------------------------
@@ -343,10 +335,28 @@ class TransporteWindowsEmparejado(Transporte):
         self._soltar_el_canal()
 
     def _soltar_el_canal(self) -> None:
+        """Suelta el teclado del todo, **cerrándolo**.
+
+        Lo de cerrarlo no es una cortesía: es la diferencia entre poder volver
+        a abrirlo o no. Un ``BluetoothLEDevice`` que se abandona sin
+        ``close()`` deja la sesión viva dentro de este proceso, y Windows no
+        deja abrir una segunda sobre el mismo aparato. Desde fuera se veía como
+        un teclado embrujado — un proceso recién arrancado lo abría a la
+        primera y el servicio, con el aparato encendido delante, no lo
+        conseguía ni en veinte minutos de reintentos.
+
+        Esa era la última pieza de «apagar el teclado obliga a reiniciar el
+        servicio»: no se reconectaba porque nunca se había soltado de verdad.
+        """
         if self._notifica is not None and self._testigo is not None:
             try:
                 self._notifica.remove_value_changed(self._testigo)
             except Exception:  # noqa: BLE001 - ya podía estar suelto
+                pass
+        if self._dispositivo is not None:
+            try:
+                self._dispositivo.close()
+            except Exception:  # noqa: BLE001 - si ya se fue, mejor
                 pass
         self._testigo = None
         self._notifica = None

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import unittest
+from pathlib import Path
 
 from pruebas.base import PruebaAislada
 
@@ -265,6 +266,160 @@ class PruebaReconexion(PruebaAislada):
             return recuperado
 
         self.assertTrue(asyncio.run(caso()), "no se recuperó al encenderlo")
+
+
+class PruebaSoltarDeVerdad(PruebaAislada):
+    """Soltar el teclado tiene que cerrarlo, no solo olvidarlo."""
+
+    def test_soltar_el_canal_cierra_el_aparato(self):
+        """La última pieza del teclado embrujado.
+
+        Un ``BluetoothLEDevice`` abandonado sin ``close()`` deja la sesión viva
+        dentro del proceso, y Windows no deja abrir una segunda sobre el mismo
+        aparato. El síntoma era desconcertante: un proceso recién arrancado
+        abría el teclado a la primera, y el servicio, con el aparato encendido
+        delante, no lo conseguía ni en veinte minutos de reintentos. No se
+        reconectaba porque nunca se había soltado de verdad.
+        """
+        import os
+
+        if os.name != "nt":
+            self.skipTest("solo aplica al transporte de Windows")
+        from tecladoia.transporte.windows_emparejado import TransporteWindowsEmparejado
+
+        class AparatoDeMentira:
+            def __init__(self):
+                self.cerrado = False
+
+            def close(self):
+                self.cerrado = True
+
+        t = TransporteWindowsEmparejado("")
+        aparato = AparatoDeMentira()
+        t._dispositivo = aparato
+        t._soltar_el_canal()
+        self.assertTrue(aparato.cerrado, "se abandonó el aparato sin cerrarlo")
+        self.assertIsNone(t._dispositivo)
+
+    def test_desconectar_tambien_cierra(self):
+        """Los dos caminos de soltar tienen que hacer lo mismo.
+
+        Antes había dos y solo uno cerraba; el que no cerraba era justo el que
+        se usa cuando el teclado deja de responder.
+        """
+        import asyncio
+        import os
+
+        if os.name != "nt":
+            self.skipTest("solo aplica al transporte de Windows")
+        from tecladoia.transporte.windows_emparejado import TransporteWindowsEmparejado
+
+        class AparatoDeMentira:
+            def __init__(self):
+                self.cerrado = False
+
+            def close(self):
+                self.cerrado = True
+
+        t = TransporteWindowsEmparejado("")
+        aparato = AparatoDeMentira()
+        t._dispositivo = aparato
+        asyncio.run(t.desconectar())
+        self.assertTrue(aparato.cerrado, "desconectar dejó el aparato abierto")
+
+
+class PruebaEnvoltorioAutomatico(PruebaAislada):
+    """El envoltorio no puede perder por el camino lo que arregla el de dentro.
+
+    El servicio no usa el transporte de Windows directamente: usa el
+    automático, que lo envuelve. Arreglar solo el de dentro no servía de nada.
+    """
+
+    def _auto(self, dentro):
+        from tecladoia.transporte.automatico import TransporteAutomatico
+
+        a = TransporteAutomatico(Ajustes())
+        a._elegido = dentro
+        return a
+
+    def test_reenvia_canal_abierto(self):
+        """Sin esto volvía el círculo vicioso un piso más arriba."""
+        t = TransporteDeMentira()
+        t.canal, t.vivo = True, False   # dormido: hay canal, no consta vivo
+        a = self._auto(t)
+        self.assertFalse(a.conectado)
+        self.assertTrue(a.canal_abierto, "el envoltorio se comió el canal abierto")
+
+    def test_sin_camino_elegido_no_hay_canal(self):
+        self.assertFalse(self._auto(None).canal_abierto)
+
+    def test_suelta_lo_anterior_antes_de_abrir(self):
+        """Un camino a medias sigue con el aparato abierto y bloquea al nuevo.
+
+        Windows no deja dos sesiones sobre el mismo aparato, así que sin
+        soltarlo el intento siguiente se cuelga en vez de fallar.
+        """
+        import asyncio
+
+        viejo = TransporteDeMentira()
+        viejo.canal = viejo.vivo = True
+        a = self._auto(viejo)
+        # Sin candidatos: aqui se mira que suelte lo anterior, no que encuentre
+        # nada. Dejarle los de verdad hace que se ponga a rastrear Bluetooth y
+        # la prueba tarda un minuto en no probar nada mas.
+        a._candidatos = lambda: []
+        try:
+            asyncio.run(a.conectar())
+        except Exception:  # noqa: BLE001 - aquí no hay teclado de verdad
+            pass
+        self.assertFalse(viejo.canal, "dejó el camino anterior sin soltar")
+
+
+class PruebaApartamentoDeCOM(PruebaAislada):
+    """La causa raíz de toda la saga, en una línea.
+
+    La capa de accesibilidad de Windows inicializa COM en apartamento STA si
+    nadie dice lo contrario, y a partir de ahí **las operaciones asíncronas de
+    WinRT no vuelven jamás en ese hilo**: no fallan, no dan error, no terminan.
+    Como la conexión Bluetooth va por WinRT, el servicio perdía el teclado en
+    cuanto le tocaba usar accesibilidad una vez —o sea, en cuanto pulsabas el
+    micrófono— y ya no lo recuperaba hasta reiniciarlo.
+
+    Explicaba a la vez cinco síntomas que parecían no tener nada que ver: «no
+    hay teclado» con el teclado delante, la barra clavada en verde, el modo sin
+    volver al 1, el micrófono dictando en la ventana equivocada, y apagar el
+    teclado una vez para perderlo del todo.
+    """
+
+    def test_com_se_pide_en_mta(self):
+        import sys
+
+        import tecladoia  # noqa: F401 - importarlo es lo que lo deja puesto
+
+        self.assertEqual(
+            getattr(sys, "coinit_flags", None), 0,
+            "COM tiene que quedar en MTA (0); en STA, WinRT se cuelga para siempre",
+        )
+
+    def test_se_pide_antes_de_importar_comtypes(self):
+        """El orden es lo único que importa aquí.
+
+        Si ``comtypes`` se importa antes de fijar la bandera, ya está el
+        apartamento elegido y no hay vuelta atrás.
+        """
+        fuente = (
+            Path(__file__).resolve().parent.parent
+            / "src" / "tecladoia" / "__init__.py"
+        ).read_text(encoding="utf-8")
+        donde_bandera = fuente.find("coinit_flags")
+        self.assertGreater(donde_bandera, -1, "se perdió la bandera de COM")
+        for importacion in ("import comtypes", "from comtypes"):
+            donde = fuente.find(importacion)
+            if donde > -1:
+                self.assertGreater(
+                    donde, donde_bandera,
+                    "comtypes se importa antes de fijar el apartamento",
+                )
 
 
 if __name__ == "__main__":

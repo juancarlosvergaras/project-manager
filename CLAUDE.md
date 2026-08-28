@@ -75,6 +75,25 @@ La distinción está en `canal_abierto` («¿merece la pena intentarlo?») frent
 `conectado` («¿consta vivo?»): **el latido se gobierna con el primero**. Con el
 segundo se moría solo.
 
+**COM tiene que pedirse en MTA, y antes de importar nada.** Está en la primera
+línea de `tecladoia/__init__.py` (`sys.coinit_flags = 0`) y **no se toca**. Era
+la causa raíz de toda la saga de conexiones, y se disfrazaba de cinco fallos
+distintos: «todavía no hay teclado» con el teclado delante, la barra clavada en
+verde, el modo sin volver al 1, el micrófono dictando en la ventana equivocada,
+y apagar el teclado una vez para perderlo hasta reiniciar.
+
+La explicación: `comtypes` —la capa de accesibilidad, que es como se encuentra
+el cuadro de escribir de Claude o ChatGPT— inicializa COM en apartamento **STA**
+si nadie dice lo contrario. Y desde ese momento **las operaciones asíncronas de
+WinRT no vuelven jamás en ese hilo**: no fallan, no dan error, simplemente no
+terminan. Como el Bluetooth va por WinRT, el servicio perdía el teclado en
+cuanto le tocaba usar accesibilidad una vez —o sea, en cuanto pulsabas el
+micrófono—. De ahí el síntoma que despistaba: un proceso recién arrancado abría
+el teclado en tres décimas y el servicio no lo conseguía en veinte minutos.
+
+Si `comtypes` se importa antes de fijar la bandera, ya no hay nada que hacer.
+Lo cubre `pruebas/test_conexion.py`, que además comprueba el orden.
+
 **Y ningún paso de WinRT tiene plazo propio.** `from_id_async` y la lectura de
 servicios se quedan esperando para siempre con el teclado apagado. Eso dejó el
 servicio mudo una tarde entera: al apagarlo se soltó el canal —correcto— y el
@@ -236,4 +255,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-161, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+168, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.

@@ -67,7 +67,37 @@ class TransporteAutomatico(Transporte):
     def conectado(self) -> bool:
         return self._elegido is not None and self._elegido.conectado
 
+    @property
+    def canal_abierto(self) -> bool:
+        """Se reenvía al camino elegido, y esto no es un detalle.
+
+        Sin reenviarlo se heredaba el de la clase madre, que responde lo mismo
+        que ``conectado``, y con eso volvía el círculo vicioso entero un piso
+        más arriba: el teclado se dormía, ``conectado`` se ponía en falso, el
+        latido dejaba de escribir, y como **solo una escritura fallida cierra
+        el aparato**, el aparato no se cerraba nunca. El intento siguiente
+        creaba un transporte nuevo mientras el viejo seguía teniéndolo abierto,
+        y Windows no deja dos sesiones sobre el mismo aparato: se colgaba. Para
+        siempre.
+
+        Arreglarlo solo en el transporte de Windows no servía de nada, porque
+        el servicio no usa ese, usa este.
+        """
+        if self._elegido is None:
+            return False
+        return getattr(self._elegido, "canal_abierto", self._elegido.conectado)
+
     async def conectar(self) -> None:
+        # Lo primero, soltar de verdad lo que hubiera. Un camino anterior que
+        # se quedó a medias sigue con el aparato abierto, y mientras lo tenga,
+        # ningún camino nuevo puede abrirlo.
+        if self._elegido is not None:
+            try:
+                await self._elegido.desconectar()
+            except Exception:  # noqa: BLE001 - se va igualmente
+                _log.debug("El camino anterior no se dejó soltar", exc_info=True)
+            self._elegido = None
+
         motivos: list[str] = []
         for candidato in self._candidatos():
             candidato.escuchar(self._entregar)
