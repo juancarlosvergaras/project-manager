@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from . import __version__, instalador, registro
+from . import __version__, instalador, registro, sonido
 from .config import Ajustes, directorio_base, ruta_config, ruta_socket
 from .dispositivo import GestorTeclado
 from .modelo import EfectoLuz, EstadoIA
@@ -179,13 +179,21 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             le pone aqui: al arrancar el servicio y cada vez que se reconecta,
             que es justo cuando lo enciendes.
             """
-            destino = getattr(ajustes, "modo_al_conectar", None)
-            if not conectado or destino is None:
+            if not conectado:
                 return
-            if not 0 <= destino < len(ajustes.modos):
+            bucle_ahora = asyncio.get_running_loop()
+
+            # La barra se queda fisicamente con lo ultimo que le mandamos. Si
+            # el teclado se fue en verde de «tarea completada», al volver sigue
+            # en verde diciendo algo que ya no es verdad, y encima de una tarea
+            # de hace horas. Al recuperarlo se parte de un estado conocido.
+            bucle_ahora.create_task(gestor.enviar_estado_ia(EstadoIA.SESION_FINALIZADA))
+
+            destino = getattr(ajustes, "modo_al_conectar", None)
+            if destino is None or not 0 <= destino < len(ajustes.modos):
                 return
             salida.linea(f"  Teclado puesto en el modo {destino + 1}")
-            asyncio.get_running_loop().create_task(gestor.cambiar_modo_trabajo(destino))
+            bucle_ahora.create_task(gestor.cambiar_modo_trabajo(destino))
 
         al_cambiar_la_conexion(gestor.conectado)
         if not args.sin_teclado:
@@ -330,6 +338,72 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                 escucha = EscuchaDictado(al_pulsar_microfono)
                 threading.Thread(target=escucha.correr, daemon=True).start()
                 salida.dato("Microfono", "escuchando " + ATAJO_DICTADO)
+
+                # --- Manos libres ----------------------------------------
+                # Cuando el agente que manda en el modo puesto termina su
+                # turno, el microfono se abre solo. Con la palanca arriba
+                # —que envia al cerrar— eso cierra el circulo: hablas,
+                # trabaja, termina, y vuelve a escucharte sin tocar nada.
+                async def abrir_por_manos_libres(quien: str) -> None:
+                    await asyncio.sleep(
+                        max(0.0, getattr(ajustes, "manos_libres_espera_s", 2.5))
+                    )
+                    if microfono.abierto:
+                        return  # ya estabas hablando; no se toca
+                    lectura = gestor.estado
+                    indice = lectura.modo_trabajo if lectura else ultimo_modo[0]
+                    if not 0 <= indice < len(ajustes.modos):
+                        indice = ultimo_modo[0]
+                    modo = ajustes.modos[indice]
+
+                    # El aviso suena ANTES de abrir. Abrir tarda —hay que
+                    # traer la ventana al frente y buscarle el cuadro—, y si
+                    # el pitido llegara despues te avisaria de algo que lleva
+                    # un segundo grabando sin ti.
+                    if getattr(ajustes, "pitidos_manos_libres", True):
+                        sonido.avisar()
+
+                    hecho = await asyncio.to_thread(
+                        microfono.abrir_solo,
+                        getattr(modo, "programa", ""),
+                        getattr(modo, "lanzar", ""),
+                        getattr(ajustes, "pinchar_cuadro_al_dictar", True),
+                        getattr(modo, "alto_cuadro", 0),
+                    )
+                    gestor.tregua_de_modo_hasta = max(
+                        gestor.tregua_de_modo_hasta, time.monotonic() + 20.0
+                    )
+                    if hecho["accion"] == "ya estaba":
+                        return
+                    registro.obtener("microfono").info(
+                        "manos libres · %s termino · modo %s (%s) · cuadro %s",
+                        quien, indice + 1, getattr(modo, "nombre", "?"),
+                        hecho.get("cuadro") or "no",
+                    )
+                    servidor.avisar_de_pulsacion("manos-libres", {
+                        "accion": hecho["accion"],
+                        "programa": hecho.get("programa") or "",
+                        "modo": indice,
+                        "agente": quien,
+                    })
+
+                def al_terminar_el_dueno(quien: str) -> None:
+                    if not getattr(ajustes, "manos_libres", False):
+                        return
+                    bucle_microfono.call_soon_threadsafe(
+                        lambda: bucle_microfono.create_task(
+                            abrir_por_manos_libres(quien)
+                        )
+                    )
+
+                servidor.al_terminar_el_dueno = al_terminar_el_dueno
+                if getattr(ajustes, "manos_libres", False):
+                    salida.dato(
+                        "Manos libres",
+                        "el microfono se abre al terminar la IA"
+                        + ("" if getattr(ajustes, "pitidos_manos_libres", True)
+                           else " (sin pitidos)"),
+                    )
 
         salida.linea("\nPulsa Ctrl+C para parar.")
         try:

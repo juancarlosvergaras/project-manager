@@ -41,7 +41,7 @@ FALLOS_PARA_SOLTAR = 2
 #: Plazos de reconexión. WinRT no trae ninguno y con el teclado apagado se
 #: queda esperando indefinidamente, colgando el bucle que debía reintentarlo.
 PLAZO_DE_BUSQUEDA_S = 10.0
-PLAZO_DE_APERTURA_S = 15.0
+PLAZO_DE_APERTURA_S = 12.0
 
 #: Nombres con los que el teclado aparece en la lista de emparejados.
 NOMBRES_CONOCIDOS = ("ahakey", "vibecoding", "x1")
@@ -80,6 +80,8 @@ class TransporteWindowsEmparejado(Transporte):
         self._ultimo_contacto: float = 0.0
         #: Escrituras fallidas seguidas; a partir de un tope se suelta el canal.
         self._fallos: int = 0
+        #: Identificador del emparejamiento que funcionó la última vez.
+        self._ultimo_bueno: str = ""
 
     # --- estado -----------------------------------------------------------
     @property
@@ -172,12 +174,18 @@ class TransporteWindowsEmparejado(Transporte):
 
         self._bucle = asyncio.get_running_loop()
         motivos: list[str] = []
+        # El que funcionó la última vez, primero. Cada emparejamiento deja su
+        # entrada y las viejas no se borran solas: este equipo tiene dos, y la
+        # muerta se comía el plazo antes de que llegara el turno de la buena.
+        if self._ultimo_bueno:
+            candidatos.sort(key=lambda c: c[0] != self._ultimo_bueno)
         # Puede haber varias entradas del mismo teclado, porque cada
         # emparejamiento deja la suya; solo una está viva. Se prueban todas y
         # se deja la que conteste.
         for identificador, nombre in candidatos:
             try:
                 await asyncio.wait_for(self._abrir(identificador, nombre), PLAZO_DE_APERTURA_S)
+                self._ultimo_bueno = identificador
                 return
             except asyncio.TimeoutError:
                 motivos.append(f"{nombre or identificador}: no contestó a tiempo")

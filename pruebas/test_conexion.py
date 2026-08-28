@@ -28,6 +28,8 @@ class TransporteDeMentira(Transporte):
         self.canal = False
         self.vivo = False
         self.cuelga_al_conectar = False
+        #: Como el de verdad cuando Windows se atasca: ni cancelándolo termina.
+        self.ignora_la_cancelacion = False
         self.escrituras = 0
         self.intentos_de_conectar = 0
 
@@ -43,7 +45,14 @@ class TransporteDeMentira(Transporte):
     async def conectar(self) -> None:
         self.intentos_de_conectar += 1
         if self.cuelga_al_conectar:
-            await asyncio.sleep(3600)  # se queda esperando, como WinRT
+            try:
+                await asyncio.sleep(3600)  # se queda esperando, como WinRT
+            except asyncio.CancelledError:
+                if not self.ignora_la_cancelacion:
+                    raise
+                # Colgada de verdad: ni cancelándola se muere. Es lo que hace
+                # la pila Bluetooth de Windows y lo que dejaba inútil el plazo.
+                await asyncio.sleep(3600)
         self.canal = True
         self.vivo = True
 
@@ -156,6 +165,80 @@ class PruebaReconexion(PruebaAislada):
         self.assertGreater(
             intentos, 1, "se quedó colgado en el primer intento y no reintentó"
         )
+
+    def test_una_conexion_que_ni_cancelandola_muere_tampoco_atasca(self):
+        """El segundo intento de arreglarlo, que tampoco bastaba.
+
+        ``asyncio.wait_for`` cancela al vencer el plazo, pero después **espera
+        a que la cancelación termine**. Con una llamada de Windows colgada de
+        verdad eso no llega nunca, así que el plazo se colgaba igual que lo que
+        debía proteger: un aviso de «no contesta» y catorce horas de silencio.
+
+        Ahora el intento se abandona en vez de esperarlo.
+        """
+        t = TransporteDeMentira()
+        t.cuelga_al_conectar = True
+        t.ignora_la_cancelacion = True
+
+        async def caso():
+            g = _gestor(t)
+            import tecladoia.dispositivo as d
+
+            previo = d.PLAZO_DE_RECONEXION_S
+            d.PLAZO_DE_RECONEXION_S = 0.05
+            tarea = asyncio.create_task(g.mantener_conexion(intervalo_s=0.01))
+            try:
+                await asyncio.sleep(0.5)
+                vueltas_dadas = t.intentos_de_conectar
+            finally:
+                d.PLAZO_DE_RECONEXION_S = previo
+                tarea.cancel()
+                try:
+                    await tarea
+                except asyncio.CancelledError:
+                    pass
+            return tarea, vueltas_dadas
+
+        tarea, _ = asyncio.run(caso())
+        self.assertTrue(tarea.done(), "el bucle se quedó colgado")
+
+    def test_un_intento_que_no_muere_no_bloquea_para_siempre(self):
+        """Y si la llamada colgada no se muere nunca, se empieza sin ella.
+
+        Esperar indefinidamente a que muera sería cambiar un atasco por otro:
+        una sola llamada atascada dentro de Windows dejaría el teclado
+        inalcanzable para siempre.
+        """
+        t = TransporteDeMentira()
+        t.cuelga_al_conectar = True
+        t.ignora_la_cancelacion = True
+
+        async def caso():
+            g = _gestor(t)
+            import tecladoia.dispositivo as d
+
+            plazo, espera = d.PLAZO_DE_RECONEXION_S, d.ESPERA_ANTES_DE_INSISTIR_S
+            d.PLAZO_DE_RECONEXION_S = 0.05
+            d.ESPERA_ANTES_DE_INSISTIR_S = 0.1
+            tarea = asyncio.create_task(g.mantener_conexion(intervalo_s=0.01))
+            try:
+                await asyncio.sleep(0.3)
+                colgados = t.intentos_de_conectar
+                t.cuelga_al_conectar = False   # el teclado vuelve a aparecer
+                await asyncio.sleep(0.4)
+                recuperado = g.conectado
+            finally:
+                d.PLAZO_DE_RECONEXION_S, d.ESPERA_ANTES_DE_INSISTIR_S = plazo, espera
+                tarea.cancel()
+                try:
+                    await tarea
+                except asyncio.CancelledError:
+                    pass
+            return colgados, recuperado
+
+        colgados, recuperado = asyncio.run(caso())
+        self.assertGreater(colgados, 1, "no insistió pese al plazo de abandono")
+        self.assertTrue(recuperado, "no se recuperó tras dejar de colgarse")
 
     def test_el_teclado_vuelve_solo_cuando_se_enciende(self):
         """Encenderlo otra vez tiene que bastar. Sin reiniciar nada."""

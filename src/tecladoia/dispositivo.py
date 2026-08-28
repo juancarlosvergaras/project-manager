@@ -29,12 +29,29 @@ TREGUA_DE_MODO_S = 45.0
 
 
 #: Plazo para un intento completo de reconexión. Ver ``mantener_conexion``.
-PLAZO_DE_RECONEXION_S = 30.0
+#:
+#: Generoso a propósito, y esa generosidad ahora es gratis: desde que el intento
+#: se abandona en vez de esperarlo, un plazo largo ya no puede atascar nada.
+#: Corto sí hacía daño, y costó otra vuelta descubrirlo — **cada emparejamiento
+#: del teclado deja su entrada en Windows y las viejas no se borran**. Este
+#: equipo tiene dos, y se prueban en orden; con treinta segundos se cortaba el
+#: intento mientras aún peleaba con la entrada muerta, así que a la buena no le
+#: llegaba nunca el turno. El plazo tiene que cubrir probarlas todas.
+PLAZO_DE_RECONEXION_S = 120.0
 
-#: En qué intentos fallidos se avisa por el registro. Se avisa del primero y
-#: luego de tarde en tarde: un teclado apagado toda la noche no debe llenar el
-#: registro, pero tampoco debe fallar en silencio.
-AVISOS_DE_RECONEXION = (1, 5, 30, 120)
+#: Cada cuántos intentos fallidos se avisa por el registro, además del primero.
+#: A un intento cada doce segundos, veinticinco son unos cinco minutos.
+#:
+#: Importa que sea **periódico y para siempre**, no una lista de los primeros:
+#: así el silencio en el registro significa siempre «el bucle está atascado» y
+#: no «ya avisó las veces que tocaba». Diagnosticar esto sin esa garantía costó
+#: dos vueltas enteras.
+CADA_CUANTOS_AVISAR = 5
+
+#: Cuánto se le da a un intento abandonado para morirse antes de empezar otro
+#: sin contar con él. Sin este tope, una llamada de Windows colgada para
+#: siempre dejaría el teclado inalcanzable para siempre.
+ESPERA_ANTES_DE_INSISTIR_S = 60.0
 
 
 class GestorTeclado:
@@ -202,6 +219,59 @@ class GestorTeclado:
             if futuro in pendientes:
                 pendientes.remove(futuro)
 
+    async def _intentar_reconectar(
+        self, pendiente: Optional[asyncio.Task]
+    ) -> tuple[Optional[asyncio.Task], Optional[object]]:
+        """Un intento de reconexión que **no puede atascar a quien lo llama**.
+
+        Aquí está la diferencia que costó dos vueltas. ``asyncio.wait_for``
+        no basta: cuando vence el plazo cancela la tarea, pero después **espera
+        a que la cancelación termine**. Y una llamada de la pila Bluetooth de
+        Windows colgada no termina nunca, ni cancelándola — de modo que el
+        plazo que debía protegernos se colgaba igual que lo que protegía. En el
+        registro se vio clarísimo: un aviso de «no contesta» y catorce horas de
+        silencio absoluto.
+
+        Así que el intento se lanza como tarea aparte y se le **espera sin
+        adueñarse de ella**. Si no llega a tiempo, se cancela y se abandona:
+        que se quede colgada allí donde esté, mientras el bucle sigue vivo. La
+        tarea abandonada se recuerda para no lanzar otra encima; cuando por fin
+        muera —o si nunca muere— no habrá más de una a la vez.
+
+        Devuelve la tarea que sigue pendiente (o ``None``) y el resultado:
+        ``True`` si se conectó, un texto si falló, ``None`` si aún no se sabe.
+        """
+        if pendiente is not None and not pendiente.done():
+            # La anterior sigue colgada dentro de Windows. No se apila otra...
+            esperando = time.monotonic() - getattr(pendiente, "_abandonada_en", 0.0)
+            if esperando < ESPERA_ANTES_DE_INSISTIR_S:
+                return pendiente, None
+            # ...salvo que lleve tanto colgada que ya no vaya a volver. Si se
+            # esperase indefinidamente a que muriese, una sola llamada
+            # atascada dentro de Windows dejaría el teclado inalcanzable para
+            # siempre, que es exactamente lo que se está arreglando. Se la deja
+            # ahí tirada, se olvida, y se empieza de cero.
+            _log.debug("Se olvida un intento de conexión que no acaba de morir")
+        pendiente = None
+
+        tarea = asyncio.create_task(self.conectar())
+        terminadas, _ = await asyncio.wait({tarea}, timeout=PLAZO_DE_RECONEXION_S)
+        if not terminadas:
+            # No se hace `await tarea`: eso es justo lo que atascaba el bucle.
+            tarea.cancel()
+            tarea._abandonada_en = time.monotonic()  # noqa: SLF001
+            return tarea, "no contesta"
+        try:
+            tarea.result()
+            return None, True
+        except asyncio.CancelledError:
+            return None, "cancelado"
+        except ErrorTransporte as error:
+            return None, str(error)
+        except Exception as error:  # noqa: BLE001 - la pila BLE lanza de todo
+            _log.debug("Fallo al reintentar la conexión", exc_info=True)
+            return None, str(error) or error.__class__.__name__
+
     async def mantener_conexion(
         self,
         intervalo_s: float = 12.0,
@@ -215,28 +285,21 @@ class GestorTeclado:
         """
         anterior = self.conectado
         quejas = 0
+        intento: Optional[asyncio.Task] = None
         while True:
             if not self.puede_intentarse:
-                try:
-                    # Con plazo, siempre. Ningún paso de la pila Bluetooth de
-                    # Windows trae uno propio, y con el teclado apagado se
-                    # quedan esperando indefinidamente: el bucle no daba otra
-                    # vuelta y el servicio se quedaba mudo hasta reiniciarlo.
-                    # Apagar el teclado una vez bastaba para perderlo del todo.
-                    await asyncio.wait_for(self.conectar(), PLAZO_DE_RECONEXION_S)
+                intento, resultado = await self._intentar_reconectar(intento)
+                if resultado is True:
                     _log.info("Teclado recuperado")
                     quejas = 0
-                except asyncio.TimeoutError:
+                elif resultado is not None:
                     quejas += 1
-                    if quejas in AVISOS_DE_RECONEXION:
-                        _log.info("El teclado no contesta; se sigue intentando")
-                except ErrorTransporte as error:
-                    quejas += 1
-                    if quejas in AVISOS_DE_RECONEXION:
-                        _log.info("El teclado sigue sin aparecer: %s", error)
-                except Exception:  # noqa: BLE001 - la pila BLE lanza de todo
-                    quejas += 1
-                    _log.debug("Fallo al reintentar la conexión", exc_info=True)
+                    if quejas == 1 or quejas % CADA_CUANTOS_AVISAR == 0:
+                        _log.info(
+                            "El teclado no aparece (%s); intento %s y sigo",
+                            resultado,
+                            quejas,
+                        )
             if self.conectado != anterior:
                 anterior = self.conectado
                 if al_cambiar is not None:

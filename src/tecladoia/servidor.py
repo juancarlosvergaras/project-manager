@@ -19,7 +19,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from . import agentes
 from .agentes.base import AgenteIA, EventoEnganche
@@ -83,6 +83,10 @@ class ServidorEnganches:
         self.historial: list[dict[str, Any]] = []
         #: Qué agente movió la barra por última vez, y cuándo.
         self.agente_activo: Optional[str] = None
+        #: Se llama cuando el agente que manda en el modo puesto termina su
+        #: turno. Lo usa el modo manos libres para abrir el micrófono. Lo
+        #: instala la línea de órdenes; aquí no se sabe dictar.
+        self.al_terminar_el_dueno: Optional[Callable[[str], None]] = None
         self.ultimo_evento_en: float = 0.0
         self._bucle: Optional[asyncio.AbstractEventLoop] = None
         self._reposo: Optional[asyncio.Task] = None
@@ -387,6 +391,16 @@ class ServidorEnganches:
         self._anotar_aviso(agente_id, evento.interno, evento.estado, atendido=le_toca)
         if le_toca:
             self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
+            # Manos libres: el agente del modo ha terminado, así que se avisa
+            # a quien sepa abrir el micrófono. Se pide el mismo permiso que
+            # para encender la luz —tiene que ser el dueño del modo puesto—,
+            # porque abrirte el dictado sobre una ventana que no estás mirando
+            # sería peor que no abrirlo.
+            if evento.estado is EstadoIA.TAREA_COMPLETADA and self.al_terminar_el_dueno:
+                try:
+                    self.al_terminar_el_dueno(agente_id)
+                except Exception:  # noqa: BLE001 - esto nunca tumba un evento
+                    _log.debug("Falló el aviso de manos libres", exc_info=True)
 
         if self._reposo is not None:
             self._reposo.cancel()

@@ -586,6 +586,31 @@ class Dictado:
         self.programa = ""
         self._ultima = 0.0
 
+    def abrir_solo(
+        self,
+        programa: str = "",
+        lanzar: str = "",
+        pinchar_el_cuadro: bool = True,
+        alto_del_cuadro: int = 0,
+    ) -> dict:
+        """Abre el dictado si estaba cerrado; si ya estaba abierto, no toca nada.
+
+        Lo usa el modo manos libres. Tiene que ser abrir y no alternar: quien
+        llama aquí no es tu dedo sino un agente que acaba de terminar, y si
+        alternara podría cerrarte el micrófono justo mientras hablas.
+        """
+        if self.abierto:
+            return {"accion": "ya estaba", "programa": self.programa}
+        self._ultima = time.monotonic()
+        hecho = dictar_en(
+            programa, lanzar,
+            pinchar_el_cuadro=pinchar_el_cuadro,
+            alto_del_cuadro=alto_del_cuadro,
+        )
+        self.abierto = True
+        self.programa = programa
+        return {"accion": "abierto", **hecho}
+
     def alternar(
         self,
         programa: str = "",

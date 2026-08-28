@@ -747,6 +747,7 @@ if (location.search.includes("clave=")) {
         "sincronizar_config_agentes", "avisar_en_escritorio", "brillo", "accesible",
         "aprobacion_remota", "espera_aprobacion_s", "seguir_aplicacion",
         "segundos_reposo", "efecto_reposo",
+        "manos_libres", "pitidos_manos_libres", "manos_libres_espera_s",
     )
 
     def _ajustes_json(self) -> dict[str, Any]:

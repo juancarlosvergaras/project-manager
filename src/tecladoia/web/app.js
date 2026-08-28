@@ -960,6 +960,9 @@ const ETIQUETAS_AJUSTES = {
   segundos_reposo:"Apagar la barra tras (s) sin noticias · 0 lo desactiva",
   efecto_reposo:"Efecto de reposo (código)",
   intervalo_sondeo_s:"Cada cuánto se pregunta al teclado (s)",
+  manos_libres:"Manos libres · abrir el micrófono cuando la IA termine",
+  pitidos_manos_libres:"Avisar con dos pitidos al abrirse el micrófono",
+  manos_libres_espera_s:"Espera antes de abrir el micrófono (s)",
 };
 const OPCIONES_FIJAS = {
   modo_aprobacion:["palanca","siempre_preguntar","siempre_permitir"],

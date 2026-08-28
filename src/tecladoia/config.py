@@ -204,6 +204,21 @@ class Ajustes:
     #: al encenderse, que no siempre es el que uno quiere empezar. Esto lo
     #: corrige desde fuera: en cuanto se engancha, se le pone el modo elegido.
     modo_al_conectar: Optional[int] = None
+
+    #: Manos libres: cuando el agente que manda en el modo puesto termina su
+    #: turno, el micrófono se abre solo para que dictes lo siguiente.
+    #:
+    #: Con la palanca arriba —que envía al cerrar— eso cierra el círculo:
+    #: hablas, trabaja, termina, y vuelve a escucharte sin que toques nada.
+    #: Viene apagado; se enciende desde Ajustes.
+    manos_libres: bool = False
+    #: Lo que se espera desde que el agente termina hasta abrir el micrófono.
+    #: Sin esta pausa el dictado se abre encima de lo último que escribe y no
+    #: te da tiempo a leerlo.
+    manos_libres_espera_s: float = 2.5
+    #: Dos pitidos al abrirse el micrófono en manos libres. Sin ellos el aviso
+    #: solo se ve, y manos libres sirve justo para cuando no estás mirando.
+    pitidos_manos_libres: bool = True
     #: Segundos sin noticias tras los que la barra vuelve al reposo. Sin esto se
     #: queda encendida con lo último que pasó aunque hayas cambiado de programa.
     segundos_reposo: float = 25.0

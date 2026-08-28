@@ -138,6 +138,26 @@ Las cuatro teclas, iguales en los cuatro modos:
 | K3 | `esc` | cancelar |
 | K4 | `retroceso` | borrar |
 
+**Manos libres** (`manos_libres`, apagado de fábrica): cuando el agente que
+manda en el modo puesto **termina su turno**, el micrófono se abre solo y avisa
+con dos pitidos. Con la palanca arriba —que envía al cerrar— eso cierra el
+círculo: hablas, trabaja, termina, y te vuelve a escuchar sin que toques nada.
+
+Tres reglas lo hacen usable en vez de molesto, y las tres están probadas en
+`pruebas/test_manos_libres.py`:
+
+1. Solo lo dispara **el dueño del modo puesto**, la misma regla que la barra de
+   luz. Que Claude termine no te abre el dictado sobre ChatGPT: lo que dictaras
+   se iría a la conversación equivocada.
+2. Solo al **terminar del todo** (`Stop`), no en cada herramienta.
+3. **Abre, nunca alterna.** Si ya estabas hablando, no toca nada: quien llama no
+   es tu dedo sino un agente, y alternar te cerraría el micrófono a media frase.
+
+Los pitidos se silencian aparte (`pitidos_manos_libres`) — hay quien quiere el
+micrófono automático y no quiere el ruido. Suenan **antes** de abrir, porque
+abrir tarda, y avisarte después sería avisarte de algo que lleva un segundo
+grabando sin ti.
+
 **Si el clic no cae en el cuadro de texto de algún programa**, se ajusta por modo
 en `%APPDATA%\TecladoIA\config.json`: `"alto_cuadro": 140` en ese modo son los
 píxeles desde el borde inferior. Con `0` se calcula como el 10 % del alto de la
@@ -216,4 +236,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-123, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+161, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
