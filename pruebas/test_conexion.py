@@ -424,6 +424,37 @@ class PruebaReaparicion(PruebaAislada):
         self._llegada_de_estado(g, 104.5)   # se perdio uno
         self.assertEqual(avisos, [], "un sondeo perdido no es un reinicio")
 
+    def test_una_escritura_perdida_cuenta_como_corte(self):
+        """La senal mas fiable de que el teclado se fue y volvio.
+
+        No vale con mirar lo que el teclado dice de si mismo: tras un reinicio
+        contesta que esta en el modo que le pediste la ultima vez, aunque
+        fisicamente haya arrancado en otro. Fiarse de esa lectura era lo que
+        impedia corregirlo — el servicio creia que ya estaba donde debia.
+        """
+        import asyncio
+
+        g, avisos = self._gestor_con_aviso()
+        g._leido_en = 100.0
+        g.transporte.vivo = False           # el teclado se va
+        asyncio.run(g.consultar_estado(espera_s=0.05))
+        self.assertTrue(g._hubo_corte, "no se anoto la escritura perdida")
+
+        # Vuelve y contesta: la lectura llega justo despues, sin hueco largo.
+        self._llegada_de_estado_con_corte(g, 101.0)
+        self.assertEqual(len(avisos), 1, "no repuso el modo tras el corte")
+        self.assertFalse(g._hubo_corte, "el corte se quedo anotado para siempre")
+
+    def _llegada_de_estado_con_corte(self, g, cuando):
+        import tecladoia.dispositivo as d
+
+        anterior, corte = g._leido_en, g._hubo_corte
+        g._hubo_corte = False
+        g._leido_en = cuando
+        if corte or (anterior and cuando - anterior > d.HUECO_QUE_DELATA_UN_REINICIO_S):
+            if g.al_reaparecer:
+                g.al_reaparecer()
+
     def test_la_primera_lectura_no_es_una_reaparicion(self):
         """Al arrancar no ha vuelto de ninguna parte: acaba de empezar."""
         g, avisos = self._gestor_con_aviso()

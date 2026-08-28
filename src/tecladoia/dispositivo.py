@@ -73,6 +73,9 @@ class GestorTeclado:
         #: Se llama cuando el teclado vuelve tras un silencio: lo apagaste y lo
         #: encendiste. Lo usa la línea de órdenes para reponer el modo.
         self.al_reaparecer: Optional[Callable[[], None]] = None
+        #: Se ha perdido una escritura desde la última lectura buena. Es la
+        #: forma más fiable de enterarse de que el teclado se fue y volvió.
+        self._hubo_corte: bool = False
         self._esperas: list[asyncio.Future] = []
         self._candado = asyncio.Lock()
         self._observadores: list[Callable[[protocolo.EstadoDispositivo], None]] = []
@@ -148,9 +151,11 @@ class GestorTeclado:
         # enteraba de que había reiniciado, y el teclado se quedaba en el modo
         # que recuerda de fábrica en vez de en el que pediste.
         antes = self._leido_en
+        corte = self._hubo_corte
+        self._hubo_corte = False
         self.estado = estado
         self._leido_en = time.monotonic()
-        if antes and self._leido_en - antes > HUECO_QUE_DELATA_UN_REINICIO_S:
+        if corte or (antes and self._leido_en - antes > HUECO_QUE_DELATA_UN_REINICIO_S):
             if self.al_reaparecer is not None:
                 try:
                     self.al_reaparecer()
@@ -199,6 +204,16 @@ class GestorTeclado:
             return None
         except ErrorTransporte as error:
             _log.warning("No se pudo consultar el estado: %s", error)
+            # Una escritura fallida es la señal más fiable de que algo se
+            # cortó: el teclado se apagó, se durmió del todo o reinició. Se
+            # anota para reponerle el modo en cuanto vuelva a hablar.
+            #
+            # No vale con mirar lo que el teclado dice de sí mismo. Tras un
+            # reinicio contesta que está en el modo que le pediste la última
+            # vez, aunque fisicamente haya arrancado en otro, así que fiarse de
+            # esa lectura era justo lo que impedía corregirlo: el servicio
+            # creía que ya estaba donde debía y no mandaba nada.
+            self._hubo_corte = True
             return None
         finally:
             if futuro in self._esperas:
