@@ -56,6 +56,12 @@ calla en vez de inventarse un estado.
 > aplicación de ChatGPT no tiene Codex, y ver un programa que no existe en el
 > equipo solo confunde. Está en `agentes.CONOCIDOS`, no en `agentes.AGENTES`.
 
+**El teclado entra en el modo que recuerda, no en el 1.** Eso es firmware suyo:
+al encenderse vuelve al último modo que tuvo. Si quieres empezar siempre en uno
+concreto, `modo_al_conectar` en la configuración (0-3, o `null` para respetar el
+que traiga). Se aplica al arrancar el servicio **y en cada reconexión**, que es
+justo cuando lo enciendes.
+
 **No fiarse de lo que Windows dice sobre la conexión.** Un teclado Bluetooth
 dormido aparece como «desconectado» aunque despierte a la primera escritura.
 Creérselo montaba un círculo vicioso que costó una mañana: la web decía «todavía
@@ -65,6 +71,18 @@ el contacto solo se refresca escribiendo, no se refrescaba nunca. Peor aún,
 modo estaba** y dictaba donde hubiera el foco — de ahí «pulso el micrófono en el
 modo 1 y se va a ChatGPT». Ahora manda la escritura: mientras el canal esté
 abierto se le escribe, y si falla dos veces seguidas se suelta y se reabre solo.
+La distinción está en `canal_abierto` («¿merece la pena intentarlo?») frente a
+`conectado` («¿consta vivo?»): **el latido se gobierna con el primero**. Con el
+segundo se moría solo.
+
+**Y ningún paso de WinRT tiene plazo propio.** `from_id_async` y la lectura de
+servicios se quedan esperando para siempre con el teclado apagado. Eso dejó el
+servicio mudo una tarde entera: al apagarlo se soltó el canal —correcto— y el
+intento de reabrirlo se colgó dentro de WinRT, así que el bucle de reconexión no
+volvió a dar una vuelta. Sin los plazos, apagar el teclado **una sola vez**
+obliga a reiniciar el servicio. Están en `PLAZO_DE_BUSQUEDA_S`,
+`PLAZO_DE_APERTURA_S` y `PLAZO_DE_RECONEXION_S`; no quitarlos. Lo cubre
+`pruebas/test_conexion.py`.
 
 **Solo un programa a la vez.** Si está abierta la aplicación oficial de AhaKey o
 su `BLE_tcp_driver.exe`, tienen el teclado tomado y nosotros no entramos.

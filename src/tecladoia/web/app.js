@@ -111,12 +111,20 @@ function pintarEstado(panorama) {
     ? (simulado ? "Simulado" : "Conectado")
     : "Esperando teclado";
 
-  $("#ind-bateria-valor").textContent = e.bateria == null ? "—" : `${e.bateria} %`;
-  $("#ind-bateria").className = "indicador" + (e.bateria != null && e.bateria < 20 ? " aviso" : "");
+  // Sin teclado, lo ultimo que se leyo ya no es noticia: es historia. Ensenarlo
+  // como si fuera de ahora es lo que hacia que el panel dijera «no hay teclado»
+  // y a la vez mostrara bateria y modo tan tranquilo, que no hay forma de
+  // entenderlo mirandolo.
+  $("#ind-bateria-valor").textContent =
+    !conectado || e.bateria == null ? "—" : `${e.bateria} %`;
+  $("#ind-bateria").className =
+    "indicador" + (conectado && e.bateria != null && e.bateria < 20 ? " aviso" : "");
 
-  const palanca = palancaEnPalabras(e.palanca);
-  $("#ind-palanca-valor").textContent = palanca + (e.palanca_forzada ? " (virtual)" : "");
-  $("#ind-palanca").className = "indicador " + (e.palanca === 0 ? "bien" : "aviso");
+  const palanca = conectado ? palancaEnPalabras(e.palanca) : "Sin lectura";
+  $("#ind-palanca-valor").textContent =
+    palanca + (conectado && e.palanca_forzada ? " (virtual)" : "");
+  $("#ind-palanca").className =
+    "indicador " + (!conectado ? "aviso" : e.palanca === 0 ? "bien" : "aviso");
 
   $("#btn-conectar").textContent = conectado ? "Desconectar" : "Conectar dispositivo";
   $("#btn-conectar").className = "btn " + (conectado ? "btn-claro" : "btn-verde");
@@ -165,13 +173,16 @@ function pintarEstado(panorama) {
   // La palanca dibujada.
   const enAuto = e.palanca === 0;
   $(".palanca").classList.toggle("manual", !enAuto);
-  $("#palanca-pie").textContent = e.palanca == null ? "Sin lectura" : palanca;
+  $("#palanca-pie").textContent = !conectado || e.palanca == null ? "Sin lectura" : palanca;
 
   // El teclado manda... salvo justo después de elegir un modo aquí. Sin esta
   // tregua, el sondeo de cada dos segundos devolvía la web al modo del aparato
   // y lo que subieras acababa en otro modo distinto del que estabas viendo.
   const eligioHacePoco = Date.now() - (estado.modoElegidoEn || 0) < 6000;
-  if (e.modo_trabajo != null && e.modo_trabajo !== estado.modo && !eligioHacePoco) {
+  // El modo tambien: sin teclado no se sabe en cual esta, y ensenar el ultimo
+  // como si siguiera puesto hacia creer que se habia cambiado solo.
+  document.body.classList.toggle("sin-lectura", !conectado);
+  if (conectado && e.modo_trabajo != null && e.modo_trabajo !== estado.modo && !eligioHacePoco) {
     estado.modo = e.modo_trabajo;
     pintarModos();
     pintarTeclas();

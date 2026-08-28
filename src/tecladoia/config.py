@@ -6,7 +6,7 @@ import json
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 NOMBRE_APP = "tecladoia"
 
@@ -197,6 +197,13 @@ class Ajustes:
     #: Leerle a ChatGPT el estado por la capa de accesibilidad. Es la única vía
     #: que hay: ChatGPT no tiene enganches. Se puede apagar si molesta.
     vigilar_chatgpt: bool = True
+    #: Modo en el que dejar el teclado cada vez que se conecta (0-3), o
+    #: ``None`` para respetar el que traiga.
+    #:
+    #: El teclado recuerda por su cuenta el último modo que tuvo y vuelve a él
+    #: al encenderse, que no siempre es el que uno quiere empezar. Esto lo
+    #: corrige desde fuera: en cuanto se engancha, se le pone el modo elegido.
+    modo_al_conectar: Optional[int] = None
     #: Segundos sin noticias tras los que la barra vuelve al reposo. Sin esto se
     #: queda encendida con lo último que pasó aunque hayas cambiado de programa.
     segundos_reposo: float = 25.0

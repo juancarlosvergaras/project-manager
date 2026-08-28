@@ -493,3 +493,9 @@ td.vacio { color:var(--tenue); text-align:center; padding:1.4rem; }
 .posicion-que { font-size:.85rem; color:var(--tenue); line-height:1.45; }
 .posicion.activa .posicion-que { color:var(--texto); }
 .nota.atencion { color:var(--duda); font-weight:500; }
+
+/* Sin teclado, los modos se ven apagados: lo que muestran es la ultima
+   lectura, no lo que hay ahora. Ensenarlos como siempre hacia creer que el
+   teclado se habia cambiado de modo solo. */
+body.sin-lectura .modo { opacity: .45; }
+body.sin-lectura .modo.activo { box-shadow: none; }

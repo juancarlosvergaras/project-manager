@@ -38,6 +38,11 @@ VIGENCIA_DEL_CONTACTO_S = 45.0
 #: Escrituras fallidas seguidas que hacen soltar el canal y reabrirlo.
 FALLOS_PARA_SOLTAR = 2
 
+#: Plazos de reconexión. WinRT no trae ninguno y con el teclado apagado se
+#: queda esperando indefinidamente, colgando el bucle que debía reintentarlo.
+PLAZO_DE_BUSQUEDA_S = 10.0
+PLAZO_DE_APERTURA_S = 15.0
+
 #: Nombres con los que el teclado aparece en la lista de emparejados.
 NOMBRES_CONOCIDOS = ("ahakey", "vibecoding", "x1")
 
@@ -92,22 +97,29 @@ class TransporteWindowsEmparejado(Transporte):
         Así que también cuenta la experiencia: si hace poco que hablamos con él,
         está ahí. Cuando de verdad se va, deja de contestar y el plazo vence.
         """
-        if self._dispositivo is None or self._comando is None:
-            return False
-        if time.monotonic() - self._ultimo_contacto < VIGENCIA_DEL_CONTACTO_S:
-            return True
+        return self.canal_abierto and (
+            time.monotonic() - self._ultimo_contacto < VIGENCIA_DEL_CONTACTO_S
+        )
 
-        # Aquí estaba el círculo vicioso que dejaba la web diciendo «todavía no
-        # hay teclado» con el teclado encendido delante. Se le preguntaba a
-        # Windows, Windows contestaba «desconectado» porque el teclado dormía,
-        # y entonces el gestor ya no le escribía nada; como el contacto solo se
-        # refresca escribiendo, no volvía a refrescarse nunca. Un teclado
-        # dormido se quedaba muerto hasta reiniciar el servicio.
-        #
-        # Mientras tengamos el canal abierto se da por conectado y se le
-        # escribe: si de verdad se fue, la escritura falla y ``_escribir`` tira
-        # el canal, que es la única señal que no miente.
-        return True
+    @property
+    def canal_abierto(self) -> bool:
+        """¿Tenemos un canal por el que merezca la pena intentarlo?
+
+        Distinto de ``conectado``, y la diferencia es el arreglo del círculo
+        vicioso que dejaba la web diciendo «todavía no hay teclado» con el
+        teclado encendido delante:
+
+        * ``conectado`` responde «¿está vivo?» y se contesta con hechos: hemos
+          hablado con él hace poco. Es lo que se le enseña a la persona.
+        * ``canal_abierto`` responde «¿tiene sentido intentarlo?». Con esto se
+          gobierna el latido, **que no pide permiso a ``conectado``**.
+
+        Antes el latido sí lo pedía, y ahí estaba la trampa: el contacto solo se
+        refresca escribiendo, así que en cuanto ``conectado`` se ponía en falso
+        nadie volvía a escribir, y por tanto nunca volvía a ser cierto. Un
+        teclado dormido se quedaba muerto hasta reiniciar el servicio.
+        """
+        return self._dispositivo is not None and self._comando is not None
 
     # --- búsqueda ---------------------------------------------------------
     async def buscar(self) -> list[tuple[str, str]]:
@@ -133,11 +145,25 @@ class TransporteWindowsEmparejado(Transporte):
 
     # --- conexión ---------------------------------------------------------
     async def conectar(self) -> None:
+        """Abre el teclado, con plazo.
+
+        **Ningún paso de WinRT tiene plazo propio**, y con el teclado apagado
+        `from_id_async` o la lectura de servicios se quedan esperando para
+        siempre. Eso fue lo que dejó el servicio mudo una tarde entera: al
+        apagar el teclado se soltó el canal —correcto— y el intento de
+        reabrirlo se colgó dentro de WinRT, así que el bucle de reconexión no
+        volvió a dar una vuelta nunca más. Sin este plazo, apagar el teclado
+        una vez obliga a reiniciar el servicio.
+        """
         if not hay_winrt():
             raise ErrorTransporte("Esta vía solo existe en Windows.")
-        from winrt.windows.devices.bluetooth import BluetoothLEDevice
 
-        candidatos = await self.buscar()
+        try:
+            candidatos = await asyncio.wait_for(self.buscar(), PLAZO_DE_BUSQUEDA_S)
+        except asyncio.TimeoutError as error:
+            raise ErrorTransporte(
+                "Windows tardó demasiado en listar los teclados emparejados"
+            ) from error
         if not candidatos:
             raise ErrorTransporte(
                 "Windows no tiene ningún teclado AhaKey emparejado. Empareja el "
@@ -151,8 +177,10 @@ class TransporteWindowsEmparejado(Transporte):
         # se deja la que conteste.
         for identificador, nombre in candidatos:
             try:
-                await self._abrir(identificador, nombre)
+                await asyncio.wait_for(self._abrir(identificador, nombre), PLAZO_DE_APERTURA_S)
                 return
+            except asyncio.TimeoutError:
+                motivos.append(f"{nombre or identificador}: no contestó a tiempo")
             except ErrorTransporte as error:
                 motivos.append(f"{nombre or identificador}: {error}")
         raise ErrorTransporte("No se pudo abrir el teclado. " + " · ".join(motivos))

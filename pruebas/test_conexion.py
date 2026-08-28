@@ -1,0 +1,188 @@
+"""Que el teclado no se pierda para siempre por apagarlo una vez.
+
+Estas pruebas cubren un fallo que costó una tarde entera y que se manifestaba
+de tres formas que parecían no tener nada que ver: la web decía «todavía no hay
+teclado» con el teclado encendido delante, la barra de luz se quedaba
+congelada, y al pulsar el micrófono en el modo 1 el dictado se iba a la ventana
+de ChatGPT. Las tres salían de lo mismo, así que se prueba lo mismo.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import unittest
+
+from pruebas.base import PruebaAislada
+
+from tecladoia.config import Ajustes
+from tecladoia.dispositivo import GestorTeclado
+from tecladoia.transporte.base import ErrorTransporte, Transporte
+
+
+class TransporteDeMentira(Transporte):
+    """Un transporte que se puede apagar, colgar y romper a voluntad."""
+
+    nombre_legible = "de mentira"
+
+    def __init__(self) -> None:
+        self.canal = False
+        self.vivo = False
+        self.cuelga_al_conectar = False
+        self.escrituras = 0
+        self.intentos_de_conectar = 0
+
+    @property
+    def conectado(self) -> bool:
+        # Como el de verdad: solo consta vivo si hemos hablado con él.
+        return self.canal and self.vivo
+
+    @property
+    def canal_abierto(self) -> bool:
+        return self.canal
+
+    async def conectar(self) -> None:
+        self.intentos_de_conectar += 1
+        if self.cuelga_al_conectar:
+            await asyncio.sleep(3600)  # se queda esperando, como WinRT
+        self.canal = True
+        self.vivo = True
+
+    async def desconectar(self) -> None:
+        self.canal = False
+        self.vivo = False
+
+    async def enviar_comando(self, trama: bytes) -> None:
+        self.escrituras += 1
+        if not self.vivo:
+            self.canal = False  # como el de verdad: la escritura falla y suelta
+            raise ErrorTransporte("el teclado no contesta")
+
+    async def enviar_datos(self, bloque: bytes) -> None:
+        await self.enviar_comando(bloque)
+
+    async def descripcion(self) -> str:
+        return self.nombre_legible
+
+    def escuchar(self, callback) -> None:
+        self._oyente = callback
+
+
+def _gestor(transporte: Transporte) -> GestorTeclado:
+    ajustes = Ajustes()
+    # El transporte de mentira no manda notificaciones, así que cada consulta
+    # agota su plazo. Con el de verdad (1,2 s) estas pruebas tardarían más en
+    # esperar que en probar.
+    ajustes.espera_palanca_s = 0.05
+    return GestorTeclado(ajustes, transporte)
+
+
+class PruebaCirculoVicioso(PruebaAislada):
+    def test_el_latido_intenta_aunque_no_conste_conectado(self):
+        """El sondeo no puede pedirle permiso a «conectado».
+
+        Es el fallo de raíz. Un teclado dormido deja de constar conectado; si el
+        sondeo se saltara por eso, nadie volvería a escribirle, y como solo una
+        escritura acertada demuestra que sigue ahí, no volvería a constar
+        conectado nunca. Se quedaba muerto hasta reiniciar el servicio.
+        """
+        t = TransporteDeMentira()
+        t.canal, t.vivo = True, False   # canal abierto, pero no consta vivo
+        g = _gestor(t)
+        self.assertFalse(g.conectado)
+        self.assertTrue(g.puede_intentarse)
+
+        async def caso():
+            await g.consultar_estado(espera_s=0.05)
+
+        asyncio.run(caso())
+        self.assertGreater(t.escrituras, 0, "el latido ni lo intentó")
+
+    def test_sin_canal_no_se_intenta(self):
+        """Lo contrario también: sin canal no hay nada que probar."""
+        t = TransporteDeMentira()
+        g = _gestor(t)
+        self.assertFalse(g.puede_intentarse)
+
+        async def caso():
+            self.assertIsNone(await g.consultar_estado(espera_s=0.05))
+
+        asyncio.run(caso())
+        self.assertEqual(t.escrituras, 0)
+
+    def test_una_escritura_fallida_suelta_el_canal(self):
+        """Así es como se entera de que se fue: intentándolo."""
+        t = TransporteDeMentira()
+        t.canal, t.vivo = True, False
+        g = _gestor(t)
+
+        async def caso():
+            await g.consultar_estado(espera_s=0.05)
+
+        asyncio.run(caso())
+        self.assertFalse(t.canal_abierto, "debería haber soltado el canal")
+
+
+class PruebaReconexion(PruebaAislada):
+    def test_una_conexion_colgada_no_atasca_el_bucle(self):
+        """El fallo que dejó el servicio mudo una tarde entera.
+
+        Ningún paso de la pila Bluetooth de Windows trae plazo propio, y con el
+        teclado apagado se quedan esperando indefinidamente. Al apagar el
+        teclado se soltaba el canal —correcto— y el intento de reabrirlo se
+        colgaba dentro de WinRT: el bucle no daba otra vuelta nunca más.
+        """
+        t = TransporteDeMentira()
+        t.cuelga_al_conectar = True
+
+        async def caso():
+            g = _gestor(t)
+            tarea = asyncio.create_task(g.mantener_conexion(intervalo_s=0.01))
+            import tecladoia.dispositivo as d
+
+            previo = d.PLAZO_DE_RECONEXION_S
+            d.PLAZO_DE_RECONEXION_S = 0.05  # plazo de juguete para la prueba
+            try:
+                await asyncio.sleep(0.6)
+            finally:
+                d.PLAZO_DE_RECONEXION_S = previo
+                tarea.cancel()
+                try:
+                    await tarea
+                except asyncio.CancelledError:
+                    pass
+            return t.intentos_de_conectar
+
+        intentos = asyncio.run(caso())
+        self.assertGreater(
+            intentos, 1, "se quedó colgado en el primer intento y no reintentó"
+        )
+
+    def test_el_teclado_vuelve_solo_cuando_se_enciende(self):
+        """Encenderlo otra vez tiene que bastar. Sin reiniciar nada."""
+
+        async def caso():
+            t = TransporteDeMentira()
+            g = _gestor(t)
+            tarea = asyncio.create_task(g.mantener_conexion(intervalo_s=0.02))
+            await asyncio.sleep(0.15)
+            self.assertTrue(g.conectado, "no lo abrió al arrancar")
+
+            t.vivo = False          # se apaga el teclado
+            await g.consultar_estado(espera_s=0.05)   # el latido se entera
+            self.assertFalse(g.puede_intentarse, "no soltó el canal")
+
+            t.vivo = True           # se vuelve a encender
+            await asyncio.sleep(0.4)
+            recuperado = g.conectado
+            tarea.cancel()
+            try:
+                await tarea
+            except asyncio.CancelledError:
+                pass
+            return recuperado
+
+        self.assertTrue(asyncio.run(caso()), "no se recuperó al encenderlo")
+
+
+if __name__ == "__main__":
+    unittest.main()

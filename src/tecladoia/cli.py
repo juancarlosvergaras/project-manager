@@ -170,8 +170,28 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
         # tienes delante, que es lo unico que sirve con programas que no avisan.
         vigilantes: list[asyncio.Task] = []
         vigilantes.append(asyncio.create_task(gestor.vigilar_estado()))
+
+        def al_cambiar_la_conexion(conectado: bool) -> None:
+            """Deja el teclado en el modo elegido cada vez que aparece.
+
+            El teclado recuerda por su cuenta el ultimo modo que tuvo y vuelve
+            a el al encenderse. Si has elegido con que modo quieres empezar, se
+            le pone aqui: al arrancar el servicio y cada vez que se reconecta,
+            que es justo cuando lo enciendes.
+            """
+            destino = getattr(ajustes, "modo_al_conectar", None)
+            if not conectado or destino is None:
+                return
+            if not 0 <= destino < len(ajustes.modos):
+                return
+            salida.linea(f"  Teclado puesto en el modo {destino + 1}")
+            asyncio.get_running_loop().create_task(gestor.cambiar_modo_trabajo(destino))
+
+        al_cambiar_la_conexion(gestor.conectado)
         if not args.sin_teclado:
-            vigilantes.append(asyncio.create_task(gestor.mantener_conexion()))
+            vigilantes.append(
+                asyncio.create_task(gestor.mantener_conexion(al_cambiar=al_cambiar_la_conexion))
+            )
 
         # ChatGPT no tiene enganches y no puede tenerlos, así que su estado se
         # lee mirándole la ventana. Solo mientras el teclado esté en su modo:

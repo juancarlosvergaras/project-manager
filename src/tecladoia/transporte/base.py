@@ -64,6 +64,18 @@ class Transporte(ABC):
     @abstractmethod
     def conectado(self) -> bool: ...
 
+    @property
+    def canal_abierto(self) -> bool:
+        """¿Merece la pena intentar escribir?
+
+        Por omisión coincide con ``conectado``. Lo redefine el transporte de
+        Bluetooth de Windows, que sí distingue entre «hay un canal abierto» y
+        «hemos hablado con él hace poco»: de esa distinción depende que el
+        latido siga intentándolo cuando el teclado se duerme, en vez de darlo
+        por muerto y no volver a probar jamás.
+        """
+        return self.conectado
+
     @abstractmethod
     async def conectar(self) -> None: ...
 
