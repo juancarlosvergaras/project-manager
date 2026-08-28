@@ -375,6 +375,62 @@ class PruebaEnvoltorioAutomatico(PruebaAislada):
         self.assertFalse(viejo.canal, "dejó el camino anterior sin soltar")
 
 
+class PruebaReaparicion(PruebaAislada):
+    """Apagar y encender el teclado tiene que devolverlo a su modo.
+
+    El firmware vuelve por su cuenta al ultimo modo que tuvo al encenderse, asi
+    que si has pedido empezar en el 1 hay que reponerselo. La senal obvia
+    —que la conexion pase de «no» a «si»— **no sirve sola**: un teclado cuenta
+    como vivo durante 45 s desde el ultimo contacto, de modo que apagarlo y
+    encenderlo deprisa no la dispara. Ese era el caso que se escapaba, y es el
+    normal: nadie espera tres cuartos de minuto entre apagar y encender.
+    """
+
+    def _gestor_con_aviso(self):
+        avisos = []
+        t = TransporteDeMentira()
+        t.canal = t.vivo = True
+        g = _gestor(t)
+        g.al_reaparecer = lambda: avisos.append(True)
+        return g, avisos
+
+    def _llegada_de_estado(self, g, cuando):
+        """Simula una lectura de estado llegada en ese momento."""
+        import tecladoia.dispositivo as d
+
+        anterior = g._leido_en
+        g._leido_en = cuando
+        if anterior and cuando - anterior > d.HUECO_QUE_DELATA_UN_REINICIO_S:
+            if g.al_reaparecer:
+                g.al_reaparecer()
+
+    def test_un_silencio_largo_delata_el_reinicio(self):
+        g, avisos = self._gestor_con_aviso()
+        self._llegada_de_estado(g, 100.0)
+        self._llegada_de_estado(g, 130.0)   # treinta segundos callado
+        self.assertEqual(len(avisos), 1, "no se entero de que el teclado volvio")
+
+    def test_el_sondeo_normal_no_lo_dispara(self):
+        """Cada dos segundos hay lectura; eso no es una reaparicion."""
+        g, avisos = self._gestor_con_aviso()
+        for instante in (100.0, 102.0, 104.0, 106.0):
+            self._llegada_de_estado(g, instante)
+        self.assertEqual(avisos, [], "confundio el sondeo normal con un reinicio")
+
+    def test_un_sondeo_perdido_tampoco(self):
+        """Perder una lectura suelta pasa, y no significa que se haya ido."""
+        g, avisos = self._gestor_con_aviso()
+        self._llegada_de_estado(g, 100.0)
+        self._llegada_de_estado(g, 104.5)   # se perdio uno
+        self.assertEqual(avisos, [], "un sondeo perdido no es un reinicio")
+
+    def test_la_primera_lectura_no_es_una_reaparicion(self):
+        """Al arrancar no ha vuelto de ninguna parte: acaba de empezar."""
+        g, avisos = self._gestor_con_aviso()
+        self._llegada_de_estado(g, 100.0)
+        self.assertEqual(avisos, [])
+
+
 class PruebaApartamentoDeCOM(PruebaAislada):
     """La causa raíz de toda la saga, en una línea.
 

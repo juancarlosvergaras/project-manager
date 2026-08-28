@@ -53,6 +53,12 @@ CADA_CUANTOS_AVISAR = 5
 #: siempre dejaría el teclado inalcanzable para siempre.
 ESPERA_ANTES_DE_INSISTIR_S = 60.0
 
+#: Silencio que delata que el teclado se fue y ha vuelto. Se le pregunta cada
+#: dos segundos, así que ocho de silencio no son un sondeo perdido: es que no
+#: estaba. Sirve para volver a dejarlo en el modo que pediste, porque al
+#: encenderse el firmware vuelve por su cuenta al último modo que tuvo.
+HUECO_QUE_DELATA_UN_REINICIO_S = 8.0
+
 
 class GestorTeclado:
     """Punto único de acceso al teclado."""
@@ -64,6 +70,9 @@ class GestorTeclado:
         self.estado: Optional[protocolo.EstadoDispositivo] = None
         self.estado_ia: Optional[EstadoIA] = None
         self._leido_en: float = 0.0
+        #: Se llama cuando el teclado vuelve tras un silencio: lo apagaste y lo
+        #: encendiste. Lo usa la línea de órdenes para reponer el modo.
+        self.al_reaparecer: Optional[Callable[[], None]] = None
         self._esperas: list[asyncio.Future] = []
         self._candado = asyncio.Lock()
         self._observadores: list[Callable[[protocolo.EstadoDispositivo], None]] = []
@@ -127,8 +136,26 @@ class GestorTeclado:
         estado = protocolo.analizar_estado(trama)
         if estado is None:
             return
+
+        # ¿Ha estado callado un buen rato y ahora vuelve a hablar? Entonces se
+        # fue y ha vuelto: lo apagaste y lo encendiste, o se durmió del todo.
+        #
+        # Hacía falta mirarlo aquí porque la otra señal —que la conexión pase
+        # de «no» a «sí»— no se produce en el caso más normal de todos. Un
+        # teclado cuenta como vivo durante VIGENCIA_DEL_CONTACTO_S (45 s) desde
+        # el último contacto, así que si lo apagas y lo enciendes dentro de ese
+        # rato la conexión nunca llega a caerse a ojos del servicio. Nadie se
+        # enteraba de que había reiniciado, y el teclado se quedaba en el modo
+        # que recuerda de fábrica en vez de en el que pediste.
+        antes = self._leido_en
         self.estado = estado
         self._leido_en = time.monotonic()
+        if antes and self._leido_en - antes > HUECO_QUE_DELATA_UN_REINICIO_S:
+            if self.al_reaparecer is not None:
+                try:
+                    self.al_reaparecer()
+                except Exception:  # noqa: BLE001 - un aviso no tumba una lectura
+                    _log.debug("Falló el aviso de reaparición", exc_info=True)
         for espera in self._esperas:
             if not espera.done():
                 espera.set_result(estado)

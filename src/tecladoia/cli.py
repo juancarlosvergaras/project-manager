@@ -195,6 +195,11 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             salida.linea(f"  Teclado puesto en el modo {destino + 1}")
             bucle_ahora.create_task(gestor.cambiar_modo_trabajo(destino))
 
+        # Dos caminos para lo mismo, porque ninguno cubre todos los casos:
+        # la conexion que se cae y vuelve, y el teclado que reinicia sin que la
+        # conexion llegue a caerse —que es lo que pasa al apagarlo y encenderlo
+        # deprisa, y era el caso que se escapaba—.
+        gestor.al_reaparecer = lambda: al_cambiar_la_conexion(True)
         al_cambiar_la_conexion(gestor.conectado)
         if not args.sin_teclado:
             vigilantes.append(

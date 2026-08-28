@@ -532,6 +532,16 @@ class ServidorEnganches:
                 self.avisar_de_pulsacion("palanca", {"valor": interesa.get("palanca")})
             if anterior.get("modo_trabajo") != interesa.get("modo_trabajo"):
                 self.avisar_de_pulsacion("modo", {"valor": interesa.get("modo_trabajo")})
+                # Al cambiar de modo, la barra se queda con el color del modo
+                # anterior: cada modo solo la deja tocar a su programa, así que
+                # si el nuevo dueño no tiene nada que decir, nadie la apaga.
+                # Quedaba un verde de «tarea completada» de otro programa
+                # encendido encima del modo al que acabas de pasar, contando
+                # algo que ni siquiera es de ahí.
+                if not self._le_toca_a_este_modo(self.agente_activo or ""):
+                    self._en_segundo_plano(
+                        self._apagar_la_barra("se cambió de modo")
+                    )
         self.bus.publicar("estado", resumen)
 
     def _anotar_aviso(
