@@ -183,11 +183,16 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                 return
             bucle_ahora = asyncio.get_running_loop()
 
-            # La barra se queda fisicamente con lo ultimo que le mandamos. Si
-            # el teclado se fue en verde de «tarea completada», al volver sigue
-            # en verde diciendo algo que ya no es verdad, y encima de una tarea
-            # de hace horas. Al recuperarlo se parte de un estado conocido.
-            bucle_ahora.create_task(gestor.enviar_estado_ia(EstadoIA.SESION_FINALIZADA))
+            # El teclado enciende con el ultimo efecto que tuvo —lo guarda en
+            # su memoria, igual que el modo—, asi que al volver sigue con el
+            # verde de una tarea que acabo hace horas. Se le repone el reposo.
+            #
+            # Ojo con cual se manda: «sesion finalizada» esta mapeado al
+            # barrido de exito, que es VERDE. Mandandolo para «apagar» la barra
+            # se conseguia justo lo contrario, y ese era el verde del arranque.
+            # El reposo de verdad es el mismo que usa el vigilante de
+            # inactividad, y por eso se le pide a el que lo haga.
+            servidor.reponer_la_barra("el teclado volvio")
 
             destino = getattr(ajustes, "modo_al_conectar", None)
             if destino is None or not 0 <= destino < len(ajustes.modos):

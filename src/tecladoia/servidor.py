@@ -448,8 +448,19 @@ class ServidorEnganches:
         except asyncio.CancelledError:
             return
 
-    async def _apagar_la_barra(self, motivo: str) -> None:
-        if self.agente_activo is None and self._ultimo_estado_registrado in (
+    def reponer_la_barra(self, motivo: str) -> None:
+        """Deja la barra en reposo sí o sí, aunque ya creyéramos que lo estaba.
+
+        Lo usa la línea de órdenes cuando el teclado vuelve de estar apagado.
+        Hace falta forzarlo porque el teclado **enciende con el último efecto
+        que tuvo** —lo guarda en su memoria, igual que el modo—, así que lo que
+        nosotros creamos que hay puesto no vale de nada: hay que mandárselo
+        otra vez aunque en nuestras cuentas ya estuviera en reposo.
+        """
+        self._en_segundo_plano(self._apagar_la_barra(motivo, forzar=True))
+
+    async def _apagar_la_barra(self, motivo: str, forzar: bool = False) -> None:
+        if not forzar and self.agente_activo is None and self._ultimo_estado_registrado in (
             None,
             ESTADO_EN_REPOSO,
         ):

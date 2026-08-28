@@ -462,6 +462,54 @@ class PruebaReaparicion(PruebaAislada):
         self.assertEqual(avisos, [])
 
 
+class PruebaBarraAlVolver(PruebaAislada):
+    """El verde del arranque lo poniamos nosotros.
+
+    Al recuperar el teclado se mandaba «sesion finalizada» para dejar la barra
+    en reposo. Pero ese estado esta mapeado al barrido de exito, que es VERDE:
+    el mensaje que debia apagarla era justo el que la encendia.
+    """
+
+    def test_el_reposo_no_es_sesion_finalizada(self):
+        from tecladoia.modelo import EstadoIA
+        from tecladoia.servidor import ESTADO_EN_REPOSO
+
+        self.assertIsNot(
+            ESTADO_EN_REPOSO, EstadoIA.SESION_FINALIZADA,
+            "el reposo no puede ser el estado que pinta el barrido de exito",
+        )
+
+    def test_al_volver_se_manda_el_reposo_de_verdad(self):
+        """Y se manda por el mismo camino que usa el vigilante de inactividad.
+
+        Tener dos formas de «apagar la barra» fue lo que permitio que una de
+        ellas la encendiera en verde sin que nadie lo notara.
+        """
+        fuente = (
+            Path(__file__).resolve().parent.parent
+            / "src" / "tecladoia" / "cli.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("reponer_la_barra", fuente)
+        self.assertNotIn(
+            "enviar_estado_ia(EstadoIA.SESION_FINALIZADA)", fuente,
+            "volvio a colarse el verde disfrazado de apagado",
+        )
+
+    def test_se_fuerza_aunque_ya_creamos_que_esta_en_reposo(self):
+        """El teclado enciende con el ultimo efecto que tuvo, no con el nuestro.
+
+        Guarda el efecto en su memoria igual que el modo, asi que nuestras
+        cuentas no valen: hay que mandarselo otra vez aunque para nosotros ya
+        estuviera apagado.
+        """
+        import inspect
+
+        from tecladoia.servidor import ServidorEnganches
+
+        firma = inspect.signature(ServidorEnganches._apagar_la_barra)
+        self.assertIn("forzar", firma.parameters)
+
+
 class PruebaApartamentoDeCOM(PruebaAislada):
     """La causa raíz de toda la saga, en una línea.
 
