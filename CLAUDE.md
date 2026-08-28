@@ -59,8 +59,29 @@ calla en vez de inventarse un estado.
 **El teclado entra en el modo que recuerda, no en el 1.** Eso es firmware suyo:
 al encenderse vuelve al último modo que tuvo. Si quieres empezar siempre en uno
 concreto, `modo_al_conectar` en la configuración (0-3, o `null` para respetar el
-que traiga). Se aplica al arrancar el servicio **y en cada reconexión**, que es
-justo cuando lo enciendes.
+que traiga).
+
+**La señal para reponerlo es una escritura fallida, no una lectura.** Cuesta
+llegar a esto y costó varias vueltas. Lo obvio —esperar a que la conexión pase
+de «no» a «sí»— **no sirve**, porque un teclado cuenta como vivo durante
+`VIGENCIA_DEL_CONTACTO_S` (45 s) desde el último contacto: si lo apagas y lo
+enciendes deprisa, esa transición nunca ocurre. Y nadie espera tres cuartos de
+minuto entre una cosa y otra, así que el caso que se escapaba era el único que
+pasa de verdad. Preguntarle al teclado tampoco vale. Lo que sí delata el corte
+es la escritura que falla al apagarlo (`WinError -2147023673`, «El usuario ha
+cancelado la operación»): se anota en `_hubo_corte` y en cuanto vuelve a
+contestar se le repone el modo. Del apagado a la reposición van dos segundos.
+
+**Y el mismo camino le apaga la barra, con el reposo que toca.** Ojo aquí: el
+teclado **enciende con el último efecto que tuvo**, lo guarda en su memoria
+igual que el modo. Se le manda `ESTADO_EN_REPOSO` (Detenido → «Centro fijo») a
+través de `servidor.reponer_la_barra()`, forzado, porque lo que nosotros
+creamos que hay puesto no vale de nada. **No mandar `SESION_FINALIZADA` para
+esto**: está mapeado al barrido de éxito, que es verde, así que el mensaje que
+debía apagar la barra era justo el que la encendía — de ahí el «arranca en
+verde» que despistó una tarde. Que haya un solo camino para dejar la barra en
+reposo no es limpieza: tener dos fue lo que permitió que uno de ellos la
+encendiera sin que nadie lo notara.
 
 **No fiarse de lo que Windows dice sobre la conexión.** Un teclado Bluetooth
 dormido aparece como «desconectado» aunque despierte a la primera escritura.
@@ -255,4 +276,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-168, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+173, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
