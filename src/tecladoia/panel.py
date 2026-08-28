@@ -550,6 +550,18 @@ if (location.search.includes("clave=")) {
     ) -> tuple[str, str, bytes]:
         tipo = "application/json; charset=utf-8"
 
+        if ruta == "/descargar/TecladoIA.exe":
+            from .empaquetado import ruta_ejecutable
+
+            exe = ruta_ejecutable()
+            if exe is None:
+                return "404 Not Found", "text/plain; charset=utf-8", (
+                    "El ejecutable no está construido en este equipo. "
+                    "Se hace con «python construir_exe.py»."
+                ).encode("utf-8")
+            self._adjuntar("TecladoIA.exe")
+            return "200 OK", "application/octet-stream", exe.read_bytes()
+
         if ruta == "/descargar/tecladoia.zip":
             from .empaquetado import construir_zip
 
@@ -603,8 +615,9 @@ if (location.search.includes("clave=")) {
             return {"agentes": instalador.revisar()}
         if ruta == "/api/paquete":
             from .empaquetado import resumen as resumen_paquete
+            from .empaquetado import resumen_ejecutable
 
-            return resumen_paquete()
+            return {**resumen_paquete(), "ejecutable": resumen_ejecutable()}
         if ruta == "/api/reglas":
             if metodo == "POST":
                 return self._guardar_reglas(datos)

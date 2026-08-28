@@ -17,6 +17,7 @@ class PruebaAnalizador(unittest.TestCase):
         esperadas = {
             "servicio", "estado", "buscar", "palanca", "instalar", "desinstalar",
             "agentes", "enganche", "tecla", "luz", "bitacora", "config", "probar",
+            "asistente",
         }
         registradas = set()
         for accion in analizador._subparsers._group_actions:  # noqa: SLF001

@@ -172,6 +172,34 @@ python ajustar_config.py clave_panel=Unicartagena1 modo_al_conectar=0
 La carpeta del proyecto **no** está redirigida, así que los cambios de código sí
 llegan con normalidad. Solo `AppData` engaña.
 
+## El ejecutable
+
+```bash
+python construir_exe.py
+```
+
+Deja `dist/TecladoIA.exe`, unos 27 MB, **con Python dentro**: en el ordenador
+nuevo no hace falta instalar nada antes. Esa es su razón de ser — `instalar.ps1`
+funciona, pero empieza comprobando que hay Python y esa comprobación falla justo
+en los equipos donde más falta hace la ayuda.
+
+Abierto sin argumentos hace la instalación guiada (`asistente`); con argumentos
+se comporta como la orden `tecladoia`, así que la tarea programada lo lanza con
+`TecladoIA.exe servicio --host …`. El panel lo ofrece en la pestaña
+**Descargar**, y si no está construido enseña el botón apagado explicando cómo
+hacerlo, en vez de dar un error al pulsarlo.
+
+Dos cosas de la receta que **no se pueden quitar** (`construir_exe.py`):
+
+- **La carpeta `web` viaja dentro**, en la misma ruta relativa. Sin eso el
+  ejecutable arranca y sirve un panel en blanco.
+- **`winrt` se incluye a mano.** Sus módulos se importan por nombre en tiempo de
+  ejecución, así que PyInstaller no los ve al analizar el código. Sin ellos el
+  ejecutable arranca, funciona todo... y no encuentra el teclado nunca, sin
+  decir por qué.
+
+`dist/` y `build/` están fuera del repositorio: 27 MB de binario no van en git.
+
 ## Instalar en otro PC
 
 ```powershell

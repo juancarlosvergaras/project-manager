@@ -125,4 +125,28 @@ def resumen(raiz: Path | None = None) -> dict:
     return {"bytes": len(datos), "archivos": archivos, "nombre": "tecladoia.zip"}
 
 
-__all__ = ["construir_zip", "resumen"]
+def ruta_ejecutable(raiz: Path | None = None) -> Path | None:
+    """Dónde está TecladoIA.exe, si se ha construido.
+
+    Es opcional a propósito: quien trabaja desde el código no lo necesita y
+    construirlo tarda un par de minutos. Si no está, el panel ofrece el zip y
+    ya está, en vez de enseñar un botón que da error al pulsarlo.
+    """
+    raiz = raiz or Path(__file__).resolve().parent.parent.parent
+    exe = raiz / "dist" / "TecladoIA.exe"
+    return exe if exe.is_file() else None
+
+
+def resumen_ejecutable(raiz: Path | None = None) -> dict:
+    """Datos del ejecutable para la pestaña de descarga."""
+    exe = ruta_ejecutable(raiz)
+    if exe is None:
+        return {"hay": False}
+    return {
+        "hay": True,
+        "bytes": exe.stat().st_size,
+        "nombre": "TecladoIA.exe",
+    }
+
+
+__all__ = ["construir_zip", "resumen", "ruta_ejecutable", "resumen_ejecutable"]

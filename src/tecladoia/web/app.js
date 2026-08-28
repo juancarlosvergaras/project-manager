@@ -1229,6 +1229,19 @@ function conectarBotones() {
     const paquete = await pedir("/api/paquete");
     $("#nota-paquete").textContent =
       `${paquete.archivos} archivos · ${(paquete.bytes / 1024).toFixed(0)} KB · ${paquete.nombre}`;
+    // El ejecutable es opcional: quien trabaja desde el código no lo construye.
+    // Si no está, se dice por qué en vez de dejar un botón que da error.
+    const exe = paquete.ejecutable || {};
+    const botonExe = $("#btn-exe");
+    if (exe.hay) {
+      $("#nota-exe").textContent =
+        `${(exe.bytes / 1048576).toFixed(1)} MB · ${exe.nombre} · lleva Python dentro`;
+    } else if (botonExe) {
+      botonExe.classList.add("desactivado");
+      botonExe.removeAttribute("href");
+      $("#nota-exe").textContent =
+        "Todavía no está construido en este equipo. Se hace con «python construir_exe.py».";
+    }
   } catch (_) {}
 
   escuchar();

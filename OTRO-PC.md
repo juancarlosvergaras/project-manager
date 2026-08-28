@@ -23,6 +23,16 @@ sistema. Todo lo demás sí está automatizado.
 
 ## 2. Instalar TecladoIA
 
+**Lo más sencillo: el ejecutable.** En la pestaña **Descargar** del panel hay un
+`TecladoIA.exe` de unos 27 MB que **lleva Python dentro**, así que en el
+ordenador nuevo no hay que instalar nada antes. Lo abres y él se encarga: pone
+los enganches en los programas de IA que encuentre, te pregunta la clave del
+panel, deja el servicio arrancando con el equipo y lo pone en marcha.
+
+Si prefieres trabajar desde el código, sigue leyendo.
+
+### Desde el código
+
 Copia la carpeta del proyecto al ordenador nuevo —o descárgala desde la pestaña
 **Descargar** del panel, que arma el paquete al vuelo— y desde ahí:
 

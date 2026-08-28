@@ -543,6 +543,13 @@ def orden_palanca(args, ajustes: Ajustes, salida: Salida) -> int:
     return 0
 
 
+def orden_asistente(args, ajustes: Ajustes, salida: Salida) -> int:
+    """La instalación guiada, que es lo que hace el `.exe` al abrirlo."""
+    from .asistente import ejecutar
+
+    return ejecutar(escribir=salida.linea)
+
+
 def orden_instalar(args, ajustes: Ajustes, salida: Salida) -> int:
     """Registra los enganches en los programas de IA."""
     try:
@@ -823,6 +830,12 @@ def construir_analizador() -> argparse.ArgumentParser:
     palanca = ordenes.add_parser("palanca", help="fija la palanca virtual: auto, manual o fisica")
     palanca.add_argument("modo", help="auto | manual | fisica")
     palanca.set_defaults(funcion=orden_palanca)
+
+    asistente_ = ordenes.add_parser(
+        "asistente",
+        help="instalación guiada: enganches, clave y arranque con Windows",
+    )
+    asistente_.set_defaults(funcion=orden_asistente)
 
     instalar = ordenes.add_parser("instalar", help="pone los enganches en los programas de IA")
     instalar.add_argument("agentes", nargs="*", help="claude, codex, cursor, kimi, gemini")

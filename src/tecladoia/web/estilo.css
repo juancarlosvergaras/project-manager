@@ -499,3 +499,7 @@ td.vacio { color:var(--tenue); text-align:center; padding:1.4rem; }
    teclado se habia cambiado de modo solo. */
 body.sin-lectura .modo { opacity: .45; }
 body.sin-lectura .modo.activo { box-shadow: none; }
+
+/* Un boton sin destino: se ve que existe pero que ahora no lleva a ninguna
+   parte. Mejor que esconderlo, porque asi se entiende que falta un paso. */
+.btn.desactivado { opacity: .5; cursor: not-allowed; pointer-events: none; }

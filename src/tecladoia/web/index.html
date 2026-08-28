@@ -296,21 +296,36 @@
       aplicación tiene que correr en el ordenador que lo tiene cerca. Este panel puede
       estar publicado en un servidor, pero el teclado está donde estás tú.
     </p>
-    <p class="nota">
-      El paquete es el mismo código que estás usando ahora, empaquetado al vuelo. Solo
-      necesitas Python 3.10 o posterior.
+    <h3>Para Windows, sin instalar nada</h3>
+    <p>
+      Un solo archivo con Python dentro. Lo abres y él se encarga: pone los enganches
+      en los programas de IA que encuentre, te pregunta la clave del panel y deja el
+      servicio arrancando con el equipo.
     </p>
     <div class="acciones">
-      <a class="btn btn-azul grande" id="btn-zip" href="/descargar/tecladoia.zip">Descargar la aplicación</a>
+      <a class="btn btn-azul grande" id="btn-exe" href="/descargar/TecladoIA.exe">Descargar TecladoIA.exe</a>
+    </div>
+    <p class="nota" id="nota-exe"></p>
+    <p class="nota">
+      Lo único que no puede hacer por ti es emparejar el teclado: eso se hace una vez
+      en Configuración › Bluetooth y Windows exige confirmarlo a mano. El programa te
+      avisa si falta.
+    </p>
+
+    <h3>Con Python, desde el código</h3>
+    <p class="nota">
+      El paquete es el mismo código que estás usando ahora, empaquetado al vuelo.
+      Necesitas Python 3.10 o posterior. Útil si quieres tocar el código o si prefieres
+      no ejecutar un archivo empaquetado.
+    </p>
+    <div class="acciones">
+      <a class="btn btn-claro" id="btn-zip" href="/descargar/tecladoia.zip">Descargar el código</a>
     </div>
     <p class="nota" id="nota-paquete"></p>
-
-    <h3>Después de descargar</h3>
     <ol class="pasos">
       <li>Descomprime el archivo.</li>
       <li>Instala: <code>pip install -e ".[ble]"</code></li>
-      <li>Pon los enganches: <code>tecladoia instalar</code></li>
-      <li>Arranca: <code>tecladoia servicio</code></li>
+      <li>Instalación guiada: <code>tecladoia asistente</code></li>
       <li>Abre <code>http://127.0.0.1:8770</code></li>
     </ol>
   </article>
