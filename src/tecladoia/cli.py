@@ -142,6 +142,24 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
 
         servidor = ServidorEnganches(gestor, ajustes)
         await servidor.arrancar(con_tcp=not args.sin_tcp)
+        # De donde lee su configuracion, al registro. Parece un detalle y no lo
+        # es: perseguir «el panel rechaza la clave» sin saber que archivo esta
+        # leyendo el proceso es perseguir un fantasma, y arrancado por el
+        # programador de tareas no hay consola donde mirarlo.
+        registro.obtener("config").info(
+            "Configuracion: %s [APPDATA=%s, existe=%s] (clave %s)",
+            ruta_config(),
+            os.environ.get("APPDATA"),
+            "%s bytes, sha %s" % (
+                ruta_config().stat().st_size,
+                __import__("hashlib").sha1(ruta_config().read_bytes()).hexdigest()[:10],
+            ) if ruta_config().exists() else "no existe",
+            # Se apunta la huella, no la clave: longitud y dos ultimos
+            # caracteres bastan para saber si el proceso esta usando la que
+            # crees, y no dejan la clave escrita en un archivo de registro.
+            f"puesta, {len(ajustes.clave_panel)} caracteres acabados en …"
+            f"{ajustes.clave_panel[-2:]}" if ajustes.clave_panel else "sin clave",
+        )
         salida.titulo("Servicio en marcha")
         if servidor.ruta_socket:
             salida.dato("Socket", servidor.ruta_socket)

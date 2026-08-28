@@ -136,6 +136,42 @@ cancelar. No lances una subida y te olvides.
 
 ---
 
+## Que arranque con Windows
+
+Hay una tarea programada llamada **TecladoIA** que lo lanza al iniciar sesión,
+con veinte segundos de margen, y escribe todo en
+`%APPDATA%\TecladoIA\servicio.log`. Para manejarla:
+
+```bash
+schtasks /Run /TN TecladoIA     # arrancar ahora
+schtasks /End /TN TecladoIA     # parar
+```
+
+**El servicio no debe depender de una sesión de Claude abierta.** Y ojo con
+esto, que costó una tarde: **la aplicación de Claude está empaquetada, así que
+Windows le redirige `AppData` a su propia carpeta**
+(`AppData\Local\Packages\Claude_…\LocalCache\Roaming`). Lo que Claude guarde
+en la configuración se queda ahí y el servicio arrancado por la tarea —que no
+está redirigido— **nunca lo ve**. Los dos leen la misma ruta y son archivos
+distintos, y ni desactivando el aislamiento de la herramienta se ve el de
+verdad: la redirección la hace Windows, no la herramienta.
+
+El síntoma era desconcertante: el panel rechazaba la clave correcta, con el
+registro diciendo «clave puesta» y señalando el archivo bueno. Se destapó
+apuntando la **huella** de la clave —longitud y dos últimos caracteres— y el
+tamaño del archivo: 5579 bytes de un lado, 1896 del otro, misma ruta.
+
+Para escribir en la configuración de verdad desde Claude está
+`ajustar_config.py`, que **se ejecuta a través de la tarea programada** (esa sí
+escribe donde toca):
+
+```bash
+python ajustar_config.py clave_panel=Unicartagena1 modo_al_conectar=0
+```
+
+La carpeta del proyecto **no** está redirigida, así que los cambios de código sí
+llegan con normalidad. Solo `AppData` engaña.
+
 ## Instalar en otro PC
 
 ```powershell
