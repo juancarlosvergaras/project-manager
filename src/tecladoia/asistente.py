@@ -81,9 +81,13 @@ def registrar_tarea(host: str = "") -> tuple[bool, str]:
     # Se lanza minimizado y con la salida a un archivo. Sin eso, el servicio
     # arrancado por el programador de tareas es mudo: no hay consola donde
     # mirar, y averiguar por que no arranca se vuelve adivinar.
+    # Ojo con las comillas: van tal cual, sin barras delante. `cmd` no entiende
+    # `\"` como comilla escapada —eso es cosa de otros lenguajes—, y con ellas
+    # el comando entero queda invalido. La tarea disparaba puntual y no
+    # arrancaba nada, que desde fuera parece que el disparador no funciona.
     orden = (
         f'/c start /min "" cmd /c "{orden_de_arranque()} {argumentos} '
-        f'>> \\"{registro}\\" 2>&1"'
+        f'>> "{registro}" 2>&1"'
     )
     guion = (
         f"$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '{orden}' "
