@@ -45,7 +45,11 @@ class AgenteCodex(AgenteIA):
             filtro="*",
         ),
         EventoEnganche("CodexPostToolUse", "PostToolUse", EstadoIA.HERRAMIENTA_TERMINADA, filtro="*"),
-        EventoEnganche("CodexStop", "Stop", EstadoIA.DETENIDO),
+        # «Stop» es TERMINAR el turno, no detenerse. No existe ningun evento
+        # «TaskCompleted»: esto es lo unico que avisa de que ha acabado. Con
+        # DETENIDO —que ademas es el estado de reposo— terminar equivalia a
+        # apagar la barra y el verde no se encendia jamas.
+        EventoEnganche("CodexStop", "Stop", EstadoIA.TAREA_COMPLETADA),
     )
 
     @classmethod

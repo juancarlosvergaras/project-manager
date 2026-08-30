@@ -52,10 +52,18 @@ entre programas.
 | `Stop` | **6 · Tarea completada** |
 | `SessionEnd` | 8 · Sesión finalizada |
 
-> **La trampa que cuesta una tarde:** no existe ningún evento «TaskCompleted».
-> Claude Code dispara **`Stop`** cuando termina su turno —incluso cuando termina
-> porque te está preguntando algo—. Si mapeas `Stop` a «detenido», el verde de
-> «he terminado» no se enciende nunca.
+> **La trampa que cuesta una tarde, y que ya ha vuelto dos veces:** no existe
+> ningún evento «TaskCompleted». Claude Code dispara **`Stop`** cuando termina
+> su turno —incluso cuando termina porque te está preguntando algo—. Si mapeas
+> `Stop` a «detenido», el verde de «he terminado» no se enciende nunca.
+>
+> Y es peor de lo que parece si «detenido» es además tu estado de reposo:
+> entonces terminar una tarea **apaga** la barra, así que no es que falte el
+> verde, es que el final del trabajo se confunde con no estar trabajando.
+>
+> En TecladoIA se cuela por dos sitios —el mapa general de `servidor.py` y el
+> adaptador de cada agente en `agentes/`— y basta con que quede mal en uno.
+> Lo sujetan pruebas en `pruebas/test_servidor.py`.
 
 ### Codex CLI
 `~/.codex/hooks.json`. Eventos `CodexSessionStart`, `CodexPreToolUse`,

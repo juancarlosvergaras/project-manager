@@ -46,7 +46,11 @@ class AgenteClaude(AgenteIA):
         EventoEnganche("PostToolUse", "PostToolUse", EstadoIA.HERRAMIENTA_TERMINADA, filtro="*"),
         EventoEnganche("Notification", "Notification", EstadoIA.NOTIFICACION),
         EventoEnganche("TaskCompleted", "TaskCompleted", EstadoIA.TAREA_COMPLETADA),
-        EventoEnganche("Stop", "Stop", EstadoIA.DETENIDO),
+        # «Stop» es TERMINAR el turno, no detenerse. No existe ningun evento
+        # «TaskCompleted»: esto es lo unico que avisa de que ha acabado. Con
+        # DETENIDO —que ademas es el estado de reposo— terminar equivalia a
+        # apagar la barra y el verde no se encendia jamas.
+        EventoEnganche("Stop", "Stop", EstadoIA.TAREA_COMPLETADA),
         EventoEnganche("SessionEnd", "SessionEnd", EstadoIA.SESION_FINALIZADA),
     )
 

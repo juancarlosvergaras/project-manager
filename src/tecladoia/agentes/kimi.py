@@ -37,7 +37,11 @@ class AgenteKimi(AgenteIA):
         EventoEnganche("KimiPreToolUse", "PreToolUse", EstadoIA.HERRAMIENTA_EN_CURSO, 20, permiso=True),
         EventoEnganche("KimiPostToolUse", "PostToolUse", EstadoIA.HERRAMIENTA_TERMINADA),
         EventoEnganche("KimiNotification", "Notification", EstadoIA.NOTIFICACION),
-        EventoEnganche("KimiStop", "Stop", EstadoIA.DETENIDO),
+        # «Stop» es TERMINAR el turno, no detenerse. No existe ningun evento
+        # «TaskCompleted»: esto es lo unico que avisa de que ha acabado. Con
+        # DETENIDO —que ademas es el estado de reposo— terminar equivalia a
+        # apagar la barra y el verde no se encendia jamas.
+        EventoEnganche("KimiStop", "Stop", EstadoIA.TAREA_COMPLETADA),
         EventoEnganche("KimiSessionEnd", "SessionEnd", EstadoIA.SESION_FINALIZADA),
     )
 

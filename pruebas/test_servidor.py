@@ -261,21 +261,37 @@ class PruebaBarraEnReposo(PruebaAislada):
                 await servidor.detener()
         asyncio.run(caso())
 
-    def test_el_cierre_de_sesion_libera_la_barra(self):
+    def test_al_terminar_se_ve_el_verde_y_luego_reposo(self):
+        """Terminar el turno enciende el verde, y luego la barra se apaga sola.
+
+        Antes esta prueba exigia lo contrario —que «Stop» dejara la barra en
+        reposo de inmediato— y por eso el fallo pasaba desapercibido: el verde
+        de «he terminado» no se encendia nunca, que es justo lo que mas se
+        quiere ver. «Stop» es terminar, no detenerse.
+        """
         async def caso():
-            servidor, gestor, simulado = self.montar()
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=40)
             await gestor.conectar()
             await servidor.procesar(
                 json.dumps({"orden": "evento", "agente": "codex", "evento": "CodexPreToolUse"})
             )
             await asyncio.sleep(0.02)
             self.assertEqual(servidor.agente_activo, "codex")
+
             await servidor.procesar(
                 json.dumps({"orden": "evento", "agente": "codex", "evento": "CodexStop"})
             )
             await asyncio.sleep(0.02)
-            self.assertIsNone(servidor.agente_activo)
+            self.assertEqual(
+                simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA),
+                "al terminar tiene que verse el verde",
+            )
+
+            # Y pasado el momento, a reposo: si no, se queda verde para siempre
+            # contando una tarea que acabo hace rato.
+            await asyncio.sleep(0.12)
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
+            self.assertIsNone(servidor.agente_activo)
         asyncio.run(caso())
 
     def test_el_ultimo_agente_en_hablar_se_queda_con_la_barra(self):
@@ -346,3 +362,38 @@ class PruebaModosIndependientes(PruebaAislada):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaStopEsTerminar(PruebaAislada):
+    """«Stop» es terminar el turno, no detenerse. La diferencia lo es todo.
+
+    No existe ningun evento «TaskCompleted» en Claude Code: lo que dispara al
+    acabar su turno es «Stop». Mapearlo a DETENIDO —que ademas es el estado de
+    reposo— hace que terminar una tarea equivalga a apagar la barra, y el verde
+    de «he terminado» no se enciende jamas.
+
+    Esta escrito en el manual desde hace tiempo y aun asi volvio a colarse, asi
+    que ahora lo sujeta una prueba.
+    """
+
+    def test_stop_es_tarea_completada(self):
+        from tecladoia.modelo import EstadoIA
+        from tecladoia.servidor import _ESTADOS_HEREDADOS
+
+        self.assertIs(_ESTADOS_HEREDADOS["Stop"], EstadoIA.TAREA_COMPLETADA)
+
+    def test_stop_no_puede_ser_el_reposo(self):
+        """La forma en que fallaba: el fin de turno apagaba la barra."""
+        from tecladoia.servidor import ESTADO_EN_REPOSO, _ESTADOS_HEREDADOS
+
+        self.assertIsNot(
+            _ESTADOS_HEREDADOS["Stop"], ESTADO_EN_REPOSO,
+            "terminar el turno no puede significar apagar la barra",
+        )
+
+    def test_el_verde_es_pasajero_no_permanente(self):
+        """Verde un momento y a reposo: si no, se queda verde para siempre."""
+        from tecladoia.modelo import EstadoIA
+        from tecladoia.servidor import ESTADOS_BREVES
+
+        self.assertIn(EstadoIA.TAREA_COMPLETADA, ESTADOS_BREVES)

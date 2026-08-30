@@ -63,7 +63,15 @@ _ESTADOS_HEREDADOS = {
     "PostToolUse": EstadoIA.HERRAMIENTA_TERMINADA,
     "Notification": EstadoIA.NOTIFICACION,
     "TaskCompleted": EstadoIA.TAREA_COMPLETADA,
-    "Stop": EstadoIA.DETENIDO,
+    # «Stop» es TERMINAR, no detenerse, y la diferencia lo es todo.
+    #
+    # No existe ningun evento «TaskCompleted» en Claude Code: lo que dispara al
+    # acabar su turno es «Stop». Mapearlo a DETENIDO —que ademas es el estado
+    # de reposo— hacia que terminar una tarea equivaliera a apagar la barra: el
+    # verde de «he terminado» no se encendia jamas. Esta escrito en el manual
+    # desde hace tiempo y aun asi volvio a colarse, de ahi la prueba que lo
+    # sujeta en pruebas/test_servidor.py.
+    "Stop": EstadoIA.TAREA_COMPLETADA,
     "UserPromptSubmit": EstadoIA.PETICION_ENVIADA,
     "PermissionRequest": EstadoIA.ESPERANDO_APROBACION,
 }
