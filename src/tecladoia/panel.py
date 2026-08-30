@@ -768,6 +768,7 @@ if (location.search.includes("clave=")) {
         "aprobacion_remota", "espera_aprobacion_s", "seguir_aplicacion",
         "segundos_reposo", "efecto_reposo",
         "manos_libres", "pitidos_manos_libres", "manos_libres_espera_s",
+        "milisegundos_estado_breve", "milisegundos_tarea_completada",
     )
 
     def _ajustes_json(self) -> dict[str, Any]:

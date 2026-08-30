@@ -270,7 +270,9 @@ class PruebaBarraEnReposo(PruebaAislada):
         quiere ver. «Stop» es terminar, no detenerse.
         """
         async def caso():
-            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=40)
+            servidor, gestor, simulado = self.montar(
+                milisegundos_estado_breve=40, milisegundos_tarea_completada=40
+            )
             await gestor.conectar()
             await servidor.procesar(
                 json.dumps({"orden": "evento", "agente": "codex", "evento": "CodexPreToolUse"})
@@ -292,6 +294,37 @@ class PruebaBarraEnReposo(PruebaAislada):
             await asyncio.sleep(0.12)
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
             self.assertIsNone(servidor.agente_activo)
+        asyncio.run(caso())
+
+    def test_el_verde_dura_mas_que_los_demas_momentos(self):
+        """El verde del final se mira; «herramienta terminada» solo pasa.
+
+        Alargarlos todos por igual dejaria la barra siempre por detras, porque
+        «herramienta terminada» salta cien veces por turno y el verde una.
+        """
+        a = Ajustes()
+        self.assertGreater(
+            a.milisegundos_tarea_completada, a.milisegundos_estado_breve,
+            "el verde del final tiene que durar mas que un momento cualquiera",
+        )
+
+    def test_el_verde_se_apaga_cuando_toca(self):
+        """Dura mas, pero no para siempre: sigue siendo un momento pasajero."""
+        async def caso():
+            servidor, gestor, simulado = self.montar(
+                milisegundos_estado_breve=1000, milisegundos_tarea_completada=60
+            )
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "claude", "evento": "Stop"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA))
+            await asyncio.sleep(0.15)
+            self.assertEqual(
+                simulado.ultimo_estado, int(EstadoIA.DETENIDO),
+                "se uso el plazo de los otros momentos en vez del suyo",
+            )
         asyncio.run(caso())
 
     def test_el_ultimo_agente_en_hablar_se_queda_con_la_barra(self):

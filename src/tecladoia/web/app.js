@@ -998,6 +998,8 @@ const ETIQUETAS_AJUSTES = {
   manos_libres:"Manos libres · abrir el micrófono cuando la IA termine",
   pitidos_manos_libres:"Avisar con dos pitidos al abrirse el micrófono",
   manos_libres_espera_s:"Espera antes de abrir el micrófono (s)",
+  milisegundos_estado_breve:"Cuánto dura un momento pasajero (ms)",
+  milisegundos_tarea_completada:"Cuánto dura el verde de tarea completada (ms)",
 };
 const OPCIONES_FIJAS = {
   modo_aprobacion:["palanca","siempre_preguntar","siempre_permitir"],

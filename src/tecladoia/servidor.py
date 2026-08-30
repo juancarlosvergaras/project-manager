@@ -417,8 +417,16 @@ class ServidorEnganches:
         if evento.estado in ESTADOS_TRANQUILOS:
             self.agente_activo = None
         elif evento.estado in ESTADOS_BREVES:
+            # El verde del final dura mas que los demas momentos pasajeros: es
+            # el que de verdad quieres tener tiempo de ver, y ademas ocurre una
+            # vez por turno, no cien veces como «herramienta terminada».
+            milisegundos = (
+                getattr(self.ajustes, "milisegundos_tarea_completada", None)
+                if evento.estado is EstadoIA.TAREA_COMPLETADA
+                else None
+            ) or self.ajustes.milisegundos_estado_breve
             self._reposo = asyncio.create_task(
-                self._volver_al_reposo(self.ajustes.milisegundos_estado_breve / 1000)
+                self._volver_al_reposo(milisegundos / 1000)
             )
 
     def _anotar_actividad(self, agente_id: str, estado: EstadoIA) -> None:

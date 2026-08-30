@@ -221,6 +221,13 @@ class Ajustes:
     #:
     #: Se guarda a propósito. En memoria se perdía en cada reinicio y volvías a
     #: quedarte sin palanca justo cuando no tienes otra.
+    #: Cuánto se queda el verde de «tarea completada» antes de volver al
+    #: reposo. Tiene medida propia, aparte del resto de momentos pasajeros:
+    #: «herramienta terminada» salta constantemente mientras el agente trabaja
+    #: y alargarlo dejaría la barra siempre por detrás, mientras que el verde
+    #: del final es justo el que quieres tener tiempo de ver.
+    milisegundos_tarea_completada: int = 5000
+
     palanca_fija: Optional[int] = None
 
     manos_libres: bool = False
