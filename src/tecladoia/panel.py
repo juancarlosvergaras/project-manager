@@ -660,7 +660,14 @@ if (location.search.includes("clave=")) {
 
         if ruta == "/api/palanca":
             valor = datos.get("valor")
-            self.gestor.palanca_forzada = None if valor is None else int(valor)
+            valor = None if valor is None else int(valor)
+            if valor is not None and valor not in (0, 1):
+                raise ValueError("La palanca solo tiene dos posiciones: 0 y 1.")
+            self.gestor.palanca_forzada = valor
+            # Se guarda, no solo se aplica: si se perdiera al reiniciar, quien
+            # tiene la palanca rota se quedaría sin ella en cada arranque.
+            self.ajustes.palanca_fija = valor
+            self.ajustes.guardar()
             self.servidor.bus.publicar("estado", self.gestor.resumen())
             return self._panorama()
         if ruta == "/api/modo-aprobacion":

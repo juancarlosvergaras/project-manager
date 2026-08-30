@@ -503,3 +503,6 @@ body.sin-lectura .modo.activo { box-shadow: none; }
 /* Un boton sin destino: se ve que existe pero que ahora no lleva a ninguna
    parte. Mejor que esconderlo, porque asi se entiende que falta un paso. */
 .btn.desactivado { opacity: .5; cursor: not-allowed; pointer-events: none; }
+
+/* Los tres botones de la palanca, en fila y con hueco para respirar. */
+.opciones-palanca { display: flex; gap: .5rem; flex-wrap: wrap; margin: .6rem 0; }

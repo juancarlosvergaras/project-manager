@@ -211,6 +211,18 @@ class Ajustes:
     #: Con la palanca arriba —que envía al cerrar— eso cierra el círculo:
     #: hablas, trabaja, termina, y vuelve a escucharte sin que toques nada.
     #: Viene apagado; se enciende desde Ajustes.
+    #: Posición fija de la palanca: 0 arriba, 1 abajo, ``None`` para hacer caso
+    #: a la física.
+    #:
+    #: Existe porque una palanca se puede romper, y la del teclado se rompió.
+    #: Sin esto, un interruptor averiado deja el sistema preguntando por todo
+    #: para siempre —que es el comportamiento correcto cuando no se sabe, pero
+    #: no cuando sí se sabe y no hay forma de decirlo—.
+    #:
+    #: Se guarda a propósito. En memoria se perdía en cada reinicio y volvías a
+    #: quedarte sin palanca justo cuando no tienes otra.
+    palanca_fija: Optional[int] = None
+
     manos_libres: bool = False
     #: Lo que se espera desde que el agente termina hasta abrir el micrófono.
     #: Sin esta pausa el dictado se abre encima de lo último que escribe y no

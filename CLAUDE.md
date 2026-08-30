@@ -294,6 +294,17 @@ Cowork), `~/.codex/hooks.json` y compañía.
 4. **Si la palanca no se puede leer, nunca se aprueba solo.** No saber equivale a
    preguntar. Esta regla no se toca.
 
+**La palanca física de este teclado se rompió** (agosto de 2026), así que se
+fija desde la pestaña Palanca del panel. Se guarda en `palanca_fija` (0 arriba,
+1 abajo, `null` para hacer caso al teclado) y **se aplica al arrancar**: en
+memoria se perdía en cada reinicio, que es justo cuando más duele si no tienes
+otra forma de moverla.
+
+Que se pueda fijar a distancia no contradice el punto 4, lo complementa: la
+regla dice que no se apruebe solo cuando **no se sabe**, y aquí sí se sabe —lo
+has dicho tú—. Lo que no cambia es que `denegar` y `preguntar` siguen ganando
+siempre, con la palanca donde sea.
+
 ---
 
 ## Trampas que ya costaron tiempo
@@ -340,4 +351,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-173, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+180, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.

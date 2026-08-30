@@ -160,6 +160,13 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
             f"puesta, {len(ajustes.clave_panel)} caracteres acabados en …"
             f"{ajustes.clave_panel[-2:]}" if ajustes.clave_panel else "sin clave",
         )
+        # Palanca fijada a mano, si la hay. Va antes de que nada pueda
+        # preguntar por ella.
+        fija = getattr(ajustes, "palanca_fija", None)
+        if fija is not None:
+            gestor.palanca_forzada = int(fija)
+            salida.dato("Palanca", f"fijada {'arriba' if fija == 0 else 'abajo'} (virtual)")
+
         salida.titulo("Servicio en marcha")
         if servidor.ruta_socket:
             salida.dato("Socket", servidor.ruta_socket)

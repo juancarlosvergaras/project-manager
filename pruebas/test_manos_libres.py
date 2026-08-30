@@ -152,5 +152,44 @@ class PruebaAjustesEnLaWeb(PruebaAislada):
                 self.assertIn(campo, PanelWeb._CAMPOS_AJUSTES)
 
 
+class PruebaPalancaFija(PruebaAislada):
+    """Una palanca se puede romper, y la del teclado se rompió.
+
+    Sin poder fijarla, un interruptor averiado deja el sistema preguntando por
+    todo para siempre. Eso es lo correcto cuando no se sabe, pero no cuando sí
+    se sabe y no hay forma de decirlo.
+    """
+
+    def test_de_fabrica_manda_el_teclado(self):
+        self.assertIsNone(Ajustes().palanca_fija, "no puede venir fijada de casa")
+
+    def test_se_recuerda_al_reiniciar(self):
+        """En memoria se perdía en cada arranque, que es cuando más duele."""
+        a = Ajustes()
+        a.palanca_fija = 0
+        a.guardar()
+        self.assertEqual(Ajustes.cargar().palanca_fija, 0)
+
+    def test_se_puede_devolver_al_teclado(self):
+        a = Ajustes()
+        a.palanca_fija = 1
+        a.guardar()
+        b = Ajustes.cargar()
+        b.palanca_fija = None
+        b.guardar()
+        self.assertIsNone(Ajustes.cargar().palanca_fija)
+
+    def test_la_fija_manda_sobre_la_lectura(self):
+        """Con la palanca rota, lo que diga el teclado no vale."""
+        from tecladoia.dispositivo import GestorTeclado
+
+        from pruebas.test_conexion import TransporteDeMentira
+
+        g = GestorTeclado(Ajustes(), TransporteDeMentira())
+        g.palanca_forzada = 0
+        self.assertEqual(g.resumen()["palanca"], 0)
+        self.assertTrue(g.resumen()["palanca_forzada"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -476,20 +476,55 @@ function editorPalanca() {
         <span class="posicion-que">Cada acción del agente vuelve a tus manos.</span>
       </div>
     </div>
-    ${sinLectura ? `<p class="nota atencion">No se puede leer la palanca. Mientras
-       tanto no se aprueba nada solo: no saber equivale a preguntar.</p>` : ""}
+    ${sinLectura && !e.palanca_forzada ? `<p class="nota atencion">No se puede leer la
+       palanca. Mientras tanto no se aprueba nada solo: no saber equivale a
+       preguntar.</p>` : ""}
     <p class="nota">La palanca no escribe nada en el ordenador. Cambia dos cosas:
        si lo dictado se manda solo, y qué hace el servicio con las peticiones de
        permiso de los agentes.</p>
-    <p class="nota">Se mueve con la mano, en el teclado. Desde aquí solo se mira,
-       a propósito: un interruptor que se pueda cambiar a distancia deja de ser
-       un interruptor.</p>
+  </div>
+
+  <div class="bloque">
+    <p class="bloque-titulo">Fijarla desde aquí</p>
+    <p class="nota">Lo normal es moverla con la mano y que esto solo la mire: un
+       interruptor que se cambia a distancia deja de ser un interruptor. Pero una
+       palanca se puede romper, y entonces el teclado no dice nada — y como no
+       saber equivale a preguntar, te quedarías aprobando todo a mano para
+       siempre. Para eso está esto.</p>
+    <div class="opciones-palanca">
+      <button type="button" class="btn ${!e.palanca_forzada ? "btn-azul" : "btn-claro"}"
+              data-fijar-palanca="">Hacer caso al teclado</button>
+      <button type="button" class="btn ${e.palanca_forzada && e.palanca === 0 ? "btn-azul" : "btn-claro"}"
+              data-fijar-palanca="0">Fijar arriba</button>
+      <button type="button" class="btn ${e.palanca_forzada && e.palanca === 1 ? "btn-azul" : "btn-claro"}"
+              data-fijar-palanca="1">Fijar abajo</button>
+    </div>
+    ${e.palanca_forzada ? `<p class="nota atencion">Fijada <b>${arriba ? "arriba" : "abajo"}</b>
+       desde aquí. El teclado ya no manda sobre esto, y se recuerda al reiniciar.</p>` : ""}
+    <p class="nota">Ojo: fijarla arriba es decirle al servicio que apruebe solo.
+       Las reglas de <b>denegar</b> y <b>preguntar</b> siguen ganando siempre —ahí
+       viven <code>rm -rf</code> y compañía—, pero todo lo demás pasa sin
+       consultarte.</p>
   </div>`;
 }
 
 /* ---- conexiones del editor ---- */
 function conectarEditor() {
   const s = estado.seleccion;
+
+  // Fijar la palanca a mano. Existe porque una palanca se puede romper.
+  $$("[data-fijar-palanca]").forEach((boton) => {
+    boton.addEventListener("click", async () => {
+      const crudo = boton.dataset.fijarPalanca;
+      const valor = crudo === "" ? null : Number(crudo);
+      const r = await pedir("/api/palanca", { valor });
+      if (r && r.estado) pintarEstado(r);
+      pintarEditor();
+      avisar(valor === null
+        ? "La palanca vuelve a mandarla el teclado."
+        : `Palanca fijada ${valor === 0 ? "arriba" : "abajo"}.`, "bien");
+    });
+  });
 
   if (s.pieza === "tecla") {
     const tipo = $("#ed-tipo");
