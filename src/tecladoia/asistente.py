@@ -91,11 +91,20 @@ def registrar_tarea(host: str = "") -> tuple[bool, str]:
         "$d = New-ScheduledTaskTrigger -AtLogOn -User "
         "($env:USERDOMAIN + '\\' + $env:USERNAME);"
         "$d.Delay = 'PT20S';"
+        # Segundo disparador: cada diez minutos, para siempre. No sustituye al
+        # de inicio de sesion, lo respalda. Un disparador de sesion se puede
+        # perder —arranques rapidos, sesiones que se restauran en vez de
+        # abrirse— y entonces te encuentras el panel caido sin saber por que.
+        #
+        # Repetir es inofensivo porque el servicio se niega a arrancar si ya
+        # hay otro vivo. Sin esa comprobacion esto crearia copias sin parar.
+        "$r = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) "
+        "-RepetitionInterval (New-TimeSpan -Minutes 10);"
         "$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries "
         "-DontStopIfGoingOnBatteries -StartWhenAvailable "
         "-ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 "
         "-RestartInterval ([TimeSpan]::FromMinutes(1));"
-        f"Register-ScheduledTask -TaskName '{TAREA}' -Action $a -Trigger $d "
+        f"Register-ScheduledTask -TaskName '{TAREA}' -Action $a -Trigger @($d, $r) "
         "-Settings $s -Force | Out-Null"
     )
     try:
@@ -108,7 +117,10 @@ def registrar_tarea(host: str = "") -> tuple[bool, str]:
     if hecho.returncode != 0:
         return False, (hecho.stderr or "").strip().splitlines()[:1] and \
             (hecho.stderr or "").strip().splitlines()[0] or "no se pudo registrar"
-    return True, f"arrancará al iniciar sesión (tarea «{TAREA}»)"
+    return True, (
+        f"arrancará al iniciar sesión y se revisa cada diez minutos "
+        f"(tarea «{TAREA}»)"
+    )
 
 
 def ejecutar(preguntar=input, escribir=print) -> int:

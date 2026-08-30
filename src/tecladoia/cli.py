@@ -109,8 +109,35 @@ def _palanca_legible(valor: Optional[int]) -> str:
 
 # --- órdenes ------------------------------------------------------------------
 
+def hay_otro_servicio(ajustes: Ajustes) -> Optional[dict[str, Any]]:
+    """¿Hay ya un TecladoIA en marcha en este equipo?
+
+    Se le pregunta a él, que es la unica forma honesta de saberlo: mirar si el
+    puerto esta ocupado no distingue entre otro TecladoIA y cualquier otro
+    programa que lo tenga cogido.
+    """
+    return _preguntar_al_servicio({"accion": "estado"}, ajustes)
+
+
 def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
     """Arranca el servicio: teclado, servidor de enganches y panel web."""
+
+    # Uno y solo uno. Si ya hay otro vivo, este se retira en vez de arrancar en
+    # el puerto siguiente.
+    #
+    # La caida a otro puerto existe para convivir con programas ajenos, pero
+    # con otro TecladoIA es justo lo que no se quiere: dos servicios se pelean
+    # por el teclado, el segundo no consigue la tecla del microfono, y el panel
+    # que abres no es el que manda. Ha pasado varias veces y siempre costo un
+    # rato entenderlo, porque desde fuera parece que la aplicacion falla.
+    if not getattr(args, "aunque_haya_otro", False):
+        otro = hay_otro_servicio(ajustes)
+        if otro is not None:
+            salida.mal("Ya hay un TecladoIA en marcha en este equipo.")
+            salida.linea("  Este no arranca para no pelearse con el por el teclado.")
+            salida.linea("  Para reemplazarlo:  schtasks /End /TN TecladoIA")
+            salida.linea("  Y si de verdad quieres dos:  --aunque-haya-otro")
+            return 3
 
     if args.host:
         ajustes.host_panel = args.host
@@ -822,6 +849,12 @@ def construir_analizador() -> argparse.ArgumentParser:
         help="interfaz del panel; fuera de 127.0.0.1 exige clave (p. ej. 0.0.0.0)",
     )
     servicio.add_argument("--puerto-panel", type=int, default=None, dest="puerto_panel")
+    servicio.add_argument(
+        "--aunque-haya-otro",
+        action="store_true",
+        dest="aunque_haya_otro",
+        help="arranca aunque ya haya otro servicio vivo (no suele quererse)",
+    )
     servicio.set_defaults(funcion=orden_servicio)
 
     estado = ordenes.add_parser("estado", help="muestra el estado del teclado")
