@@ -147,6 +147,27 @@ schtasks /Run /TN TecladoIA     # arrancar ahora
 schtasks /End /TN TecladoIA     # parar
 ```
 
+Dos disparadores, y los dos hacen falta: **al iniciar sesión** y **cada diez
+minutos**. El de sesión se pierde a veces —arranques rápidos, sesiones que se
+restauran en vez de abrirse— y te encuentras el panel caído sin saber por qué.
+Repetir es inofensivo porque **el servicio se niega a arrancar si ya hay otro
+vivo** (se le pregunta al que hubiera; mirar si el puerto está ocupado no
+distingue entre otro TecladoIA y cualquier otro programa). Sin esa
+comprobación, el disparador repetido crearía copias sin parar — y dos copias se
+pelean por el teclado, la segunda no consigue la tecla del micrófono, y el
+panel que abres no es el que manda.
+
+**Arranca con `pythonw.exe`, sin consola.** El servicio se moría con un `^C` en
+el registro cada pocas horas: vivía en una ventana de consola minimizada y algo
+—o alguien— le mandaba una interrupción. Sin consola no hay a quién
+interrumpir. La salida sigue yendo al registro porque la redirección la hace
+`cmd`, no la consola.
+
+**Y ojo con las comillas del comando de la tarea**: van tal cual, sin barras.
+`cmd` no entiende `\"` como comilla escapada, y con ellas el comando entero
+queda inválido. La tarea disparaba puntual y no arrancaba nada, que desde fuera
+es indistinguible de un disparador averiado.
+
 **El servicio no debe depender de una sesión de Claude abierta.** Y ojo con
 esto, que costó una tarde: **la aplicación de Claude está empaquetada, así que
 Windows le redirige `AppData` a su propia carpeta**
@@ -338,6 +359,26 @@ siempre, con la palanca donde sea.
 - **Servidor**: `ssh juancarlosvergaraschmalbach@macmini`, manual en
   `~/Servidor/CLAUDE.md`. `ahakey.proyectoia.org` apunta al PC por Tailscale
   (`rutas.conf`, cuarto campo). `teclado.proyectoia.org` es la portada estática.
+
+## El portero del Mac mini
+
+`ahakey.proyectoia.org` **no lleva directamente a este PC**: pasa antes por un
+portero en el Mac mini (`~/Servidor/apps/ahakey/portero.py`, puerto 8024, con
+launchd `com.jcvs.ahakey-portero`). Si el PC contesta, se aparta y deja pasar
+todo tal cual; si no, sirve una página que explica que el ordenador del teclado
+está apagado, en vez del «Bad gateway» de Cloudflare, que parece un servidor
+roto.
+
+Es un proxy de nivel TCP a propósito: no interpreta HTTP, solo empalma los dos
+extremos, así que las descargas grandes y el canal de sucesos en vivo funcionan
+sin tratarlos aparte.
+
+En `rutas.conf` la línea es `ahakey 8024 publico` —sin cuarto campo, porque
+ahora el destino es el propio Mac mini—. La copia previa está en
+`rutas.conf.antes-del-portero`.
+
+Esto hace que la **página** responda siempre; el **teclado** sigue necesitando
+el PC encendido. El Bluetooth no viaja por Internet.
 
 ## Semáforo en otro aparato
 

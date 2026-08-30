@@ -46,7 +46,17 @@ def orden_de_arranque() -> str:
     """
     if _somos_un_exe():
         return f'"{Path(sys.executable).resolve()}"'
-    return f'"{Path(sys.executable).resolve()}" -m tecladoia'
+    # Se prefiere pythonw.exe, que es el mismo Python sin consola. El servicio
+    # se moria con un «^C» en el registro cada pocas horas: algo le mandaba una
+    # interrupcion a la ventana de consola donde vivia, ahi minimizada
+    # esperando a que alguien la cerrara sin querer. Sin consola no hay a quien
+    # interrumpir. La salida sigue yendo al registro, porque la redireccion la
+    # hace `cmd` y no la consola.
+    interprete = Path(sys.executable).resolve()
+    sin_consola = interprete.with_name("pythonw.exe")
+    if os.name == "nt" and sin_consola.is_file():
+        interprete = sin_consola
+    return f'"{interprete}" -m tecladoia'
 
 
 def hay_teclado_emparejado() -> bool:
