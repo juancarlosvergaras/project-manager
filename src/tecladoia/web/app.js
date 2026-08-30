@@ -135,10 +135,22 @@ function pintarEstado(panorama) {
   if (!conectado) {
     banda.hidden = false;
     banda.className = "banda atencion";
-    banda.innerHTML = `<b>Todavía no hay teclado.</b> Enciéndelo y acércalo; el servicio lo
-      conecta solo en cuanto aparezca. Si tienes abierta la aplicación oficial de AhaKey,
-      ciérrala: solo un programa puede hablar con el teclado a la vez.
-      Mientras tanto la palanca no se puede leer, así que nada se aprueba solo.`;
+    // Si sabemos por qué no entra, se dice. Repetir «enciéndelo y acércalo»
+    // con el teclado encendido delante no ayuda a nadie: manda a hacer algo
+    // que ya está hecho y deja a la persona mirando el aparato sin más pistas.
+    const motivo = (e.motivo_sin_teclado || "").trim();
+    const dormido = /dormid/i.test(motivo);
+    banda.innerHTML = dormido
+      ? `<b>El teclado está dormido.</b> Responde, pero su parte de
+         configuración no despierta hasta que se le toca:
+         <b>pulsa cualquiera de sus teclas</b> y el servicio entra solo en unos
+         segundos. Mientras tanto la palanca no se puede leer, así que nada se
+         aprueba solo.`
+      : `<b>Todavía no hay teclado.</b> Enciéndelo y acércalo; el servicio lo
+         conecta solo en cuanto aparezca. Si tienes abierta la aplicación oficial de AhaKey,
+         ciérrala: solo un programa puede hablar con el teclado a la vez.
+         Mientras tanto la palanca no se puede leer, así que nada se aprueba solo.
+         ${motivo ? `<br><span class="nota">Lo último que dijo Windows: ${esc(motivo)}</span>` : ""}`;
   } else if (simulado) {
     banda.hidden = false;
     banda.className = "banda";

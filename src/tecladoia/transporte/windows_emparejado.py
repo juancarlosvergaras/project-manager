@@ -216,7 +216,15 @@ class TransporteWindowsEmparejado(Transporte):
         comando = por_uuid.get(protocolo.CARACTERISTICA_COMANDO)
         notifica = por_uuid.get(protocolo.CARACTERISTICA_NOTIFICA)
         if comando is None or notifica is None:
-            raise ErrorTransporte("le faltan las características del protocolo")
+            # Windows lo ve y contesta, pero no enseña los canales de
+            # configuración. Es el teclado dormido: sigue emparejado y
+            # encendido —por eso la barra sigue con su último color— pero su
+            # parte de configuración no despierta hasta que se le toca.
+            # Decirlo asi importa: el mensaje generico manda a encender un
+            # teclado que ya esta encendido, y uno se queda mirandolo.
+            raise ErrorTransporte(
+                "está dormido: pulsa cualquiera de sus teclas para despertarlo"
+            )
 
         estado = await notifica.write_client_characteristic_configuration_descriptor_async(
             Aviso.NOTIFY

@@ -76,6 +76,8 @@ class GestorTeclado:
         #: Se ha perdido una escritura desde la última lectura buena. Es la
         #: forma más fiable de enterarse de que el teclado se fue y volvió.
         self._hubo_corte: bool = False
+        #: Por qué falló el último intento de conexión. Para el panel.
+        self.ultimo_motivo: str = ""
         self._esperas: list[asyncio.Future] = []
         self._candado = asyncio.Lock()
         self._observadores: list[Callable[[protocolo.EstadoDispositivo], None]] = []
@@ -335,6 +337,10 @@ class GestorTeclado:
                     _log.info("Teclado recuperado")
                     quejas = 0
                 elif resultado is not None:
+                    # Se guarda para que el panel pueda decir por que no entra.
+                    # Sin esto la web repite «enciendelo y acercalo» aunque el
+                    # teclado este encendido delante, que no ayuda a nadie.
+                    self.ultimo_motivo = str(resultado)
                     quejas += 1
                     if quejas == 1 or quejas % CADA_CUANTOS_AVISAR == 0:
                         _log.info(
@@ -659,6 +665,7 @@ class GestorTeclado:
                 estado.palanca if estado else None
             ),
             "palanca_forzada": self.palanca_forzada is not None,
+            "motivo_sin_teclado": "" if self.conectado else self.ultimo_motivo,
             "cache_vigente": self.cache_vigente,
             "subida": self.subida,
             "estado_ia": int(self.estado_ia) if self.estado_ia is not None else None,
