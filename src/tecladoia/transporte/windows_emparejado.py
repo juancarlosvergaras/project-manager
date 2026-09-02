@@ -60,6 +60,22 @@ def hay_winrt() -> bool:
     return True
 
 
+def _cerrar(objeto: Any) -> None:
+    """Cierra un objeto de WinRT sin hacer ruido si ya no está.
+
+    Los objetos GATT de Windows toman el acceso en exclusiva mientras viven, y
+    abandonarlos sin cerrar deja al propio proceso incapaz de volver a abrir el
+    aparato. No se puede confiar en que el recolector de basura lo haga a
+    tiempo, porque «a tiempo» aquí significa antes del siguiente intento.
+    """
+    if objeto is None:
+        return
+    try:
+        objeto.close()
+    except Exception:  # noqa: BLE001 - si ya estaba cerrado, mejor
+        pass
+
+
 class TransporteWindowsEmparejado(Transporte):
     """Habla con el teclado que Windows ya tiene emparejado."""
 
@@ -82,6 +98,11 @@ class TransporteWindowsEmparejado(Transporte):
         self._fallos: int = 0
         #: Identificador del emparejamiento que funcionó la última vez.
         self._ultimo_bueno: str = ""
+        #: El servicio GATT abierto. Se guarda para poder cerrarlo: mientras
+        #: viva, tiene el teclado tomado en exclusiva.
+        self._servicio: Any = None
+        #: Aparato de un intento en curso, para cerrarlo si el intento falla.
+        self._a_medias: Any = None
 
     # --- estado -----------------------------------------------------------
     @property
@@ -194,6 +215,30 @@ class TransporteWindowsEmparejado(Transporte):
         raise ErrorTransporte("No se pudo abrir el teclado. " + " · ".join(motivos))
 
     async def _abrir(self, identificador: str, nombre: str) -> None:
+        """Abre el teclado, y si no puede **no deja nada abierto detrás**.
+
+        Esto ultimo es la mitad del trabajo. Cada objeto GATT de Windows toma
+        el acceso en exclusiva mientras vive, asi que un intento fallido que
+        abandona el aparato sin cerrarlo deja un candado puesto. Reintentando
+        cada quince segundos, los candados se acumulan hasta que ni un proceso
+        recien arrancado consigue entrar, y Windows lo cuenta como un servicio
+        sin caracteristicas —que desde fuera parece un teclado dormido—.
+
+        Ese era el fallo que obligaba a reiniciar el servicio para recuperar el
+        teclado, y el que hacia que el sintoma empeorase solo con el tiempo.
+        """
+        try:
+            await self._intentar_abrir(identificador, nombre)
+        except BaseException:
+            # Lo abierto a medias se cierra aqui, pase lo que pase.
+            _cerrar(self._servicio)
+            self._servicio = None
+            if self._dispositivo is None:
+                _cerrar(getattr(self, "_a_medias", None))
+            self._a_medias = None
+            raise
+
+    async def _intentar_abrir(self, identificador: str, nombre: str) -> None:
         from winrt.windows.devices.bluetooth import BluetoothCacheMode, BluetoothLEDevice
         from winrt.windows.devices.bluetooth.genericattributeprofile import (
             GattClientCharacteristicConfigurationDescriptorValue as Aviso,
@@ -202,12 +247,29 @@ class TransporteWindowsEmparejado(Transporte):
         dispositivo = await BluetoothLEDevice.from_id_async(identificador)
         if dispositivo is None:
             raise ErrorTransporte("Windows no pudo abrirlo")
+        # Se anota mientras el intento esta en el aire, para poder cerrarlo si
+        # algo falla antes de que llegue a ser el aparato bueno.
+        self._a_medias = dispositivo
 
         servicios = await self._servicios(dispositivo, BluetoothCacheMode.UNCACHED)
         servicio = next(
             (s for s in servicios if str(s.uuid).lower() == protocolo.SERVICIO_PRINCIPAL),
             None,
         )
+        # **Los servicios que no se usan se cierran, y esto no es cortesía.**
+        #
+        # Cada `GattDeviceService` que Windows entrega toma el acceso en
+        # exclusiva mientras viva. Si se abandonan sin cerrar, el propio
+        # proceso se queda bloqueado a sí mismo: el siguiente intento de
+        # abrir el teclado recibe «acceso denegado» y Windows lo cuenta como
+        # un servicio sin características, que desde fuera parece un teclado
+        # dormido o averiado.
+        #
+        # Ese era el fallo que hacía imposible reconectar sin reiniciar el
+        # servicio, y despistaba porque desde un proceso limpio todo iba bien.
+        for otro in servicios:
+            if otro is not servicio:
+                _cerrar(otro)
         if servicio is None:
             raise ErrorTransporte("no expone el servicio de configuración")
 
@@ -222,8 +284,9 @@ class TransporteWindowsEmparejado(Transporte):
             # parte de configuración no despierta hasta que se le toca.
             # Decirlo asi importa: el mensaje generico manda a encender un
             # teclado que ya esta encendido, y uno se queda mirandolo.
+            _cerrar(servicio)
             raise ErrorTransporte(
-                "está dormido: pulsa cualquiera de sus teclas para despertarlo"
+                "no expone sus canales de configuración (acceso denegado o dormido)"
             )
 
         estado = await notifica.write_client_characteristic_configuration_descriptor_async(
@@ -233,7 +296,9 @@ class TransporteWindowsEmparejado(Transporte):
             raise ErrorTransporte(f"no aceptó las notificaciones (estado {int(estado)})")
 
         self._testigo = notifica.add_value_changed(self._al_notificar)
+        self._servicio = servicio
         self._dispositivo = dispositivo
+        self._a_medias = None
         self._comando = comando
         self._datos = por_uuid.get(protocolo.CARACTERISTICA_DATOS)
         self._notifica = notifica
@@ -361,11 +426,11 @@ class TransporteWindowsEmparejado(Transporte):
                 self._notifica.remove_value_changed(self._testigo)
             except Exception:  # noqa: BLE001 - ya podía estar suelto
                 pass
-        if self._dispositivo is not None:
-            try:
-                self._dispositivo.close()
-            except Exception:  # noqa: BLE001 - si ya se fue, mejor
-                pass
+        # El servicio antes que el aparato: es el que tiene el acceso en
+        # exclusiva, y dejarlo abierto bloquea al siguiente intento.
+        _cerrar(self._servicio)
+        _cerrar(self._dispositivo)
+        self._servicio = None
         self._testigo = None
         self._notifica = None
         self._comando = None
