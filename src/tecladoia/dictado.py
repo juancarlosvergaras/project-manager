@@ -583,8 +583,31 @@ class Dictado:
 
     def __init__(self) -> None:
         self.abierto = False
+        #: ¿Es la primera apertura desde que arrancó el servicio?
+        #:
+        #: Importa porque **el dictado de Windows sobrevive a nuestros
+        #: reinicios y nuestra memoria no**. Si el servicio se reinicia con el
+        #: panel de dictado abierto, arrancamos creyendo que está cerrado, y la
+        #: primera pulsación manda Win+H —que es un interruptor— y lo cierra en
+        #: vez de abrirlo. De ahí el «la primera vez que lo pulso no se
+        #: activa», que después ya va bien porque las cuentas vuelven a cuadrar.
+        self._primera_vez = True
         self.programa = ""
         self._ultima = 0.0
+
+    def _asegurar_punto_de_partida(self) -> None:
+        """Deja el dictado cerrado la primera vez, para poder abrirlo de veras.
+
+        No se puede preguntar a Windows si su panel está abierto —no es una
+        ventana ni se asoma a la capa de accesibilidad, se buscó y no está—,
+        así que en vez de averiguarlo se impone: Escape cierra el dictado si
+        estaba abierto y no hace nada si no. A partir de ahí, abrir es abrir.
+        """
+        if not self._primera_vez:
+            return
+        self._primera_vez = False
+        cerrar_dictado()
+        time.sleep(0.25)
 
     def abrir_solo(
         self,
@@ -602,6 +625,7 @@ class Dictado:
         if self.abierto:
             return {"accion": "ya estaba", "programa": self.programa}
         self._ultima = time.monotonic()
+        self._asegurar_punto_de_partida()
         hecho = dictar_en(
             programa, lanzar,
             pinchar_el_cuadro=pinchar_el_cuadro,
@@ -644,6 +668,7 @@ class Dictado:
             self.abierto = False
             return {"accion": "cerrado", "programa": self.programa, "enviado": enviado}
 
+        self._asegurar_punto_de_partida()
         hecho = dictar_en(
             programa,
             lanzar,

@@ -193,3 +193,43 @@ class PruebaPalancaFija(PruebaAislada):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PruebaPrimeraPulsacion(PruebaAislada):
+    """La primera pulsacion tras arrancar tiene que abrir, no cerrar.
+
+    El dictado de Windows sobrevive a nuestros reinicios y nuestra memoria no.
+    Si el servicio se reinicia con el panel abierto, arrancabamos creyendolo
+    cerrado y la primera pulsacion mandaba Win+H —que es un interruptor— y lo
+    cerraba. De ahi el «la primera vez que lo pulso no se activa».
+    """
+
+    def _dictado(self):
+        from tecladoia.dictado import Dictado
+
+        d = Dictado()
+        d._cerrados = []
+        d._abiertos = []
+        return d
+
+    def test_arranca_sin_saber_en_que_posicion_esta(self):
+        self.assertTrue(self._dictado()._primera_vez)
+
+    def test_la_primera_vez_se_cierra_antes_de_abrir(self):
+        """Escape primero: cierra si estaba abierto, y si no, no hace nada."""
+        import tecladoia.dictado as dic
+
+        d = self._dictado()
+        cerrados = []
+        previo = dic.cerrar_dictado
+        dic.cerrar_dictado = lambda: cerrados.append(1)
+        try:
+            d._asegurar_punto_de_partida()
+            self.assertEqual(len(cerrados), 1, "no partio de una posicion conocida")
+            # Y solo la primera: despues las cuentas ya cuadran y cerrar de mas
+            # seria cerrarle el microfono a quien esta hablando.
+            d._asegurar_punto_de_partida()
+            d._asegurar_punto_de_partida()
+            self.assertEqual(len(cerrados), 1, "siguio cerrando en cada apertura")
+        finally:
+            dic.cerrar_dictado = previo

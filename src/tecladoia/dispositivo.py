@@ -53,6 +53,11 @@ CADA_CUANTOS_AVISAR = 5
 #: siempre dejaría el teclado inalcanzable para siempre.
 ESPERA_ANTES_DE_INSISTIR_S = 60.0
 
+#: Los primeros intentos van seguidos, que son los que se notan: hasta que el
+#: teclado engancha, la barra y el modo son los que el aparato recordaba.
+INTENTOS_IMPACIENTES = 8
+INTERVALO_IMPACIENTE_S = 2.0
+
 #: Silencio que delata que el teclado se fue y ha vuelto. Se le pregunta cada
 #: dos segundos, así que ocho de silencio no son un sondeo perdido: es que no
 #: estaba. Sirve para volver a dejarlo en el modo que pediste, porque al
@@ -355,7 +360,25 @@ class GestorTeclado:
                         al_cambiar(anterior)
                     except Exception:  # noqa: BLE001
                         _log.exception("Un aviso de conexión falló")
-            await asyncio.sleep(intervalo_s)
+            # Al principio se insiste deprisa, y luego se espacia.
+            #
+            # Los primeros segundos son los que se notan: mientras no hay
+            # teclado, la barra sigue con el color que el aparato recordaba y
+            # el modo es el suyo, no el que pediste. Esperar doce segundos
+            # entre intentos convertia un enganche de tres segundos en uno de
+            # catorce, y en ese hueco el teclado parece que va por libre.
+            #
+            # Pasados los primeros intentos se vuelve al ritmo tranquilo: si
+            # el teclado esta apagado de verdad, insistir cada dos segundos
+            # toda la noche no lo enciende.
+            if self.conectado:
+                quejas = 0
+            impaciente = quejas and quejas <= INTENTOS_IMPACIENTES
+            # Nunca mas lento que el ritmo pedido: «impaciente» es un tope, no
+            # una imposicion. Quien configure un intervalo corto lo mantiene.
+            await asyncio.sleep(
+                min(INTERVALO_IMPACIENTE_S, intervalo_s) if impaciente else intervalo_s
+            )
 
     async def vigilar_estado(self, intervalo_s: Optional[float] = None) -> None:
         """Pregunta al teclado por su estado mientras esté conectado.

@@ -349,6 +349,22 @@ ventana, que funciona en cualquier resolución.
 el clic caía 325 px más arriba. `dictado.py` se declara consciente del DPI por
 monitor al importarse; **no quitar esa llamada**.
 
+**La primera pulsación tras arrancar parte de cero a propósito.** El dictado de
+Windows sobrevive a nuestros reinicios y nuestra memoria no: si el servicio se
+reinicia con el panel abierto, arranca creyéndolo cerrado y esa primera Win+H
+lo cierra en vez de abrirlo. De ahí el «la primera vez que lo pulso no se
+activa», que después ya iba bien porque las cuentas volvían a cuadrar. Se
+resuelve imponiendo la posición en vez de averiguarla: un Escape antes de la
+primera apertura, que cierra si estaba abierto y no hace nada si no.
+
+**Y los primeros intentos de conexión van seguidos** (`INTENTOS_IMPACIENTES`,
+`INTERVALO_IMPACIENTE_S`). Mientras no hay teclado, la barra sigue con el color
+que el aparato recordaba y el modo es el suyo, no el que pediste — y esperar
+doce segundos entre intentos convertía un enganche de tres segundos en uno de
+catorce. En ese hueco parece que el teclado va por libre. Pasados los primeros,
+se vuelve al ritmo tranquilo: si está apagado de verdad, insistir toda la noche
+no lo enciende.
+
 **K1 no manda Win+H a secas, y es a propósito.** El dictado escribe donde esté
 el foco, así que si la ventana no era la correcta lo dictado se va a cualquier
 parte; y Win+H es un interruptor, de modo que si el dictado ya estaba abierto la
