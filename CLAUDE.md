@@ -136,6 +136,62 @@ cancelar. No lances una subida y te olvides.
 
 ---
 
+## MiniMic — el segundo teclado (misma carpeta, paquete `src/minimic`)
+
+Teclado de voz de cinco teclas con micrófono dentro (chip Jieli, «Teclado de
+Entrada de Voz» de AliExpress). Aplicación hermana de TecladoIA: reutiliza
+`tecladoia.dictado`, `cuadro_de_texto`, `sonido` y `sucesos` tal cual, y pone
+debajo su propio teclado. Panel en <http://100.79.52.120:8771> y, por el
+portero del Mac mini (puerto 8025, `com.jcvs.minimic-portero`), en
+<https://minimic.proyectoia.org>. Tarea programada **MiniMic**.
+
+```bash
+python -m minimic servicio --host 100.79.52.120      # arrancar
+python -m minimic estado                              # ¿está? ¿por dónde va el teclado?
+python -m minimic teclas                              # leer el mapa (solo por cable)
+python -m unittest pruebas.test_minimic_protocolo pruebas.test_minimic_servicio
+```
+
+**Dos aparatos USB, uno solo se configura.** Por cable es `514C:8850`, con la
+interfaz de fabricante (página 0xFF00) por la que se leen y escriben las
+teclas. Por el receptor de 2,4 GHz es `4C4A:4155`: teclas y micrófono
+funcionan, configurar no. La aplicación detecta los dos (`dispositivo.presencia`)
+y solo escribe cuando hay cable. Por Bluetooth («MINI_KEYBOARD») no se usa.
+
+**El protocolo es propio y lleva suma de control.** Se sacó con Frida del
+programa del fabricante (`LQ_Keyboard.exe`, en `Windows/`, en chino; con
+`Language=en` en su `Config.ini` sale en inglés). Paquete de 64 bytes
+`03 <orden> <capa> <arg> <len> <carga…>` y **XOR de los bytes 1..62 en el
+byte 63**; sin él contesta `03 07` (rechazo) a todo. El acuse es `03 06` y
+**ni el acuse ni el rechazo llevan longitud**: traen un eco. Está todo en
+`minimic/protocolo.py`, con las capturas reales como pruebas. Los protocolos
+del `ch57x-keyboard-tool` **no valen** aunque el PID coincida: se probaron
+todos antes de encontrar el bueno.
+
+**La tecla blanca manda `Ctrl+Mayús+Alt+F14`**, no F13: el AhaKey ya tiene
+F13 y Windows solo deja reservar cada combinación a un proceso. Al ver el
+teclado por cable, el servicio compara lo grabado con `ajustes.teclas` y
+escribe la diferencia (`servicio.asegurar_teclado`); así la blanca queda con
+esa combinación y el modo del micrófono en «pulsar para empezar y parar».
+`EscuchaDictado` de TecladoIA ganó dos parámetros (`tecla_virtual`, `nombre`)
+para esto; por defecto sigue igual.
+
+**El micrófono del teclado se pone como micrófono del sistema** cuando
+aparece (`adoptar_microfono`), porque el dictado de Windows escucha por el
+predeterminado y sin eso se habla al portátil. Se identifica por el
+**identificador de contenedor**, que Windows da igual al aparato USB (en el
+registro, `Enum\USB\VID…\<serie>\ContainerID`) y a su punto de audio
+(propiedad `{8c7ed206-…},2`, tipo VT_CLSID: `pycaw` no la desempaqueta y se
+lee el puntero a mano en `dispositivo._guid_de`). Cambiarlo usa la interfaz no
+documentada `IPolicyConfig`, la misma que usa el propio panel de sonido.
+
+**Config en `%APPDATA%\MiniMic\config.json`** (`MINIMIC_INICIO` la cambia;
+las pruebas la aíslan). Misma trampa del AppData redirigido que TecladoIA:
+desde una sesión de Claude no se escribe la de verdad. La clave del panel se
+pone desde el propio panel abierto en local, que la guarda el servicio.
+
+---
+
 ## Que arranque con Windows
 
 Hay una tarea programada llamada **TecladoIA** que lo lanza al iniciar sesión,

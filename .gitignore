@@ -7,3 +7,7 @@ dist/
 venv/
 .tecladoia/
 *.respaldo
+
+# Programa del fabricante del MiniMic (descarga del usuario, 30 MB de Qt)
+Windows/
+exploracion_jieli/espia.log

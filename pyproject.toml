@@ -30,12 +30,17 @@ ble = ["bleak>=0.22"]
 # programa en vez de adivinarlo. Sin esto se cae a un clic a ojo, que falla en
 # cuanto el cuadro cambia de sitio.
 cuadro = ["comtypes>=1.2"]
+# MiniMic: el teclado de voz se configura por HID y su micrófono se maneja por COM.
+minimic = ["hidapi>=0.14", "pycaw>=20240210", "comtypes>=1.2"]
 
 [project.scripts]
 tecladoia = "tecladoia.cli:main"
+minimic = "minimic.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# La carpeta web viaja con el paquete: sin ella el panel sale en blanco.
 [tool.setuptools.package-data]
-tecladoia = ["py.typed"]
+tecladoia = ["py.typed", "web/*"]
+minimic = ["web/*"]

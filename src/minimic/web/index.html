@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniMic · teclado de voz</title>
+<meta name="description" content="Configura el teclado de voz de cinco teclas y habla con tu agente de IA desde lejos.">
+<link rel="stylesheet" href="/estilo.css">
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+<style>
+  /* Lo propio de MiniMic; el resto viene de la hoja compartida con TecladoIA. */
+  .logotipo.minimic{background:linear-gradient(135deg,#F97316,#0B2C6B);box-shadow:0 3px 12px rgba(249,115,22,.32)}
+  .logotipo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .caja{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;max-width:420px;margin:.6rem auto 0;
+        padding:1.1rem;border-radius:22px;background:linear-gradient(145deg,#3A4150,#171B23);box-shadow:0 18px 40px -16px rgba(0,0,0,.6)}
+  .tecla-mm{position:relative;aspect-ratio:1;border-radius:12px;border:1px solid #0A0D12;cursor:pointer;
+        background:linear-gradient(145deg,#4B5362,#262B34);color:#E8EDF5;display:flex;flex-direction:column;
+        justify-content:flex-end;padding:.55rem .6rem;font:inherit;text-align:left;transition:.18s;box-shadow:0 6px 0 #0C0F14}
+  .tecla-mm:hover{transform:translateY(-2px)}
+  .tecla-mm.elegida{outline:3px solid var(--naranja);outline-offset:2px}
+  .tecla-mm.blanca{background:linear-gradient(145deg,#FFFFFF,#DCE2EA);color:#1F2937;box-shadow:0 6px 0 #9AA3B0}
+  .tecla-mm.pulsada{transform:translateY(4px);box-shadow:0 2px 0 #0C0F14}
+  .tecla-mm .num{position:absolute;top:.45rem;left:.6rem;font-size:.7rem;color:#7DD3A5;font-weight:700}
+  .tecla-mm.blanca .num{color:#B45309}
+  .tecla-mm .que{font-size:.86rem;font-weight:700;letter-spacing:-.01em;word-break:break-word;line-height:1.2}
+  .tecla-mm .quiere{font-size:.7rem;opacity:.75;margin-top:.15rem}
+  .micro{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 40% 35%,#4A4F58,#15181E);
+        border:1px solid #2A2F38;display:grid;place-items:center;color:#97A3B6;font-size:.72rem;text-align:center}
+  .micro.activo{box-shadow:0 0 0 3px #16A34A,0 0 24px #16A34A}
+  .estado-punto{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:var(--tenue);margin-right:.35rem}
+  .estado-punto.si{background:var(--verde)} .estado-punto.no{background:var(--no)}
+  input[type=text],input[type=number],input[type=password],select{font:inherit;padding:.5rem .7rem;border-radius:9px;
+        border:1px solid var(--borde-fuerte);background:var(--fondo);color:var(--texto);width:100%}
+  input:focus,select:focus{outline:2px solid var(--azul);outline-offset:1px}
+  label.marca{display:flex;align-items:center;gap:.5rem;font-size:.92rem}
+  .constructor{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:end}
+  .mods{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0}
+  .mods label{border:1px solid var(--borde-fuerte);border-radius:99px;padding:.25rem .7rem;font-size:.84rem;cursor:pointer;display:flex;gap:.35rem;align-items:center}
+  .mods label:has(input:checked){background:var(--azul-suave);border-color:var(--azul);color:var(--azul-oscuro)}
+  .segmentado button{font:inherit;font-size:.86rem;padding:.4rem .8rem;border:0;border-radius:9px;background:none;color:var(--tenue);cursor:pointer}
+  .segmentado button.activo{background:var(--tarjeta);color:var(--texto);box-shadow:var(--sombra);font-weight:600}
+  .tab.activa{color:var(--texto);border-bottom-color:var(--naranja)}
+  .seccion.activa{display:block}
+  .lista-pasos{padding-left:1.2rem;line-height:1.7}
+  .lista-pasos li{margin-bottom:.3rem}
+  .aviso.visible{transform:translate(-50%,0);opacity:1;visibility:visible}
+  kbd{font:inherit;font-size:.82rem;padding:.1rem .45rem;border:1px solid var(--borde-fuerte);border-bottom-width:2px;border-radius:6px;background:var(--fondo)}
+  @media (max-width:900px){.taller{grid-template-columns:1fr}.editor{position:static;max-height:none}}
+</style>
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="cabecera">
+  <div class="cabecera-izq">
+    <span class="logotipo minimic" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/></svg>
+    </span>
+    <span class="titulo-app">Mini<b>Mic</b></span>
+    <div class="indicadores">
+      <div class="indicador"><span class="ind-etiqueta">Teclado</span><span class="ind-valor" id="ind-conexion">Esperando…</span></div>
+      <div class="indicador"><span class="ind-etiqueta">Micrófono</span><span class="ind-valor" id="ind-microfono">—</span></div>
+      <div class="indicador"><span class="ind-etiqueta">Dictado</span><span class="ind-valor" id="ind-dictado">—</span></div>
+    </div>
+  </div>
+  <div class="cabecera-der">
+    <span class="chip-vivo" id="chip-vivo" hidden><i class="estado-punto si"></i>En vivo</span>
+    <div class="tema" role="group" aria-label="Tema de la página">
+      <button type="button" data-tema="sistema" title="Seguir al sistema">Auto</button>
+      <button type="button" data-tema="claro" title="Fondo claro">Claro</button>
+      <button type="button" data-tema="oscuro" title="Fondo oscuro">Oscuro</button>
+    </div>
+  </div>
+</header>
+
+<nav class="barra-secciones" aria-label="Secciones">
+  <button type="button" class="tab activa" data-seccion="teclado">Teclado</button>
+  <button type="button" class="tab" data-seccion="microfono">Micrófono y dictado</button>
+  <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
+  <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
+</nav>
+
+<main id="contenido">
+
+<!-- ================================ TECLADO ================================ -->
+<section class="seccion activa" id="seccion-teclado">
+  <div id="banda-teclado" class="banda" hidden></div>
+  <div class="taller">
+    <div class="tarjeta">
+      <p class="bloque-titulo">Pulsa una tecla del dibujo para cambiar lo que hace. Lo que ves es lo que el teclado tiene grabado.</p>
+      <div class="caja" id="caja">
+        <button type="button" class="tecla-mm" data-tecla="0"><span class="num">1</span><span class="que">…</span><span class="quiere"></span></button>
+        <button type="button" class="tecla-mm" data-tecla="1"><span class="num">2</span><span class="que">…</span><span class="quiere"></span></button>
+        <div class="micro" id="micro" title="El micrófono">mic</div>
+        <button type="button" class="tecla-mm" data-tecla="2"><span class="num">3</span><span class="que">…</span><span class="quiere"></span></button>
+        <button type="button" class="tecla-mm" data-tecla="3"><span class="num">4</span><span class="que">…</span><span class="quiere"></span></button>
+        <button type="button" class="tecla-mm blanca" data-tecla="4"><span class="num">5</span><span class="que">…</span><span class="quiere"></span></button>
+      </div>
+      <div class="acciones">
+        <button type="button" class="btn btn-claro" id="btn-releer">Releer del teclado</button>
+        <button type="button" class="btn btn-claro" id="btn-fabrica">Volver a como venía</button>
+      </div>
+      <p class="nota">La tecla 5, la blanca, es la del micrófono: MiniMic la pone a <kbd id="atajo-texto">Ctrl+Mayús+Alt+F14</kbd>, una combinación que solo entiende este servicio, y con ella abre el dictado en el programa que elijas.</p>
+    </div>
+
+    <aside class="editor" id="editor">
+      <h2 class="editor-titulo">Elige una tecla</h2>
+      <p class="editor-sub">A la izquierda, en el dibujo.</p>
+      <div id="editor-cuerpo" hidden>
+        <div class="mods" id="mods">
+          <label><input type="checkbox" value="ctrl">Ctrl</label>
+          <label><input type="checkbox" value="mayus">Mayús</label>
+          <label><input type="checkbox" value="alt">Alt</label>
+          <label><input type="checkbox" value="win">Win</label>
+        </div>
+        <div class="constructor">
+          <div class="campo"><label for="tecla-base">Tecla</label><select id="tecla-base"></select></div>
+          <div class="campo"><label for="combo">O escríbela</label><input type="text" id="combo" placeholder="ctrl-a, win-h, f13…"></div>
+        </div>
+        <div class="acciones">
+          <button type="button" class="btn btn-verde" id="btn-guardar-tecla">Guardar en el teclado</button>
+          <button type="button" class="btn btn-claro" id="btn-tecla-mic">Ponerla como micrófono</button>
+        </div>
+        <p class="nota" id="nota-tecla"></p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================== MICRÓFONO ============================== -->
+<section class="seccion" id="seccion-microfono">
+  <div class="taller">
+    <div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">A quién le hablas</h2>
+        <p class="editor-sub">Al pulsar la tecla blanca, MiniMic trae este programa al frente, pincha su cuadro de escribir y abre el dictado de Windows. Al volver a pulsarla, lo cierra y manda lo dictado.</p>
+        <div class="campo"><label for="programa">Programa</label><select id="programa"></select></div>
+        <div class="acciones">
+          <button type="button" class="btn btn-naranja" id="btn-probar-dictado">Probar como si pulsara la tecla</button>
+        </div>
+        <p class="nota" id="nota-dictado"></p>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="editor-titulo">El micrófono del teclado</h2>
+        <p class="editor-sub">El dictado de Windows escucha por el micrófono predeterminado. Para hablar desde lejos, ese tiene que ser el del teclado, que viaja con él por cable o por el receptor de 2,4 GHz.</p>
+        <p><span class="estado-punto" id="punto-mic"></span><span id="texto-mic">Buscando…</span></p>
+        <label class="marca"><input type="checkbox" id="adoptar_microfono">Ponerlo como micrófono del sistema cada vez que aparezca</label>
+        <div class="acciones"><button type="button" class="btn btn-claro" id="btn-adoptar">Ponerlo ahora</button></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Cómo se comporta la tecla blanca</h2>
+        <p class="editor-sub">Es un ajuste del propio teclado; se graba por cable.</p>
+        <div class="segmentado" id="modo-mic">
+          <button type="button" data-modo="1">Pulsar para empezar, pulsar para parar</button>
+          <button type="button" data-modo="0">Mantener pulsada mientras hablas</button>
+        </div>
+        <p class="nota">Con «pulsar» la luz del micrófono se queda verde mientras escucha y MiniMic abre y cierra el dictado con cada pulsación. Es el modo recomendado.</p>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Afinar el dictado</h2>
+        <label class="marca"><input type="checkbox" id="pinchar_cuadro">Pinchar el cuadro de escribir antes de abrir el dictado</label>
+        <label class="marca"><input type="checkbox" id="enviar_al_cerrar">Al cerrar el dictado con la tecla, mandar Intro</label>
+        <label class="marca"><input type="checkbox" id="pitido_al_abrir">Dos pitidos al abrir</label>
+        <div class="campo" style="margin-top:.8rem"><label for="alto_cuadro">Si el clic no cae en el cuadro: píxeles desde abajo (0 = el 10 % de la ventana)</label><input type="number" id="alto_cuadro" min="0" max="2000"></div>
+        <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-dictado">Guardar</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================ AJUSTES ================================ -->
+<section class="seccion" id="seccion-ajustes">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">Clave del panel</h2>
+    <p class="editor-sub">Sin clave, el panel solo se abre desde el propio equipo. Con ella se puede publicar en Internet.</p>
+    <div class="rejilla-campos">
+      <div class="campo"><label for="clave_panel">Nueva clave (seis caracteres o más)</label><input type="password" id="clave_panel" autocomplete="new-password"></div>
+    </div>
+    <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-clave">Cambiar la clave</button></div>
+  </div>
+  <div class="tarjeta">
+    <h2 class="editor-titulo">El servicio</h2>
+    <p id="texto-servicio" class="editor-sub">…</p>
+    <ul class="lista-pasos" id="avisos"></ul>
+  </div>
+</section>
+
+<!-- ================================= AYUDA ================================= -->
+<section class="seccion" id="seccion-ayuda">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">Cómo se usa</h2>
+    <ol class="lista-pasos">
+      <li><b>Conecta el teclado por cable una vez.</b> MiniMic le graba las teclas y el modo del micrófono. Después puede ir por el receptor de 2,4 GHz: las teclas y el micrófono funcionan igual, solo que ya no se puede reconfigurar hasta volver al cable.</li>
+      <li><b>Elige a quién le hablas</b> en la pestaña «Micrófono y dictado»: Claude, ChatGPT, Cursor o la ventana que esté activa.</li>
+      <li><b>Pulsa la tecla blanca.</b> La luz se pone verde, el programa se viene al frente y se abre el dictado de Windows. Habla.</li>
+      <li><b>Vuelve a pulsarla.</b> Se cierra el dictado y se manda lo dictado con Intro (se puede quitar en «Afinar el dictado»).</li>
+      <li>Las otras cuatro teclas hacen lo que les pongas en la pestaña «Teclado». De fábrica: seleccionar todo, pegar, borrar e Intro.</li>
+    </ol>
+    <p class="nota">Si el dictado de Windows no está activado, la primera vez que se abra Windows pedirá permiso para reconocer la voz. Acéptalo y listo.</p>
+  </div>
+</section>
+
+</main>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"><span id="aviso-texto"></span></div>
+<script src="/app.js"></script>
+</body>
+</html>

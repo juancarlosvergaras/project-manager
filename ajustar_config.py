@@ -11,8 +11,9 @@ Este script se ejecuta a través de una tarea programada, que sí escribe donde
 toca. Se le pasan pares `campo=valor`:
 
     python ajustar_config.py clave_panel=Unicartagena1 modo_al_conectar=0
+    python ajustar_config.py --app MiniMic clave_panel=Unicartagena1
 
-Los valores se interpretan como JSON cuando se puede (`true`, `0`, `null`) y
+Con ``--app`` se elige la carpeta (TecladoIA si no se dice). Los valores se interpretan como JSON cuando se puede (`true`, `0`, `null`) y
 como texto cuando no.
 """
 
@@ -24,9 +25,9 @@ import sys
 from pathlib import Path
 
 
-def ruta_config() -> Path:
+def ruta_config(app: str = "TecladoIA") -> Path:
     raiz = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
-    return raiz / "TecladoIA" / "config.json"
+    return raiz / app / "config.json"
 
 
 def interpretar(texto: str):
@@ -37,7 +38,10 @@ def interpretar(texto: str):
 
 
 def main(argumentos: list[str]) -> int:
-    ruta = ruta_config()
+    app = "TecladoIA"
+    if argumentos[:1] == ["--app"] and len(argumentos) > 1:
+        app, argumentos = argumentos[1], argumentos[2:]
+    ruta = ruta_config(app)
     informe = [f"config: {ruta}", f"existe: {ruta.exists()}"]
 
     datos: dict = {}
