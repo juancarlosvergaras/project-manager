@@ -85,6 +85,38 @@ def _es_el_cuadro(elemento, ancho_ventana: int, alto_ventana: int) -> bool:
     return True
 
 
+#: Nombres de cuadro que son una terminal, no el chat. Con la terminal de
+#: Claude abierta, su «Terminal input» queda **debajo** del «Prompt» del chat,
+#: y la regla de «el más bajo» dictaba en la terminal. Se vio con el MiniMic
+#: el 2 de septiembre de 2026: el AhaKey dictaba bien a las 21:53 y a las
+#: 22:32 el mismo código elegía la terminal. No era el teclado, era la ventana.
+_NO_ES_EL_CHAT = ("terminal", "consola", "console", "search", "buscar", "find")
+
+#: Nombres que son el chat sin duda; ganan a cualquier otro.
+_ES_EL_CHAT = ("prompt", "mensaje", "message", "chat", "pregunta", "ask")
+
+
+def _peso(nombre: str) -> int:
+    nombre = (nombre or "").lower()
+    if any(palabra in nombre for palabra in _ES_EL_CHAT):
+        return 2
+    if any(palabra in nombre for palabra in _NO_ES_EL_CHAT):
+        return 0
+    return 1
+
+
+def elegir_cuadro(candidatos):
+    """Entre varios cuadros, el del chat: por nombre primero y por altura después.
+
+    Sin nombre que ayude, gana el de más abajo, que en un programa de
+    conversación es donde se escribe.
+    """
+    return max(
+        candidatos,
+        key=lambda e: (_peso(e.CurrentName), e.CurrentBoundingRectangle.bottom),
+    )
+
+
 def enfocar_cuadro(hwnd, intentos: int = 3) -> Optional[dict]:
     """Da el foco al cuadro de escribir de esa ventana.
 
@@ -127,8 +159,7 @@ def enfocar_cuadro(hwnd, intentos: int = 3) -> Optional[dict]:
                 continue
 
         if candidatos:
-            # El de más abajo: en una conversación, ahí es donde se escribe.
-            elegido = max(candidatos, key=lambda e: e.CurrentBoundingRectangle.bottom)
+            elegido = elegir_cuadro(candidatos)
             r = elegido.CurrentBoundingRectangle
             try:
                 elegido.SetFocus()

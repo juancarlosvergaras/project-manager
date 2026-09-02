@@ -726,9 +726,21 @@ def dictar_en(
 class EscuchaDictado:
     """Espera la combinación del micrófono y avisa cuando llega."""
 
-    def __init__(self, al_pulsar: Callable[[], None], identificador: int = 0xA17A) -> None:
+    def __init__(
+        self,
+        al_pulsar: Callable[[], None],
+        identificador: int = 0xA17A,
+        tecla_virtual: int = VK_F13,
+        nombre: str = ATAJO_DICTADO,
+    ) -> None:
+        # `tecla_virtual` y `nombre` existen para que otro servicio del mismo
+        # PC (MiniMic) escuche su propia combinación: Windows solo deja
+        # reservar cada una a un proceso, así que dos teclados no pueden
+        # compartir F13.
         self.al_pulsar = al_pulsar
         self.identificador = identificador
+        self.tecla_virtual = tecla_virtual
+        self.nombre = nombre
         self._parar = False
         self._ultimo_disparo = 0.0
 
@@ -746,7 +758,7 @@ class EscuchaDictado:
         # arranque, que es exactamente lo que pasaba al reiniciar la web.
         reservada = False
         for intento in range(20):
-            if user32.RegisterHotKey(None, self.identificador, modificadores, VK_F13):
+            if user32.RegisterHotKey(None, self.identificador, modificadores, self.tecla_virtual):
                 reservada = True
                 if intento:
                     _log.info(
@@ -760,10 +772,10 @@ class EscuchaDictado:
                 "No se pudo reservar la combinación del micrófono (%s) en diez "
                 "segundos. Suele ser otra copia del servicio todavía viva: "
                 "ciérrala y vuelve a arrancar.",
-                ATAJO_DICTADO,
+                self.nombre,
             )
             return
-        _log.info("Escuchando la tecla del micrófono (%s)", ATAJO_DICTADO)
+        _log.info("Escuchando la tecla del micrófono (%s)", self.nombre)
         try:
             mensaje = wintypes.MSG()
             while not self._parar:
