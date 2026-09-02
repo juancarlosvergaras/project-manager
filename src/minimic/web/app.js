@@ -119,6 +119,19 @@ function pintarAjustes(a) {
   $("#alto_cuadro").value = a.alto_cuadro || 0;
 }
 
+function pintarPaquete(p) {
+  const boton = $("#btn-descargar");
+  if (p.disponible) {
+    boton.classList.remove("btn-claro"); boton.classList.add("btn-verde");
+    $("#nota-descarga").textContent = `${p.megas} MB, con Python dentro.`;
+  } else {
+    boton.classList.remove("btn-verde"); boton.classList.add("btn-claro");
+    boton.removeAttribute("href");
+    boton.setAttribute("aria-disabled", "true");
+    $("#nota-descarga").textContent = `No está construido en este equipo: ${p.como}`;
+  }
+}
+
 function pintarOpciones(o) {
   estado.opciones = o;
   const sel = $("#tecla-base");
@@ -231,6 +244,7 @@ function escuchar() {
   conectar();
   if (location.hash.length > 1) irA(location.hash.slice(1));
   try {
+    pintarPaquete(await pedir("/api/paquete"));
     pintarOpciones(await pedir("/api/opciones"));
     pintarAjustes(await pedir("/api/ajustes"));
     await refrescar();

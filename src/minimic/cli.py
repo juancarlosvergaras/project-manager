@@ -28,15 +28,22 @@ def _salida_en_utf8() -> None:
 
 def hay_otro_servicio(ajustes: Ajustes) -> Optional[dict]:
     """Pregunta en el puerto del panel si ya hay un MiniMic vivo."""
-    for puerto in range(ajustes.puerto_panel, ajustes.puerto_panel + 5):
-        try:
-            with urllib.request.urlopen(f"http://127.0.0.1:{puerto}/api/salud", timeout=2) as r:
-                datos = json.loads(r.read().decode("utf-8"))
-            if isinstance(datos, dict) and datos.get("app") == "minimic":
-                datos["puerto"] = puerto
-                return datos
-        except Exception:  # noqa: BLE001
-            continue
+    # Se pregunta en local y en la dirección configurada: un servicio que
+    # escucha solo en la IP de Tailscale no contesta en 127.0.0.1, y sin esto
+    # el segundo arranque no vería al primero y habría dos peleándose.
+    anfitriones = ["127.0.0.1"]
+    if ajustes.host_panel not in ("", "127.0.0.1", "localhost", "0.0.0.0"):
+        anfitriones.append(ajustes.host_panel)
+    for anfitrion in anfitriones:
+        for puerto in range(ajustes.puerto_panel, ajustes.puerto_panel + 5):
+            try:
+                with urllib.request.urlopen(f"http://{anfitrion}:{puerto}/api/salud", timeout=2) as r:
+                    datos = json.loads(r.read().decode("utf-8"))
+                if isinstance(datos, dict) and datos.get("app") == "minimic":
+                    datos["puerto"] = puerto
+                    return datos
+            except Exception:  # noqa: BLE001
+                continue
     return None
 
 
@@ -110,6 +117,12 @@ def orden_tarea(args: argparse.Namespace) -> int:
     return 0 if hecho else 1
 
 
+def orden_asistente(args: argparse.Namespace) -> int:
+    from . import asistente
+
+    return asistente.ejecutar()
+
+
 def construir_analizador() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="minimic", description=f"{NOMBRE} {__version__}: el teclado de voz de cinco teclas, en español.")
     p.add_argument("--registro", default="info", choices=["info", "detalle", "aviso"], help="cuánto contar en el registro")
@@ -127,6 +140,9 @@ def construir_analizador() -> argparse.ArgumentParser:
     t = sub.add_parser("teclas", help="lee las teclas del teclado (por cable)")
     t.add_argument("--capa", type=int, default=1, choices=[1, 2, 3])
     t.set_defaults(funcion=orden_teclas)
+
+    a = sub.add_parser("asistente", help="instalación guiada: tarea programada y arranque")
+    a.set_defaults(funcion=orden_asistente)
 
     r = sub.add_parser("tarea", help="crea (o quita) la tarea que arranca el servicio con Windows")
     r.add_argument("--host", default="")

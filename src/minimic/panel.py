@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, dispositivo, protocolo
+from . import __version__, dispositivo, empaquetado, protocolo
 from .config import PROGRAMAS, Ajustes
 from .servicio import Servicio
 
@@ -103,7 +103,13 @@ class PanelWeb:
             consulta = parse_qs(partes.query)
             extras: list[str] = []
 
-            if partes.path == "/api/salud":
+            if partes.path == "/descargar/" + empaquetado.NOMBRE_EXE and metodo == "GET":
+                # Sin clave a propósito: el ejecutable no lleva secretos y es
+                # lo que uno se baja en un PC nuevo, antes de tener nada.
+                estado, tipo, datos = self._descarga()
+                if estado.startswith("200"):
+                    extras.append(f'Content-Disposition: attachment; filename="{empaquetado.NOMBRE_EXE}"')
+            elif partes.path == "/api/salud":
                 # Sin clave a propósito: es lo que pregunta el siguiente arranque
                 # para no abrir dos servicios sobre el mismo teclado.
                 estado, tipo, datos = self._json_ok({"app": "minimic", "version": __version__})
@@ -205,6 +211,12 @@ class PanelWeb:
                 return self._error("503 Service Unavailable", str(error))
         return self._estatico(ruta)
 
+    def _descarga(self) -> tuple[str, str, bytes]:
+        ruta = empaquetado.ruta_ejecutable()
+        if ruta is None:
+            return self._error("404 Not Found", "el ejecutable no está construido en este equipo")
+        return "200 OK", "application/vnd.microsoft.portable-executable", ruta.read_bytes()
+
     @staticmethod
     def _json_ok(datos: Any) -> tuple[str, str, bytes]:
         return "200 OK", "application/json; charset=utf-8", json.dumps(datos, ensure_ascii=False, default=str).encode("utf-8")
@@ -247,6 +259,8 @@ class PanelWeb:
                 ],
                 "atajo": s.resumen()["dictado"]["atajo"],
             })
+        if ruta == "/api/paquete" and metodo == "GET":
+            return self._json_ok(empaquetado.resumen_ejecutable())
         if ruta == "/api/ajustes":
             if metodo == "GET":
                 return self._json_ok(self.ajustes.como_dict())

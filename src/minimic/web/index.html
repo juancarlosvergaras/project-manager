@@ -78,6 +78,7 @@
   <button type="button" class="tab" data-seccion="microfono">Micrófono y dictado</button>
   <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
   <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
+  <button type="button" class="tab" data-seccion="descargar">Descargar</button>
 </nav>
 
 <main id="contenido">
@@ -202,6 +203,24 @@
       <li>Las otras cuatro teclas hacen lo que les pongas en la pestaña «Teclado». De fábrica: seleccionar todo, pegar, borrar e Intro.</li>
     </ol>
     <p class="nota">Si el dictado de Windows no está activado, la primera vez que se abra Windows pedirá permiso para reconocer la voz. Acéptalo y listo.</p>
+  </div>
+</section>
+
+<!-- =============================== DESCARGAR =============================== -->
+<section class="seccion" id="seccion-descargar">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">MiniMic en otro PC</h2>
+    <p class="editor-sub">El teclado se lleva a cualquier equipo, pero la tecla blanca y el micrófono los maneja este servicio, que tiene que estar en el PC que tenga el teclado cerca. Un solo archivo, con Python dentro: no hay que instalar nada antes.</p>
+    <div class="acciones">
+      <a class="btn btn-verde" id="btn-descargar" href="/descargar/MiniMic.exe" download>Descargar MiniMic.exe</a>
+      <span class="nota" id="nota-descarga"></span>
+    </div>
+    <ol class="lista-pasos" style="margin-top:1rem">
+      <li>Descárgalo y ábrelo con doble clic. Hace la instalación guiada: crea la tarea que lo arranca con Windows y lo pone en marcha.</li>
+      <li>Si Windows avisa de «editor desconocido», elige «Más información › Ejecutar de todas formas»: no está firmado.</li>
+      <li>Abre <code>http://127.0.0.1:8771</code> en ese PC. Conecta el teclado por cable una vez para que se le graben las teclas; después puede ir por el receptor.</li>
+      <li>Para publicarlo por Internet como aquí, ponle clave en Ajustes y arráncalo con <code>MiniMic.exe servicio --host &lt;ip&gt;</code>.</li>
+    </ol>
   </div>
 </section>
 
