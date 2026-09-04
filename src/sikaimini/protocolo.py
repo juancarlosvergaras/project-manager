@@ -19,8 +19,24 @@ aparato y espiando ``LQ_Keyboard.exe`` con Frida. Lo que cambia:
   dieciséis colores. El programa del fabricante esconde la pestaña de luces
   para este modelo, así que qué hace cada modo se averigua mirando el teclado.
 
+Órdenes vistas al sondear el 4/9/2026 (en el PC del usuario, por el túnel):
+
+- ``0x03 <capa> <índice>`` lee **una** tecla (contesta su registro).
+- ``0x05 <capa> <índice>`` **borra** esa tecla: el teclado acusa sin más y el
+  registro desaparece de la lectura. Mandada a ciegas con índice 0 borró la
+  tecla No; se restauró escribiéndola. **No sondear escrituras a ciegas.**
+- ``0x0B`` contesta siempre ``03 01 00 01 05 05 01``, sea cual sea el arg:
+  una ficha del modelo (¿3 teclas, 1 capa, 1 perilla…?), no la batería.
+- ``0x0F`` acusa y no se sabe qué hace. Se dejó en paz.
+- ``0x02``, ``0x06``-``0x08``, ``0x10``-``0x20`` y ``0x0D`` con otros args: rechazo.
+
+**No hay batería** ni en el protocolo ni en los descriptores HID por cable.
+
 Este módulo no toca el hardware: arma y desarma bytes.
 """
+
+#: Órdenes que cambian el teclado. La sonda del panel no las manda sin confirmar.
+ORDENES_QUE_ESCRIBEN = frozenset({0x01, 0x05, 0x09, 0x0E, 0x0F})
 
 from __future__ import annotations
 

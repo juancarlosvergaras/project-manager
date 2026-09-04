@@ -375,6 +375,8 @@ class PanelWeb:
                 carga = bytes.fromhex(str(datos.get("carga", "")).replace(" ", ""))
             except (TypeError, ValueError) as e:
                 raise ValueError(f"orden, capa y arg son números; carga es hex: {e}") from e
+            if orden in protocolo.ORDENES_QUE_ESCRIBEN and datos.get("confirmar") is not True:
+                raise ValueError(f"la orden {orden:#04x} escribe en el teclado (0x05 borra una tecla); manda confirmar: true si es a propósito")
             return self._json_ok({"respuestas": await en_hilo(s.teclado.sondear, orden, capa, arg, carga)})
         if ruta == "/api/descriptores" and metodo == "GET":
             return self._json_ok({"interfaces": await en_hilo(dispositivo.descriptores_del_teclado)})

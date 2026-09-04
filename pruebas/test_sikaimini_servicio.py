@@ -247,6 +247,11 @@ class PruebaPanel(PruebaAislada):
             self.assertIn("rueda-abajo", json.loads(cuerpo)["raton"])
             estado, _, cuerpo = await self.pedir(panel.puerto, "POST", "/api/teclas/recomendado", {})
             self.assertEqual(str(self.fingido.teclas[5]), "clic-central")
+            estado, _, cuerpo = await self.pedir(panel.puerto, "POST", "/api/sonda", {"orden": 5, "arg": 0})
+            self.assertTrue(estado.startswith("HTTP/1.1 400"), "la sonda no borra teclas sin confirmar")
+            estado, _, cuerpo = await self.pedir(panel.puerto, "POST", "/api/sonda", {"orden": 12})
+            self.assertTrue(estado.startswith("HTTP/1.1 200"))
+            self.assertEqual(json.loads(cuerpo)["respuestas"][0]["carga"], "a5 01 08 00 01 00 00 00")
         self.correr(caso)
 
     def test_clave_por_cabecera_cookie_y_salud_libre(self):

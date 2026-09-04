@@ -241,6 +241,19 @@ manejo del micrófono, y pone encima lo suyo. Lo que cambia, comprobado el
   La pestaña «Luces (fijas)» del panel lo dice; el código se queda por si un
   firmware futuro lo atiende.
 
+**Batería: no hay dato.** Se buscó el 4/9/2026 por el túnel en el teclado del
+usuario: el programa del fabricante no tiene ni una cadena de batería, los
+descriptores HID por cable no llevan la página 0x06 ni la 0x85, y las órdenes
+sin descifrar no la dan (`0x0B` contesta siempre `03 01 00 01 05 05 01`). Los
+descriptores del **receptor** de 2,4 GHz quedan por ver; si algún día lo
+enchufan, `GET /api/descriptores`.
+
+**Sondear a ciegas cuesta teclas.** `0x05 <capa> <índice>` **borra** la tecla y
+el teclado acusa sin decir nada: probando órdenes en el teclado del usuario
+se borró la tecla No y hubo que reescribirla. `0x03` lee una tecla y `0x0F`
+acusa sin saberse qué hace. `/api/sonda` ya se niega a mandar órdenes que
+escriben (`protocolo.ORDENES_QUE_ESCRIBEN`) sin `confirmar: true`.
+
 **Cómo se distinguen los dos teclados**: solo leyéndolos. El MiniMic contesta
 cinco registros y el SiKai seis. `leer_capa` de cada aplicación exige su número
 y se niega con el otro, así que **ninguna le escribe al teclado de la otra**
