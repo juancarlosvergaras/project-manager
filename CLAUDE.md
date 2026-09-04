@@ -251,6 +251,26 @@ giro B → rueda arriba, pulsación → clic central. Si desplaza al revés, se
 cambian los dos giros entre sí desde el panel. De fábrica traía Vol+, Vol− y
 Alt derecho.
 
+**El PC se presenta solo al portero (túnel de salida).** Desde el 4/9/2026 por
+la tarde, `sikaimini.proyectoia.org` no va a buscar el PC: el servicio abre por
+Tailscale una conexión de control a `100.65.52.65:8027` (la dirección de
+Tailscale del Mac mini), dice qué equipo es y si tiene el teclado, y cuando
+llega un navegador el portero le pide una conexión de datos y las empalma.
+Nada que configurar en el PC: ni publicar el panel, ni cortafuegos, ni que el
+Mac mini sepa su dirección. Está en `minimic/tunel.py` (genérico, para que
+MiniMic lo use también) y en `despliegue/sikaimini/portero.py`; el camino
+viejo de preguntar a direcciones fijas queda de respaldo. **Dos condiciones**:
+Tailscale conectado y **clave puesta en el panel** —sin clave el servicio no se
+presenta, porque lo que entra por el túnel viene de Internet—. Y una trampa
+resuelta: las conexiones de datos hacia el panel salen **desde `127.0.0.2`**,
+porque el panel deja pasar sin clave lo que llega de `127.0.0.1`, y por el
+túnel llegaría Internet entera como si fuera local. Lo cubre
+`pruebas/test_tunel.py`, que levanta el portero de verdad en local.
+
+**El panel local no pide clave y escucha siempre en `127.0.0.1`**, aunque esté
+publicado en Tailscale (los tres teclados). La clave es para quien entra desde
+fuera. El instalador deja un acceso directo al panel en el escritorio y lo abre.
+
 **La misma trampa de `AppData`** que TecladoIA y MiniMic, con una vuelta más:
 la carpeta real `AppData\Roaming\SikaiMini` no existe hasta que algo la crea
 **fuera** de la sesión de Claude, y la tarea programada redirige su registro a
@@ -581,6 +601,13 @@ ahora el destino es el propio Mac mini—. La copia previa está en
 Esto hace que la **página** responda siempre; el **teclado** sigue necesitando
 el PC encendido. El Bluetooth no viaja por Internet.
 
+El portero de **sikaimini** (8026) es distinto: además del camino de
+preguntar a direcciones fijas, escucha en `100.65.52.65:8027` a los PC que se
+presentan solos (ver la sección de SikaiMini). Los instaladores de los tres
+teclados se sirven estáticos desde `teclado.proyectoia.org/descargas/`
+(carpeta `apps/teclado/public/descargas` del Mac mini): bajar por el PC del
+teclado tardaba 47 s y exigía tenerlo encendido.
+
 ## Semáforo en otro aparato
 
 `SEMAFORO.md` es autosuficiente: qué evento dispara cada momento del agente, qué
@@ -593,4 +620,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-258, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+264, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
