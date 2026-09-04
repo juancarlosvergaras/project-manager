@@ -49,6 +49,11 @@ TIPO_BOTON = 50000
 #: diciendo «grabando» hasta pasado un momento, y parecía que no había obedecido.
 ESPERA_DEL_ESTADO_S = 1.2
 
+#: Cuánto se le da como mucho a la interfaz para reflejar lo que se le pidió.
+#: ChatGPT transcribe antes de soltar sus botones de dictado y eso no es
+#: instantáneo; con una espera fija se leía «sigue grabando» tras pararlo.
+ESPERA_MAXIMA_S = 4.0
+
 #: Cómo habla cada programa.
 #:
 #: Los nombres se buscan en minúsculas y por trozos, y van en varios idiomas
@@ -312,8 +317,18 @@ class MicrofonoDeLaApp:
                     return None
                 if not _mandar_atajo(atajo):
                     return None
-        time.sleep(ESPERA_DEL_ESTADO_S)
-        leido = self.estado()
+        # Se espera a que el estado cuadre, en vez de un rato fijo. ChatGPT
+        # tarda lo que tarde en transcribir antes de soltar sus botones de
+        # dictado, y con una espera fija se leía «sigue grabando» justo después
+        # de pararlo — y entonces la pulsación siguiente intentaba pararlo otra
+        # vez en lugar de arrancarlo.
+        limite = time.monotonic() + ESPERA_MAXIMA_S
+        leido = None
+        while time.monotonic() < limite:
+            time.sleep(0.25)
+            leido = self.estado(intentos=1)
+            if leido == quedando:
+                return leido
         return quedando if leido is None else leido
 
 

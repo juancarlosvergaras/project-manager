@@ -53,6 +53,15 @@ GRACIA_S = 2.5
 #: ha visto. Se compara en minúsculas y por principio de cadena.
 NOMBRES_DE_DETENER = ("detener", "stop", "parar", "interromper", "arrêter")
 
+#: Botones que **también** empiezan por «detener» y no son el que buscamos.
+#:
+#: Al dictar, ChatGPT enseña «Detener dictado» —y Claude hace lo mismo—. Sin
+#: esta lista, hablarle al micrófono encendía el azul de «está respondiendo»:
+#: el vigía veía un botón de detener y daba por hecho que estaba generando.
+#: Ocurría en el mismo segundo en que arrancaba el dictado, y desde fuera
+#: parecía que ChatGPT contestaba solo.
+NO_SON_DETENER = ("detener dictado", "stop dictation", "detener grabación")
+
 #: Nombres del botón de enviar o de voz. Sirven para confirmar que estamos
 #: leyendo la barra de escribir de verdad: si no aparece ninguno de los dos
 #: grupos, la ventana no está donde creemos y más vale no afirmar nada.
@@ -230,6 +239,8 @@ class VigiaChatGPT:
                 nombre = elemento.CurrentName or ""
             except Exception:  # noqa: BLE001
                 continue
+            if _empieza_por(nombre, NO_SON_DETENER):
+                continue   # es el del dictado, no el de generar
             if _empieza_por(nombre, NOMBRES_DE_DETENER):
                 detener = True
             elif _empieza_por(nombre, NOMBRES_DE_ENVIAR):

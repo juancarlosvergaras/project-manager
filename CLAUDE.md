@@ -51,6 +51,12 @@ terminado— y no más: desde fuera no se distingue «pensando» de «ejecutando
 se ve cuándo te pide permiso. Si ChatGPT renombra sus botones, el vigía se
 calla en vez de inventarse un estado.
 
+> **Ojo con «Detener dictado».** El vigía busca botones que empiecen por
+> «detener», y al hablarle al micrófono aparece justo uno así. Sin excluirlo
+> (`NO_SON_DETENER`), dictar encendía el azul de «está respondiendo» en el
+> mismo segundo en que arrancaba el dictado, y desde fuera parecía que ChatGPT
+> contestaba solo. Claude hace lo mismo con su botón.
+
 > **Codex CLI ya no se ofrece.** Su adaptador sigue en el código y quien lo
 > tenga puesto sigue funcionando, pero no aparece en la lista: quien usa la
 > aplicación de ChatGPT no tiene Codex, y ver un programa que no existe en el

@@ -297,3 +297,50 @@ class PruebaMicrofonoPropio(PruebaAislada):
         a.usar_microfono_propio = False
         a.guardar()
         self.assertFalse(Ajustes.cargar().usar_microfono_propio)
+
+
+class PruebaVigiaChatGPT(PruebaAislada):
+    """ChatGPT no tiene enganches: su estado se lee mirandole la ventana.
+
+    De ahi salen los dos unicos momentos que se pueden sostener desde fuera
+    —esta respondiendo y ha terminado— porque el boton «Detener» solo existe
+    mientras genera.
+    """
+
+    def test_el_boton_del_dictado_no_es_el_de_generar(self):
+        """Dictar encendia el azul de «esta respondiendo».
+
+        Al dictar, ChatGPT enseña «Detener dictado». El vigia buscaba botones
+        que empezaran por «detener» y lo tomaba por el de generar, asi que
+        hablarle al microfono hacia creer que ChatGPT contestaba solo. Ocurria
+        en el mismo segundo en que arrancaba el dictado.
+        """
+        from tecladoia.vigia_chatgpt import (
+            NO_SON_DETENER, NOMBRES_DE_DETENER, _empieza_por,
+        )
+
+        def generando(nombre: str) -> bool:
+            if _empieza_por(nombre, NO_SON_DETENER):
+                return False
+            return _empieza_por(nombre, NOMBRES_DE_DETENER)
+
+        self.assertTrue(generando("Detener"), "el de generar tiene que contar")
+        self.assertTrue(generando("Stop"))
+        self.assertFalse(generando("Detener dictado"), "el del dictado no")
+        self.assertFalse(generando("Stop dictation"))
+
+    def test_solo_dos_momentos_y_a_proposito(self):
+        """Desde fuera no se distingue «pensando» de «ejecutando».
+
+        Prometer mas seria inventarselo. Se sostienen dos: trabajando y
+        terminado.
+        """
+        from tecladoia.modelo import EstadoIA
+        from tecladoia.servidor import ServidorEnganches
+
+        import inspect
+        fuente = inspect.getsource(ServidorEnganches.avisar_de_chatgpt)
+        self.assertIn("HERRAMIENTA_EN_CURSO", fuente)
+        self.assertIn("TAREA_COMPLETADA", fuente)
+        self.assertNotIn("ESPERANDO_APROBACION", fuente)
+        del EstadoIA
