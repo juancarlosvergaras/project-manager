@@ -34,6 +34,7 @@ _CAMPOS_AJUSTES = {
     "programa": str, "alto_cuadro": int, "pinchar_cuadro": bool, "enviar_al_cerrar": bool,
     "adoptar_microfono": bool, "pitido_al_abrir": bool, "clave_panel": str,
     "usar_microfono_propio": bool, "host_panel": str,
+    "usar_portero": bool, "portero": str,
 }
 
 
@@ -416,6 +417,8 @@ class PanelWeb:
             setattr(self.ajustes, campo, valor)
             cambiados.append(campo)
         self.ajustes.guardar()
+        if any(c in cambiados for c in ("clave_panel", "portero", "usar_portero")):
+            self.servicio.asegurar_tunel()
         self.servicio.publicar("estado")
         if "host_panel" in cambiados:
             # Se vuelve a abrir el panel en la dirección nueva, después de

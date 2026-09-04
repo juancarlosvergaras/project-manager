@@ -151,6 +151,11 @@ function pintar(p) {
     ? "La combinación de la tecla del micrófono no se pudo reservar: ¿hay otra copia del servicio viva?"
     : "";
   $("#texto-servicio").textContent = `SikaiMini ${p.version}. Teclado ${c.descripcion}.`;
+  const tunel = p.tunel || {};
+  $("#punto-tunel").className = "estado-punto " + (tunel.conectado ? "si" : (tunel.motivo ? "" : "no"));
+  $("#texto-tunel").textContent = tunel.conectado
+    ? `Presentado al portero ${tunel.portero}${tunel.conexiones ? ` (${tunel.conexiones} conexión(es) abiertas)` : ""}.`
+    : (tunel.motivo ? `No se presenta: ${tunel.motivo}.` : `Sin conexión con el portero ${tunel.portero}${tunel.ultimo_error ? ` (${tunel.ultimo_error})` : ""}; se reintenta cada 15 s.`);
   const lista = $("#avisos");
   lista.innerHTML = "";
   (p.avisos || []).forEach(a => { const li = document.createElement("li"); li.textContent = a; lista.appendChild(li); });
@@ -166,6 +171,8 @@ function pintarAjustes(a) {
   $("#pitido_al_abrir").checked = !!a.pitido_al_abrir;
   $("#alto_cuadro").value = a.alto_cuadro || 0;
   const atajos = a.atajos_dictado || {};
+  $("#usar_portero").checked = a.usar_portero !== false;
+  $("#portero").value = a.portero || "";
   $("#atajo_chatgpt").value = atajos.chatgpt || "";
   $("#atajo_claude").value = atajos.claude || "";
 }
@@ -312,6 +319,10 @@ function conectar() {
     pre.textContent = (r.lineas && r.lineas.length) ? r.lineas.join("
 ") : `Sin registro en ${r.ruta}`;
     pre.scrollTop = pre.scrollHeight;
+  });
+  $("#btn-guardar-portero").addEventListener("click", async () => {
+    await pedir("/api/ajustes", { usar_portero: $("#usar_portero").checked, portero: $("#portero").value.trim() });
+    avisar("Guardado; el túnel se ajusta solo"); await refrescar();
   });
   $("#btn-guardar-clave").addEventListener("click", async () => {
     const clave = $("#clave_panel").value;

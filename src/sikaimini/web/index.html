@@ -270,8 +270,16 @@
     <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-clave">Cambiar la clave</button></div>
   </div>
   <div class="tarjeta">
+    <h2 class="editor-titulo">sikaimini.proyectoia.org</h2>
+    <p class="editor-sub">Este equipo se presenta solo al portero del Mac mini por Tailscale y le abre un túnel: la dirección pública pasa al PC que tenga el teclado, sin publicar nada ni abrir puertos. Hace falta clave en el panel y Tailscale conectado.</p>
+    <p><span class="estado-punto" id="punto-tunel"></span><span id="texto-tunel">…</span></p>
+    <label class="marca"><input type="checkbox" id="usar_portero">Presentarse al portero</label>
+    <div class="rejilla-campos"><div class="campo"><label for="portero">Portero (dirección de Tailscale del Mac mini)</label><input type="text" id="portero" placeholder="100.65.52.65:8027"></div></div>
+    <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-portero">Guardar</button></div>
+  </div>
+  <div class="tarjeta">
     <h2 class="editor-titulo">Dónde escucha el panel</h2>
-    <p class="editor-sub">Solo en este equipo, o también en su dirección de Tailscale. Publicado por Tailscale, <b>sikaimini.proyectoia.org</b> pasa al equipo que tenga el teclado enchufado. Hace falta clave.</p>
+    <p class="editor-sub">Solo en este equipo, o también en su dirección de Tailscale (camino de respaldo; ya no hace falta para la dirección pública). Desde el propio equipo nunca se pide clave.</p>
     <div class="rejilla-campos">
       <div class="campo"><label for="host_panel">Escuchar en</label><select id="host_panel"></select></div>
     </div>

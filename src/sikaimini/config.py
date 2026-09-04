@@ -83,6 +83,13 @@ class Ajustes:
     #: Último mapa leído del teclado, para enseñarlo cuando va por el receptor.
     ultimo_mapa: list[str] = field(default_factory=list)
 
+    # --- el portero del Mac mini ---
+    #: A quién se presenta el servicio para que sikaimini.proyectoia.org pase a
+    #: este PC. Es la dirección de Tailscale del Mac mini; vacío = no presentarse.
+    #: Solo se usa con clave puesta: sin clave, el panel no se publica.
+    portero: str = "100.65.52.65:8027"
+    usar_portero: bool = True
+
     # --- las luces ---
     #: Modo que se le graba al conectarlo por cable; -1 = dejar el que tenga.
     luces_modo: int = LUCES_SIN_TOCAR
