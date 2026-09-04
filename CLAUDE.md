@@ -563,6 +563,23 @@ siempre, con la palanca donde sea.
   interruptor, y con él elegido el dictado caía a Win+H en Claude sin decir
   por qué (4/9/2026, con los tres teclados a la vez). `microfono_propio` ya
   exige palabra entera y, para el interruptor, el primer botón que lo tenga.
+- **Ni un solo `\\` dentro de un heredoc de la consola de Claude.** La
+  herramienta Bash convierte `\\` en `\` antes de ejecutar, así que un
+  script de Python pegado por heredoc que escribe `"\\n"` en un archivo acaba
+  escribiendo un salto de línea real. Así llegó un error de sintaxis a los tres
+  instaladores (4/9/2026): `SikaiMini.exe` moría al abrirse, el servicio viejo
+  seguía vivo y la «actualización» no cambiaba nada. Los scripts con barras se
+  escriben a un archivo con la herramienta Write y se ejecutan desde ahí.
+  `pruebas/test_importa_todo.py` importa todos los módulos para cazar esto.
+- **Reinstalar encima tiene que parar el servicio viejo.** El nuevo se niega a
+  arrancar si ya hay otro vivo (a propósito, por el disparador repetido), así
+  que sin pararlo antes uno se queda con el código anterior creyendo que
+  actualizó. Los asistentes de SikaiMini y MiniMic lo hacen
+  (`detener_servicios_anteriores`); el de TecladoIA todavía no.
+- **Los zips llevan la versión en el nombre** (`SikaiMini-0.1.2.zip`, con copia
+  `SikaiMini.zip` para los enlaces fijos): hubo cuatro zips iguales en un día y
+  no había forma de saber cuál tenía instalado el usuario. La versión sale
+  también en Ajustes › «El servicio».
 - **Editando archivos del Mac mini desde Windows**, `Path.write_text` mete CRLF y
   `bash` revienta. Editar en binario y validar con `bash -n` antes de subir.
 
@@ -620,4 +637,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-264, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+265, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
