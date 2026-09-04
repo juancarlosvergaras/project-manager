@@ -189,6 +189,8 @@ function pintarPaquete(p) {
   const boton = $("#btn-descargar");
   if (p.disponible) {
     boton.classList.remove("btn-claro"); boton.classList.add("btn-verde");
+    boton.href = "/descargar/" + p.nombre;
+    boton.textContent = "Descargar " + p.nombre;
     $("#nota-descarga").textContent = `${p.megas} MB, con Python dentro.`;
   } else {
     boton.classList.remove("btn-verde"); boton.classList.add("btn-claro");

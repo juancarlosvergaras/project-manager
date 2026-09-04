@@ -11,7 +11,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-NOMBRE_EXE = "SikaiMini.zip"  # una carpeta en un zip; ver construir_sikaimini.py
+from . import __version__
+
+#: Una carpeta en un zip (ver construir_sikaimini.py), con la versión en el
+#: nombre para saber qué se instaló: hoy hubo cuatro zips iguales en un día.
+NOMBRE_EXE = f"SikaiMini-{__version__}.zip"
 
 
 def ruta_ejecutable() -> Path | None:

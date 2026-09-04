@@ -100,6 +100,29 @@ def abrir_en_el_navegador(url: str) -> bool:
         return False
 
 
+def detener_servicios_anteriores() -> int:
+    """Para cualquier minimic servicio que quede vivo. Devuelve cuántos paró.
+
+    Al reinstalar encima, el servicio viejo seguía en marcha y el nuevo, al
+    arrancar, veía que «ya hay otro» y se retiraba: uno se quedaba con el
+    código de antes creyendo que había actualizado.
+    """
+    if os.name != "nt":
+        return 0
+    guion = (
+        "$mio = $PID; Get-CimInstance Win32_Process | Where-Object { "
+        "($_.Name -like 'python*' -or $_.Name -like 'minimic*') -and $_.ProcessId -ne $mio "
+        "-and $_.CommandLine -like '*minimic*servicio*' } | ForEach-Object { "
+        "Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }"
+    )
+    try:
+        hecho = subprocess.run(["powershell", "-NoProfile", "-Command", guion], capture_output=True, text=True, timeout=40)
+    except Exception:  # noqa: BLE001
+        return 0
+    subprocess.run(["schtasks", "/End", "/TN", TAREA], capture_output=True, text=True)
+    return len([l for l in hecho.stdout.split() if l.strip().isdigit()])
+
+
 def ejecutar(preguntar=input, escribir=print) -> int:
     """La instalación guiada: lo que hace `MiniMic.exe` al abrirse sin argumentos."""
     from . import dispositivo
@@ -140,6 +163,11 @@ def ejecutar(preguntar=input, escribir=print) -> int:
         ajustes.clave_panel = nueva
         ajustes.guardar()
         escribir("    [ok] clave guardada")
+
+    escribir("")
+    escribir("==> Parando lo que hubiera de antes")
+    parados = detener_servicios_anteriores()
+    escribir(f"    [ok] {parados} servicio(s) anterior(es) parado(s)" if parados else "    [ok] no había ninguno")
 
     escribir("")
     escribir("==> Dejando el servicio arrancando con el equipo")

@@ -100,6 +100,52 @@ def abrir_en_el_navegador(url: str) -> bool:
         return False
 
 
+def grabar_el_teclado(ajustes: Ajustes, escribir=print) -> None:
+    """Deja el teclado como se quiere ahí mismo, sin esperar al servicio."""
+    from . import dispositivo, protocolo
+    from .protocolo import Atajo
+
+    try:
+        teclado = dispositivo.Teclado()
+        mapa = teclado.leer_capa(0)
+        cambios = 0
+        for indice, texto in enumerate(ajustes.teclas):
+            atajo = Atajo.desde_texto(texto)
+            if mapa.teclas.get(indice) != atajo:
+                teclado.escribir_tecla(0, indice, atajo)
+                cambios += 1
+        if teclado.ajustes().modo_microfono != ajustes.modo_microfono:
+            teclado.modo_microfono(ajustes.modo_microfono)
+            cambios += 1
+        piezas = ", ".join(f"{n}: {t}" for n, t in zip(protocolo.NOMBRES_DE_LAS_PIEZAS, ajustes.teclas))
+        escribir(f"    [ok] teclado grabado ({cambios} cambio(s)): {piezas}")
+    except Exception as error:  # noqa: BLE001 - el servicio lo reintenta al arrancar
+        escribir(f"    [!]  no se pudo grabar ahora ({error}); el servicio lo hará al arrancar")
+
+
+def detener_servicios_anteriores() -> int:
+    """Para cualquier sikaimini servicio que quede vivo. Devuelve cuántos paró.
+
+    Al reinstalar encima, el servicio viejo seguía en marcha y el nuevo, al
+    arrancar, veía que «ya hay otro» y se retiraba: uno se quedaba con el
+    código de antes creyendo que había actualizado.
+    """
+    if os.name != "nt":
+        return 0
+    guion = (
+        "$mio = $PID; Get-CimInstance Win32_Process | Where-Object { "
+        "($_.Name -like 'python*' -or $_.Name -like 'sikaimini*') -and $_.ProcessId -ne $mio "
+        "-and $_.CommandLine -like '*sikaimini*servicio*' } | ForEach-Object { "
+        "Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }"
+    )
+    try:
+        hecho = subprocess.run(["powershell", "-NoProfile", "-Command", guion], capture_output=True, text=True, timeout=40)
+    except Exception:  # noqa: BLE001
+        return 0
+    subprocess.run(["schtasks", "/End", "/TN", TAREA], capture_output=True, text=True)
+    return len([l for l in hecho.stdout.split() if l.strip().isdigit()])
+
+
 def ejecutar(preguntar=input, escribir=print) -> int:
     """La instalación guiada: lo que hace `SikaiMini.exe` al abrirse sin argumentos."""
     from . import dispositivo
@@ -120,6 +166,8 @@ def ejecutar(preguntar=input, escribir=print) -> int:
             escribir(f"    [ok] {p.descripcion}")
             if not p.configurable:
                 escribir("         Por el receptor funciona; para grabarle las teclas conéctalo por cable una vez.")
+            else:
+                grabar_el_teclado(ajustes, escribir)
         else:
             escribir("    [!]  no lo veo. Enchufa el cable o el receptor; la instalación sigue igual.")
     except dispositivo.ErrorDispositivo as error:
@@ -167,6 +215,11 @@ def ejecutar(preguntar=input, escribir=print) -> int:
         else:
             ajustes.host_panel = "127.0.0.1"
             ajustes.guardar()
+
+    escribir("")
+    escribir("==> Parando lo que hubiera de antes")
+    parados = detener_servicios_anteriores()
+    escribir(f"    [ok] {parados} servicio(s) anterior(es) parado(s)" if parados else "    [ok] no había ninguno")
 
     escribir("")
     escribir("==> Dejando el servicio arrancando con el equipo")

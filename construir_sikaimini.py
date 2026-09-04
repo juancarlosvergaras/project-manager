@@ -73,10 +73,15 @@ def construir() -> int:
         print("PyInstaller terminó pero no dejó el ejecutable donde se esperaba.")
         return 1
     (carpeta / "LEEME.txt").write_text(LEEME, encoding="utf-8")
-    zip_final = RAIZ / "dist" / "SikaiMini.zip"
-    if zip_final.exists():
-        zip_final.unlink()
+    sys.path.insert(0, str(RAIZ / "src"))
+    from sikaimini.empaquetado import NOMBRE_EXE
+
+    for viejo in (RAIZ / "dist").glob("SikaiMini-*.zip"):
+        viejo.unlink()
+    zip_final = RAIZ / "dist" / NOMBRE_EXE
     shutil.make_archive(str(zip_final.with_suffix("")), "zip", RAIZ / "dist", "SikaiMini")
+    # Y una copia con el nombre de siempre, para los enlaces que no saben de versiones.
+    shutil.copyfile(zip_final, RAIZ / "dist" / "SikaiMini.zip")
     print(f"Listo: {zip_final}  ({zip_final.stat().st_size / 1_048_576:.1f} MB)")
     shutil.rmtree(RAIZ / "build", ignore_errors=True)
     viejo = RAIZ / "dist" / "SikaiMini.exe"
