@@ -576,6 +576,12 @@ siempre, con la palanca donde sea.
   que sin pararlo antes uno se queda con el código anterior creyendo que
   actualizó. Los asistentes de SikaiMini y MiniMic lo hacen
   (`detener_servicios_anteriores`); el de TecladoIA todavía no.
+- **Cloudflare guarda en caché los `.zip` y `.exe` de `teclado.proyectoia.org`**
+  (`cf-cache-status: HIT`): subir un archivo nuevo con el mismo nombre no
+  cambia lo que la gente baja hasta que caduque. Por eso el nombre con versión
+  no es capricho, y los enlaces a `MiniMic.zip` y `TecladoIA.exe` llevan `?v=`
+  en la portada. Comprobar siempre con `curl -D -` que el tamaño servido es el
+  del archivo subido.
 - **Los zips llevan la versión en el nombre** (`SikaiMini-0.1.2.zip`, con copia
   `SikaiMini.zip` para los enlaces fijos): hubo cuatro zips iguales en un día y
   no había forma de saber cuál tenía instalado el usuario. La versión sale
