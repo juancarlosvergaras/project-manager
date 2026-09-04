@@ -105,7 +105,7 @@
 
 <nav class="barra-secciones" aria-label="Secciones">
   <button type="button" class="tab activa" data-seccion="teclado">Teclado y perilla</button>
-  <button type="button" class="tab" data-seccion="luces">Luces</button>
+  <button type="button" class="tab" data-seccion="luces">Luces (fijas)</button>
   <button type="button" class="tab" data-seccion="microfono">Micrófono y dictado</button>
   <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
   <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
@@ -182,8 +182,8 @@
 <section class="seccion" id="seccion-luces">
   <div class="taller">
     <div class="tarjeta">
-      <h2 class="editor-titulo">Las luces del teclado</h2>
-      <p class="editor-sub">El firmware guarda un modo, un color y una paleta de dieciséis colores. El programa del fabricante esconde esta pestaña para este modelo, así que lo que hace cada modo se descubre probándolo: elige un número, un color, y mira el teclado.</p>
+      <h2 class="editor-titulo">Las luces del teclado no se pueden cambiar</h2>
+      <p class="editor-sub"><b>Comprobado con el aparato:</b> cada tecla tiene su color fijo en el firmware —azul el micrófono (encendido mientras graba), verde Sí, rojo No— y no obedece a nada de lo que se le grabe. El teclado acepta la orden de luces y la devuelve al releer, pero no cambia nada visible; el programa del fabricante esconde esta pestaña para este modelo por lo mismo. Lo de abajo se deja por si un firmware futuro lo atiende.</p>
       <div class="luces-fila">
         <div class="campo"><label for="luces-modo">Modo (0 a 255; −1 = no tocar)</label><input type="number" id="luces-modo" min="-1" max="255" value="-1"></div>
         <div class="campo" style="flex:0 0 auto"><label for="luces-color">Color</label><input type="color" id="luces-color" value="#ffffff"></div>

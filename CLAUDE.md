@@ -232,11 +232,14 @@ manejo del micrófono, y pone encima lo suyo. Lo que cambia, comprobado el
   programa del fabricante con `pywinauto`: `00` clic, `01` derecho, `02`
   central, `03` rueda arriba, `04` rueda abajo, `05-0a` rueda con Ctrl, Mayús y
   Alt, `0b-0e` gestos, `0f` «me gusta». Está en `protocolo.RATON`.
-- **Luces**: `0x0A` lee y **`0x09` escribe**, con arg `0xFE` y 52 bytes:
-  `[modo][R][G][B]` y una paleta de 16 colores. El teclado acusa y devuelve lo
-  escrito al releer. El programa del fabricante esconde la pestaña de luces para
-  este modelo, así que **qué hace cada modo se descubre mirando el teclado**; la
-  pestaña «Luces» del panel es para eso. Con `luces_modo = -1` no se tocan.
+- **Luces: no se pueden cambiar.** `0x0A` lee y `0x09` escribe (arg `0xFE`,
+  52 bytes: `[modo][R][G][B]` y una paleta de 16), el teclado acusa y devuelve lo
+  escrito al releer… **y no cambia nada visible**. Comprobado el 4/9/2026 con el
+  aparato: cada tecla tiene su color fijo en el firmware (azul el micrófono,
+  encendido mientras graba; verde Sí; rojo No). El programa del fabricante
+  esconde la pestaña de luces para este modelo por eso. No prometer colores.
+  La pestaña «Luces (fijas)» del panel lo dice; el código se queda por si un
+  firmware futuro lo atiende.
 
 **Cómo se distinguen los dos teclados**: solo leyéndolos. El MiniMic contesta
 cinco registros y el SiKai seis. `leer_capa` de cada aplicación exige su número
