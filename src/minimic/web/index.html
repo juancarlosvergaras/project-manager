@@ -186,6 +186,15 @@
     <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-clave">Cambiar la clave</button></div>
   </div>
   <div class="tarjeta">
+    <h2 class="editor-titulo">Dónde escucha el panel</h2>
+    <p class="editor-sub">Solo en este equipo, o también en su dirección de Tailscale. Publicado por Tailscale, <b>minimic.proyectoia.org</b> pasa al equipo que tenga el teclado enchufado. Hace falta clave.</p>
+    <div class="rejilla-campos">
+      <div class="campo"><label for="host_panel">Escuchar en</label><select id="host_panel"></select></div>
+    </div>
+    <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-host">Aplicar</button></div>
+    <p class="nota">Si Windows pregunta si permite a MiniMic en la red, di que sí: sin eso Tailscale no llega.</p>
+  </div>
+  <div class="tarjeta">
     <h2 class="editor-titulo">El servicio</h2>
     <p id="texto-servicio" class="editor-sub">…</p>
     <ul class="lista-pasos" id="avisos"></ul>

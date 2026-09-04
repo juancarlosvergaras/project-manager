@@ -33,8 +33,32 @@ _FIN = "\r\n"
 _CAMPOS_AJUSTES = {
     "programa": str, "alto_cuadro": int, "pinchar_cuadro": bool, "enviar_al_cerrar": bool,
     "adoptar_microfono": bool, "pitido_al_abrir": bool, "clave_panel": str,
-    "usar_microfono_propio": bool,
+    "usar_microfono_propio": bool, "host_panel": str,
 }
+
+
+def _nombre_del_equipo() -> str:
+    import socket
+    try:
+        return socket.gethostname()
+    except OSError:
+        return ""
+
+
+def direcciones_locales() -> list[str]:
+    """Las IP de este equipo en las que se puede publicar el panel (Tailscale incluida)."""
+    import socket
+    vistas: list[str] = []
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if ip not in vistas and not ip.startswith("127."):
+                vistas.append(ip)
+    except OSError:
+        pass
+    # La de Tailscale (100.64.0.0/10) primero: es la que se ve desde fuera.
+    vistas.sort(key=lambda ip: (not ip.startswith("100."), ip))
+    return vistas
 
 
 def _suceso(tipo: str, carga: str, identificador: Optional[int] = None) -> bytes:
@@ -113,7 +137,13 @@ class PanelWeb:
             elif partes.path == "/api/salud":
                 # Sin clave a propósito: es lo que pregunta el siguiente arranque
                 # para no abrir dos servicios sobre el mismo teclado.
-                estado, tipo, datos = self._json_ok({"app": "minimic", "version": __version__})
+                estado, tipo, datos = self._json_ok({
+                    "app": "minimic", "version": __version__,
+                    # Sin clave también: es lo que mira el portero del Mac mini
+                    # para pasar al PC que tenga el teclado enchufado.
+                    "teclado": self.servicio.estado.presencia.conectado,
+                    "equipo": _nombre_del_equipo(),
+                })
             elif not self._autorizado(cabeceras, consulta):
                 estado, tipo, datos = self._sin_permiso()
             elif consulta.get("clave"):
@@ -259,6 +289,9 @@ class PanelWeb:
                     {"valor": protocolo.MICROFONO_MANTENER, "nombre": "Mantener pulsada mientras se habla"},
                 ],
                 "atajo": s.resumen()["dictado"]["atajo"],
+                "direcciones": ["127.0.0.1", *direcciones_locales()],
+                "escuchando_en": self.ajustes.host_panel,
+                "equipo": _nombre_del_equipo(),
             })
         if ruta == "/api/paquete" and metodo == "GET":
             return self._json_ok(empaquetado.resumen_ejecutable())
@@ -305,8 +338,31 @@ class PanelWeb:
                 raise ValueError("programa desconocido")
             if campo == "clave_panel" and valor and len(valor) < 6:
                 raise ValueError("la clave necesita al menos seis caracteres")
+            if campo == "host_panel":
+                permitidas = {"127.0.0.1", *direcciones_locales()}
+                if valor not in permitidas:
+                    raise ValueError(f"esa dirección no es de este equipo; valen {sorted(permitidas)}")
+                clave = datos.get("clave_panel") if isinstance(datos.get("clave_panel"), str) else self.ajustes.clave_panel
+                if valor != "127.0.0.1" and not clave:
+                    raise ValueError("para publicar fuera de este equipo hace falta clave")
             setattr(self.ajustes, campo, valor)
             cambiados.append(campo)
         self.ajustes.guardar()
         self.servicio.publicar("estado")
-        return {"guardado": cambiados, "ajustes": self.ajustes.como_dict()}
+        if "host_panel" in cambiados:
+            # Se vuelve a abrir el panel en la dirección nueva, después de
+            # contestar: cerrar antes dejaría esta respuesta sin salir.
+            asyncio.get_running_loop().call_later(0.8, lambda: asyncio.ensure_future(self._reabrir()))
+        return {"guardado": cambiados, "ajustes": self.ajustes.como_dict(),
+                "reabriendo": "host_panel" in cambiados}
+
+    async def _reabrir(self) -> None:
+        await self.detener()
+        self.puerto = None
+        await self.arrancar()
+        if self.puerto is None:
+            # No se pudo (sin clave, puerto ocupado…): se vuelve a lo local para no quedarse mudo.
+            self.ajustes.host_panel = "127.0.0.1"
+            self.ajustes.guardar()
+            await self.arrancar()
+        self.servicio.publicar("estado")

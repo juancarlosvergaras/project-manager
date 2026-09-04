@@ -270,11 +270,21 @@ class Servicio:
         finally:
             self.estado.atajo_reservado = False
 
+    @staticmethod
+    def _proceso_al_frente() -> str:
+        """Nombre del proceso de la ventana activa, o «» si no se puede saber."""
+        try:
+            from tecladoia.enfoque import _ventana_al_frente
+            ventana = _ventana_al_frente()
+            return ventana.proceso if ventana else ""
+        except Exception:  # noqa: BLE001
+            return ""
+
     def al_pulsar_microfono(self) -> dict[str, Any]:
         """Lo que pasa cuando llega la combinación de la tecla blanca."""
         if self._dictado is None:
             return {"accion": "sin dictado"}
-        programa = self.ajustes.programa_elegido()
+        programa = self.ajustes.programa_elegido(self._proceso_al_frente())
         if self.ajustes.pitido_al_abrir and not self._dictado.abierto:
             try:
                 from tecladoia.sonido import avisar

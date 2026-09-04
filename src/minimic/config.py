@@ -66,7 +66,7 @@ class Ajustes:
     clave_panel: str = ""
 
     # --- a quién se le habla ---
-    programa: str = "claude"  #: uno de PROGRAMAS, por su id
+    programa: str = "activo"  #: uno de PROGRAMAS, por su id; «activo» sigue a la ventana que tengas delante
     alto_cuadro: int = 0  #: píxeles desde abajo hasta el cuadro de escribir; 0 = el 10 %
     pinchar_cuadro: bool = True
     enviar_al_cerrar: bool = True  #: al cerrar el dictado con la tecla, manda Intro
@@ -85,11 +85,21 @@ class Ajustes:
     #: Último mapa leído del teclado, para enseñarlo cuando va por el receptor.
     ultimo_mapa: list[str] = field(default_factory=list)
 
-    def programa_elegido(self) -> dict[str, str]:
+    def programa_elegido(self, proceso_al_frente: str = "") -> dict[str, str]:
+        """El programa al que se le habla.
+
+        Con «activo», el que tengas delante: si es uno conocido (Claude, ChatGPT,
+        Cursor) se usa su ficha, con su micrófono propio y su cuadro; si es otro,
+        se dicta donde esté el cursor. Así la tecla no te saca de ChatGPT para
+        llevarte a Claude, que es lo que pasaba con el programa fijo.
+        """
+        if self.programa == "activo":
+            return programa_por_proceso(proceso_al_frente)
         for p in PROGRAMAS:
             if p["id"] == self.programa:
                 return p
         return PROGRAMAS[-1]
+
 
     # --- disco ---
     @classmethod
@@ -136,3 +146,11 @@ class Ajustes:
         datos = asdict(self)
         datos["clave_panel"] = bool(self.clave_panel)  # nunca se devuelve la clave
         return datos
+
+
+def programa_por_proceso(proceso: str) -> dict[str, str]:
+    nombre = (proceso or "").lower().removesuffix(".exe")
+    for p in PROGRAMAS:
+        if p["proceso"] and p["proceso"].lower() == nombre:
+            return p
+    return PROGRAMAS[-1]

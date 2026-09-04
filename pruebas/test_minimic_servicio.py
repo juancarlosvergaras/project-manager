@@ -252,6 +252,23 @@ class PruebaPanel(PruebaAislada):
         self.correr(caso)
 
 
+class PruebaProgramaActivo(unittest.TestCase):
+    def test_sigue_a_la_ventana_conocida(self):
+        a = Ajustes(programa="activo")
+        self.assertEqual(a.programa_elegido("ChatGPT")["id"], "chatgpt")
+        self.assertEqual(a.programa_elegido("claude.exe")["id"], "claude")
+        self.assertEqual(a.programa_elegido("Cursor")["id"], "cursor")
+
+    def test_ventana_desconocida_dicta_donde_este_el_cursor(self):
+        a = Ajustes(programa="activo")
+        self.assertEqual(a.programa_elegido("chrome")["proceso"], "")
+        self.assertEqual(a.programa_elegido("")["proceso"], "")
+
+    def test_programa_fijo_no_mira_la_ventana(self):
+        a = Ajustes(programa="claude")
+        self.assertEqual(a.programa_elegido("ChatGPT")["id"], "claude")
+
+
 class PruebaConfig(PruebaAislada):
     def setUp(self) -> None:
         super().setUp()

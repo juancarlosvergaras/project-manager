@@ -138,6 +138,9 @@ function pintarOpciones(o) {
   const sel = $("#tecla-base");
   sel.innerHTML = "<option value=''>(solo modificadores)</option>" + o.teclas.map(t => `<option value="${t}">${nombreBonito(t)}</option>`).join("");
   $("#programa").innerHTML = o.programas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  $("#host_panel").innerHTML = (o.direcciones || ["127.0.0.1"]).map(d =>
+    `<option value="${d}">${d === "127.0.0.1" ? "Solo este equipo (127.0.0.1)" : d + (d.startsWith("100.") ? " (Tailscale)" : "")}</option>`).join("");
+  $("#host_panel").value = o.escuchando_en || "127.0.0.1";
 }
 
 // --- editor de tecla ---------------------------------------------------------------
@@ -212,6 +215,15 @@ function conectar() {
       pitido_al_abrir: $("#pitido_al_abrir").checked, alto_cuadro: Number($("#alto_cuadro").value) || 0,
     });
     avisar("Guardado");
+  });
+  $("#btn-guardar-host").addEventListener("click", async () => {
+    const host = $("#host_panel").value;
+    const r = await pedir("/api/ajustes", { host_panel: host });
+    if (r.reabriendo && host !== "127.0.0.1") {
+      avisar(`El panel se está moviendo a http://${host}:8771. Si esta pestaña deja de responder, ábrelo ahí.`);
+    } else {
+      avisar("Guardado");
+    }
   });
   $("#btn-guardar-clave").addEventListener("click", async () => {
     const clave = $("#clave_panel").value;
