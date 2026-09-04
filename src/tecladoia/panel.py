@@ -243,6 +243,18 @@ class PanelWeb:
     def solo_local(self) -> bool:
         return self.ajustes.host_panel in ("127.0.0.1", "::1", "localhost")
 
+    def _donde_escuchar(self) -> list[str]:
+        """Siempre en el propio equipo y, además, en la dirección configurada.
+
+        Publicar el panel en la dirección de Tailscale no debe cerrar la
+        puerta local: el PC que tiene el teclado tiene que poder abrir su panel
+        aunque no haya red, y sin clave.
+        """
+        host = self.ajustes.host_panel
+        if host in ("", "127.0.0.1", "localhost", "::1", "0.0.0.0"):
+            return [host or "127.0.0.1"]
+        return ["127.0.0.1", host]
+
     async def arrancar(self) -> None:
         # El panel mueve la palanca de aprobación: publicarlo sin clave sería
         # dejar que cualquiera que lo alcance ponga los agentes en «aprobar
@@ -259,7 +271,7 @@ class PanelWeb:
         for intento in range(10):
             try:
                 self._http = await asyncio.start_server(
-                    self._atender, self.ajustes.host_panel, base + intento
+                    self._atender, self._donde_escuchar(), base + intento
                 )
             except OSError:
                 continue
