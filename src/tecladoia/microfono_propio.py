@@ -70,6 +70,12 @@ PERFILES: dict[str, dict[str, tuple[str, ...]]] = {
         "interruptor": (
             "grabar", "record", "detener dictado", "stop dictation",
         ),
+        # Y en otras versiones de Claude (vista el 4/9/2026 en otro PC) no hay
+        # interruptor: hay un botón «Dictar» normal, como en ChatGPT, que al
+        # grabar se cambia por «Detener dictado». Si no aparece el interruptor
+        # se cae a esto. «Entrada de voz» es el modo de voz, no el dictado.
+        "empezar": ("dictar", "dictate", "grabar", "record"),
+        "parar": ("detener dictado", "stop dictation"),
     },
     "chatgpt": {
         # Su atajo, de respaldo por si algún día no se encuentra el botón.
@@ -269,12 +275,12 @@ class MicrofonoDeLaApp:
         trozos = self.perfil.get("interruptor")
         if trozos:
             _, interruptor = _buscar_interruptor(botones, trozos)
-            if interruptor is None:
-                return None
-            try:
-                return bool(interruptor.CurrentToggleState == 1)
-            except Exception:  # noqa: BLE001
-                return None
+            if interruptor is not None:
+                try:
+                    return bool(interruptor.CurrentToggleState == 1)
+                except Exception:  # noqa: BLE001
+                    return None
+            # Sin interruptor se sigue abajo, por presencia, si el perfil lo describe.
 
         # Por presencia: si está el botón de parar, es que está grabando.
         if _buscar(botones, self.perfil.get("parar", ())) is not None:
@@ -320,11 +326,11 @@ class MicrofonoDeLaApp:
     def _accionar(self, papel: str, quedando: bool) -> Optional[bool]:
         botones = self._botones()
         trozos = self.perfil.get("interruptor")
+        interruptor = None
         if trozos:
             # Un solo botón para las dos cosas.
             _, interruptor = _buscar_interruptor(botones, trozos)
-            if interruptor is None:
-                return None
+        if interruptor is not None:
             try:
                 interruptor.Toggle()
             except Exception:  # noqa: BLE001

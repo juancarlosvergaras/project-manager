@@ -373,3 +373,37 @@ class PruebaBuscadorDeBotones(unittest.TestCase):
         self.assertIs(boton, botones[2])
         self.assertEqual(interruptor, "toggle")
         self.assertEqual(_buscar_interruptor(botones[:2], ("grabar",), lambda b: None), (None, None))
+
+
+class PruebaClaudeConBotonDictar(unittest.TestCase):
+    """Otra versión de Claude: botón «Dictar» normal, sin interruptor, como ChatGPT."""
+
+    class Boton:
+        def __init__(self, nombre):
+            self.CurrentName = nombre
+            self.pulsado = 0
+
+    def _con(self, nombres):
+        from tecladoia import microfono_propio as mp
+        botones = [self.Boton(n) for n in nombres]
+        originales = (mp._botones, mp._interruptor, mp._pulsar)
+        mp._botones = lambda hwnd: botones
+        mp._interruptor = lambda boton: None
+        mp._pulsar = lambda boton: (setattr(boton, "pulsado", boton.pulsado + 1) or True)
+        self.addCleanup(lambda: setattr(mp, "_botones", originales[0]))
+        self.addCleanup(lambda: setattr(mp, "_interruptor", originales[1]))
+        self.addCleanup(lambda: setattr(mp, "_pulsar", originales[2]))
+        return mp, botones
+
+    def test_estado_por_presencia_sin_interruptor(self):
+        mp, _ = self._con(["Copiar", "Agregar archivos, conectores y más", "Dictar", "Entrada de voz"])
+        m = mp.MicrofonoDeLaApp(1, "claude")
+        self.assertIs(m.estado(intentos=1), False)
+        mp, _ = self._con(["Detener dictado", "Entrada de voz"])
+        self.assertIs(mp.MicrofonoDeLaApp(1, "claude").estado(intentos=1), True)
+
+    def test_arrancar_pulsa_dictar_y_no_entrada_de_voz(self):
+        mp, botones = self._con(["Entrada de voz", "Dictar"])
+        m = mp.MicrofonoDeLaApp(1, "claude")
+        m._accionar("empezar", True)
+        self.assertEqual([b.pulsado for b in botones], [0, 1])
