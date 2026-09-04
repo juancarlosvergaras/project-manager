@@ -769,6 +769,7 @@ if (location.search.includes("clave=")) {
         "segundos_reposo", "efecto_reposo",
         "manos_libres", "pitidos_manos_libres", "manos_libres_espera_s",
         "milisegundos_estado_breve", "milisegundos_tarea_completada",
+        "usar_microfono_propio",
     )
 
     def _ajustes_json(self) -> dict[str, Any]:

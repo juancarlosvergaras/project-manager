@@ -230,6 +230,14 @@ class Ajustes:
 
     palanca_fija: Optional[int] = None
 
+    #: Usar el micrófono del propio programa (Claude, ChatGPT) en vez de
+    #: Win+H cuando lo tenga.
+    #:
+    #: Se prefiere porque **su botón dice si está grabando** y el de Windows
+    #: no. Casi todo lo que fallaba del micrófono venía de tener que
+    #: adivinarlo. Si se apaga, se usa Win+H en todas partes, como antes.
+    usar_microfono_propio: bool = True
+
     manos_libres: bool = False
     #: Lo que se espera desde que el agente termina hasta abrir el micrófono.
     #: Sin esta pausa el dictado se abre encima de lo último que escribe y no

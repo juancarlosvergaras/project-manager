@@ -316,6 +316,9 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
 
             if hay_soporte():
                 microfono = Dictado()
+                microfono.usar_el_propio = getattr(
+                    ajustes, "usar_microfono_propio", True
+                )
 
                 bucle_microfono = asyncio.get_running_loop()
                 #: Ultimo modo que se pudo leer del teclado. En una lista para

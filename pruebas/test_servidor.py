@@ -213,7 +213,13 @@ class PruebaBarraEnReposo(PruebaAislada):
         gestor = GestorTeclado(ajustes, simulado)
         return ServidorEnganches(gestor, ajustes), gestor, simulado
 
-    def test_un_momento_pasajero_vuelve_solo_al_reposo(self):
+    def test_entre_herramientas_la_barra_sigue_trabajando(self):
+        """Acabar una herramienta no es acabar: el agente sigue.
+
+        Antes volvia a reposo, asi que la barra parpadeaba azul-apagado veinte
+        veces por turno. Mucho movimiento para no decir nada, y encima ahogaba
+        los dos momentos que si importan: te espera, y ha terminado.
+        """
         async def caso():
             servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
             await gestor.conectar()
@@ -222,6 +228,24 @@ class PruebaBarraEnReposo(PruebaAislada):
             )
             await asyncio.sleep(0.02)
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_TERMINADA))
+            await asyncio.sleep(0.15)
+            self.assertEqual(
+                simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO),
+                "se apago entre una herramienta y la siguiente",
+            )
+        asyncio.run(caso())
+
+    def test_un_momento_pasajero_vuelve_solo_al_reposo(self):
+        """Los demas momentos pasajeros si se apagan: no hay trabajo detras."""
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "claude",
+                            "evento": "UserPromptSubmit"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.PETICION_ENVIADA))
             await asyncio.sleep(0.15)
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
             self.assertIsNone(servidor.agente_activo)

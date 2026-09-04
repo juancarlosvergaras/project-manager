@@ -31,6 +31,7 @@ import time
 from ctypes import wintypes
 from typing import Callable, Optional
 
+from .microfono_propio import buscar_boton, esta_grabando, poner
 from .registro import obtener
 
 _log = obtener("dictado")
@@ -592,6 +593,8 @@ class Dictado:
         #: vez de abrirlo. De ahí el «la primera vez que lo pulso no se
         #: activa», que después ya va bien porque las cuentas vuelven a cuadrar.
         self._primera_vez = True
+        #: ¿Se prefiere el micrófono del propio programa cuando lo tenga?
+        self.usar_el_propio = True
         self.programa = ""
         self._ultima = 0.0
 
@@ -653,6 +656,36 @@ class Dictado:
             return {"accion": "repetida", "programa": self.programa}
         self._ultima = ahora
 
+        # Si el programa tiene micrófono propio, **su botón manda sobre
+        # nuestras cuentas**. Es la diferencia de fondo con Win+H: en vez de
+        # recordar si lo abrimos —y desajustarnos en cuanto Windows lo cerrara
+        # por su cuenta o el servicio se reiniciara— se le pregunta.
+        propio = self._boton_propio(programa)
+        if propio is not None:
+            grabando = esta_grabando(propio)
+            if grabando:
+                enviado = False
+                if enviar_al_cerrar:
+                    time.sleep(0.5)   # que termine de escribir lo dictado
+                    _pulsar(VK_INTRO)
+                    enviado = True
+                    time.sleep(0.25)
+                poner(propio, False)
+                self.abierto = False
+                return {
+                    "accion": "cerrado", "programa": programa,
+                    "enviado": enviado, "con_el_propio": True,
+                }
+            hecho = dictar_en(
+                programa, lanzar,
+                pinchar_el_cuadro=pinchar_el_cuadro,
+                alto_del_cuadro=alto_del_cuadro,
+                grabando=True,
+            )
+            self.abierto = True
+            self.programa = programa
+            return {"accion": "abierto", **hecho}
+
         if self.abierto:
             enviado = False
             if enviar_al_cerrar:
@@ -679,6 +712,27 @@ class Dictado:
         self.programa = programa
         return {"accion": "abierto", **hecho}
 
+    def _boton_propio(self, programa: str):
+        if not self.usar_el_propio:
+            return None
+
+        """El botón de micrófono del programa, si lo publica y está delante.
+
+        Se busca sin traer la ventana al frente: solo se mira. Si el programa
+        no está abierto o no tiene dictado propio, se devuelve ``None`` y el
+        camino de siempre —Win+H— sigue funcionando igual.
+        """
+        if not programa:
+            return None
+        try:
+            hwnd = _ventana_de(programa)
+            if not hwnd:
+                return None
+            return buscar_boton(hwnd, programa)
+        except Exception:  # noqa: BLE001 - nunca vale la pena morir por esto
+            _log.debug("No se pudo mirar el micrófono propio", exc_info=True)
+            return None
+
 
 def dictar_en(
     proceso: str,
@@ -686,8 +740,16 @@ def dictar_en(
     espera_arranque_s: float = 6.0,
     pinchar_el_cuadro: bool = True,
     alto_del_cuadro: int = 0,
+    usar_el_propio: bool = True,
+    grabando: bool = True,
 ) -> dict:
-    """Enfoca el programa —abriéndolo si hace falta— y dicta dentro de él."""
+    """Enfoca el programa —abriéndolo si hace falta— y dicta dentro de él.
+
+    Si el programa trae su propio micrófono y lo publica —Claude y ChatGPT lo
+    hacen—, se usa ese en vez de Win+H. La ventaja no es la calidad del
+    dictado: es que **su botón dice si está grabando**, y el de Windows no.
+    Casi todo lo que fallaba del micrófono venía de tener que adivinarlo.
+    """
     if not proceso:
         time.sleep(ESPERA_FOCO_S)
         abrir_dictado()
@@ -721,10 +783,10 @@ def dictar_en(
     # deja darle el foco sin tocar el ratón. Adivinar la posición no vale: en
     # ChatGPT el cuadro está a media altura con la conversación vacía y abajo
     # cuando hay mensajes, y en Claude está en otro sitio distinto.
+    hwnd = _ventana_de(proceso)
     en_el_cuadro = False
     como = "no"
     if pinchar_el_cuadro:
-        hwnd = _ventana_de(proceso)
         if hwnd:
             from .cuadro_de_texto import enfocar_cuadro
 
@@ -737,12 +799,33 @@ def dictar_en(
                 como = "clic a ciegas" if en_el_cuadro else "no"
         time.sleep(0.2)
 
-    abrir_dictado()
+    # El micrófono del propio programa, si lo tiene. Se intenta antes que
+    # Win+H porque con él no hay que adivinar nada: se le pregunta en qué
+    # posición está y se le deja en la que toca. Si no lo tiene —o si cambió
+    # de nombre y no lo reconocemos— queda Win+H, que funciona en cualquier
+    # sitio aunque sea a ciegas.
+    con_el_propio = False
+    if usar_el_propio and hwnd:
+        from .microfono_propio import buscar_boton, poner
+
+        boton = buscar_boton(hwnd, proceso)
+        if boton is not None:
+            quedo = poner(boton, grabando)
+            if quedo is not None:
+                con_el_propio = True
+                _log.info(
+                    "Micrófono propio de «%s»: %s",
+                    proceso, "grabando" if quedo else "parado",
+                )
+
+    if not con_el_propio:
+        abrir_dictado()
     return {
         "programa": proceso,
         "enfocado": enfocado,
         "abierto": abierto,
         "en_el_cuadro": en_el_cuadro,
+        "con_el_propio": con_el_propio,
         "cuadro": como,
     }
 

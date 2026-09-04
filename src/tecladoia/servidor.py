@@ -425,8 +425,21 @@ class ServidorEnganches:
                 if evento.estado is EstadoIA.TAREA_COMPLETADA
                 else None
             ) or self.ajustes.milisegundos_estado_breve
+            # Entre herramienta y herramienta el agente **sigue trabajando**,
+            # asi que la barra no debe apagarse: vuelve a «en curso», no a
+            # reposo. Antes parpadeaba azul-apagado veinte veces por turno,
+            # que es mucho movimiento para no decir nada; y encima ahogaba los
+            # dos momentos que si importan —te espera, y ha terminado—.
+            #
+            # El reposo de verdad lo pone el vigilante de inactividad cuando
+            # el agente lleva un rato callado, o «Stop» cuando acaba.
+            despues = (
+                EstadoIA.HERRAMIENTA_EN_CURSO
+                if evento.estado is EstadoIA.HERRAMIENTA_TERMINADA
+                else None
+            )
             self._reposo = asyncio.create_task(
-                self._volver_al_reposo(milisegundos / 1000)
+                self._volver_al_reposo(milisegundos / 1000, despues)
             )
 
     def _anotar_actividad(self, agente_id: str, estado: EstadoIA) -> None:
@@ -438,10 +451,20 @@ class ServidorEnganches:
             self._ultimo_estado_registrado = estado
             _log.info("%s → %s", agente_id, estado.etiqueta)
 
-    async def _volver_al_reposo(self, espera_s: float) -> None:
+    async def _volver_al_reposo(self, espera_s: float, despues=None) -> None:
+        """Pasado el momento, a reposo — o a lo que se diga.
+
+        ``despues`` sirve para los momentos que ocurren **mientras** el agente
+        trabaja: al acabar una herramienta no se apaga la barra, se vuelve a
+        «en curso», porque el trabajo no ha terminado.
+        """
         try:
             await asyncio.sleep(espera_s)
         except asyncio.CancelledError:
+            return
+        if despues is not None:
+            self._ultimo_estado_registrado = despues
+            await self.gestor.enviar_estado_ia(despues)
             return
         await self._apagar_la_barra("el momento era pasajero")
 

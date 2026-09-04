@@ -319,6 +319,13 @@ Las cuatro teclas, iguales en los cuatro modos:
 | K3 | `esc` | cancelar |
 | K4 | `retroceso` | borrar |
 
+**Entre herramienta y herramienta la barra no se apaga.** El agente sigue
+trabajando, así que «herramienta terminada» vuelve a «en curso» y no a reposo.
+Antes parpadeaba azul-apagado veinte veces por turno —de unos cincuenta y cinco
+eventos de una sesión real, cuarenta y siete eran esos dos— y tanto movimiento
+para no decir nada ahogaba los dos momentos que sí importan: te espera, y ha
+terminado. El reposo de verdad lo pone `Stop` o el vigilante de inactividad.
+
 **Manos libres** (`manos_libres`, apagado de fábrica): cuando el agente que
 manda en el modo puesto **termina su turno**, el micrófono se abre solo y avisa
 con dos pitidos. Con la palanca arriba —que envía al cerrar— eso cierra el
@@ -364,6 +371,25 @@ doce segundos entre intentos convertía un enganche de tres segundos en uno de
 catorce. En ese hueco parece que el teclado va por libre. Pasados los primeros,
 se vuelve al ritmo tranquilo: si está apagado de verdad, insistir toda la noche
 no lo enciende.
+
+**Se prefiere el micrófono del propio programa** (`usar_microfono_propio`, de
+fábrica encendido). Claude y ChatGPT traen dictado dentro y publican su botón en
+la capa de accesibilidad con el patrón `Toggle`, así que **se le puede preguntar
+si está grabando** además de pulsarlo. Ahí está la diferencia de fondo: Win+H es
+un interruptor a ciegas —el panel de Windows no es una ventana ni se asoma a la
+accesibilidad— y casi todos los males del micrófono venían de tener que adivinar
+su posición. Con el botón propio no se adivina: se pregunta, y su estado manda
+sobre nuestras cuentas.
+
+Una trampa al leerlo: cuando un elemento **no** admite un patrón,
+`GetCurrentPattern` no devuelve `None` sino un **puntero nulo**, que en Python
+pasa cualquier comprobación ingenua y revienta después con «NULL COM pointer
+access» sin decir de dónde viene. Hay que pedir el interruptor de verdad. Y tras
+pulsarlo, el estado tarda un momento en reflejarse (`ESPERA_DEL_ESTADO_S`):
+preguntarle enseguida devuelve el valor viejo y parece que no obedeció.
+
+Si el programa no lo tiene, o le cambia el nombre al botón, queda Win+H, que
+funciona en cualquier sitio aunque sea a ciegas.
 
 **K1 no manda Win+H a secas, y es a propósito.** El dictado escribe donde esté
 el foco, así que si la ventana no era la correcta lo dictado se va a cualquier

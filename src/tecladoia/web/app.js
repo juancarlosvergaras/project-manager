@@ -1012,6 +1012,7 @@ const ETIQUETAS_AJUSTES = {
   manos_libres_espera_s:"Espera antes de abrir el micrófono (s)",
   milisegundos_estado_breve:"Cuánto dura un momento pasajero (ms)",
   milisegundos_tarea_completada:"Cuánto dura el verde de tarea completada (ms)",
+  usar_microfono_propio:"Usar el micrófono del propio programa (Claude, ChatGPT)",
 };
 const OPCIONES_FIJAS = {
   modo_aprobacion:["palanca","siempre_preguntar","siempre_permitir"],
