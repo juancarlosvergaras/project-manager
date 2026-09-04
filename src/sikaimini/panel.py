@@ -20,7 +20,7 @@ from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__, dispositivo, empaquetado, protocolo
-from .config import ATAJOS_DE_FABRICA, PROGRAMAS, Ajustes, aplicar_atajos_de_dictado
+from .config import ATAJOS_DE_FABRICA, PROGRAMAS, Ajustes, aplicar_atajos_de_dictado, ruta_registro
 from .servicio import Servicio
 
 registro = logging.getLogger("sikaimini.panel")
@@ -35,6 +35,17 @@ _CAMPOS_AJUSTES = {
     "adoptar_microfono": bool, "pitido_al_abrir": bool, "clave_panel": str,
     "usar_microfono_propio": bool, "host_panel": str,
 }
+
+
+def _cola_del_registro(cuantas: int = 120) -> list[str]:
+    try:
+        with open(ruta_registro(), "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 64_000))
+            texto = f.read().decode("utf-8", "replace")
+    except OSError:
+        return []
+    return texto.splitlines()[-cuantas:]
 
 
 def _nombre_del_equipo() -> str:
@@ -298,6 +309,10 @@ class PanelWeb:
             })
         if ruta == "/api/paquete" and metodo == "GET":
             return self._json_ok(empaquetado.resumen_ejecutable())
+        if ruta == "/api/registro" and metodo == "GET":
+            # La cola del registro del servicio, para verla desde el panel: el
+            # archivo vive en el AppData de verdad, que desde otros sitios no se ve.
+            return self._json_ok({"ruta": str(ruta_registro()), "lineas": _cola_del_registro()})
         if ruta == "/api/ajustes":
             if metodo == "GET":
                 return self._json_ok(self.ajustes.como_dict())

@@ -344,3 +344,32 @@ class PruebaVigiaChatGPT(PruebaAislada):
         self.assertIn("TAREA_COMPLETADA", fuente)
         self.assertNotIn("ESPERANDO_APROBACION", fuente)
         del EstadoIA
+
+
+class PruebaBuscadorDeBotones(unittest.TestCase):
+    """El botón de Claude se llama «Mantén presionado para grabar» / «Hold to record»."""
+
+    class Boton:
+        def __init__(self, nombre, con_interruptor=False):
+            self.CurrentName = nombre
+            self.con_interruptor = con_interruptor
+
+    def test_record_no_coincide_con_recordado(self):
+        from tecladoia.microfono_propio import _coincide
+        self.assertFalse(_coincide("Recordado una memoria, guardado una memoria", ("grabar", "record")))
+        self.assertTrue(_coincide("Hold to record", ("grabar", "record")))
+        self.assertTrue(_coincide("Mantén presionado para grabar", ("grabar", "record")))
+        self.assertTrue(_coincide("Detener dictado", ("detener dictado",)))
+        self.assertFalse(_coincide("", ("grabar",)))
+
+    def test_el_interruptor_es_el_del_boton_que_lo_tiene(self):
+        from tecladoia.microfono_propio import _buscar_interruptor
+        botones = [
+            self.Boton("Recordado una memoria y usado 4 herramientas"),
+            self.Boton("Grabar pantalla"),
+            self.Boton("Mantén presionado para grabar", con_interruptor=True),
+        ]
+        boton, interruptor = _buscar_interruptor(botones, ("grabar", "record"), lambda b: "toggle" if b.con_interruptor else None)
+        self.assertIs(boton, botones[2])
+        self.assertEqual(interruptor, "toggle")
+        self.assertEqual(_buscar_interruptor(botones[:2], ("grabar",), lambda b: None), (None, None))

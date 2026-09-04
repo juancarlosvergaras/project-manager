@@ -536,6 +536,13 @@ siempre, con la palanca donde sea.
 - **No se puede elegir el color de la luz.** El firmware solo acepta un byte con
   el número de efecto (`0x00`–`0x10`); el color va cocido dentro de cada uno.
   Comprobado en los cuatro clientes del fabricante. No prometerlo.
+- **Los botones se buscan por palabra entera, no por subcadena.** El botón
+  de dictado de Claude es «Mantén presionado para grabar» / «Hold to record»,
+  y `record` está dentro de «**Record**ado una memoria…», que es como Claude
+  resume una sesión en su barra lateral. Ese botón sale antes, no tiene
+  interruptor, y con él elegido el dictado caía a Win+H en Claude sin decir
+  por qué (4/9/2026, con los tres teclados a la vez). `microfono_propio` ya
+  exige palabra entera y, para el interruptor, el primer botón que lo tenga.
 - **Editando archivos del Mac mini desde Windows**, `Path.write_text` mete CRLF y
   `bash` revienta. Editar en binario y validar con `bash -n` antes de subir.
 

@@ -305,6 +305,14 @@ function conectar() {
     await pedir("/api/ajustes", { atajos_dictado: { chatgpt: $("#atajo_chatgpt").value.trim(), claude: $("#atajo_claude").value.trim() } });
     avisar("Atajos guardados; ya se usan");
   });
+  $("#btn-registro").addEventListener("click", async () => {
+    const r = await pedir("/api/registro");
+    const pre = $("#registro");
+    pre.hidden = false;
+    pre.textContent = (r.lineas && r.lineas.length) ? r.lineas.join("
+") : `Sin registro en ${r.ruta}`;
+    pre.scrollTop = pre.scrollHeight;
+  });
   $("#btn-guardar-clave").addEventListener("click", async () => {
     const clave = $("#clave_panel").value;
     if (clave.length < 6) { avisar("La clave necesita seis caracteres o más"); return; }

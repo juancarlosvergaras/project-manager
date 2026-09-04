@@ -72,6 +72,7 @@
   .lista-pasos{padding-left:1.2rem;line-height:1.7}
   .lista-pasos li{margin-bottom:.3rem}
   .aviso.visible{transform:translate(-50%,0);opacity:1;visibility:visible}
+  .registro{font:.76rem/1.45 ui-monospace,Consolas,monospace;background:var(--fondo);border:1px solid var(--borde);border-radius:9px;padding:.7rem;max-height:24rem;overflow:auto;white-space:pre-wrap;word-break:break-word}
   kbd{font:inherit;font-size:.82rem;padding:.1rem .45rem;border:1px solid var(--borde-fuerte);border-bottom-width:2px;border-radius:6px;background:var(--fondo)}
   @media (max-width:900px){.taller{grid-template-columns:1fr}.editor{position:static;max-height:none}}
   @media (max-width:520px){.fila{grid-template-columns:repeat(3,1fr)}.perilla{grid-column:1/-1;max-width:180px;margin:.8rem auto 0}}
@@ -281,6 +282,8 @@
     <h2 class="editor-titulo">El servicio</h2>
     <p id="texto-servicio" class="editor-sub">…</p>
     <ul class="lista-pasos" id="avisos"></ul>
+    <div class="acciones"><button type="button" class="btn btn-claro" id="btn-registro">Ver el registro del servicio</button></div>
+    <pre id="registro" class="registro" hidden></pre>
   </div>
 </section>
 

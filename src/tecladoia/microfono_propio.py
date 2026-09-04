@@ -29,6 +29,7 @@ no sustituye al otro, se antepone.
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any, Optional
 
@@ -116,15 +117,49 @@ def _botones(hwnd: int) -> list[Any]:
         return []
 
 
-def _buscar(botones: list[Any], trozos: tuple[str, ...]) -> Optional[Any]:
+def _coincide(nombre: str, trozos: tuple[str, ...]) -> bool:
+    """¿El nombre lleva alguno de los trozos como palabra entera?
+
+    Por subcadena no vale: «record» (el botón de Claude en inglés) está dentro
+    de «**Record**ado una memoria…», que es como Claude resume una sesión en su
+    barra lateral. Ese botón aparece antes que el del micrófono, no tiene
+    interruptor, y con él elegido el dictado caía a Win+H sin decir por qué.
+    """
+    bajo = (nombre or "").strip().lower()
+    if not bajo:
+        return False
+    return any(re.search(r"(?<!\w)" + re.escape(t) + r"(?!\w)", bajo) for t in trozos)
+
+
+def _coincidentes(botones: list[Any], trozos: tuple[str, ...]) -> list[Any]:
+    hallados = []
     for elemento in botones:
         try:
-            nombre = (elemento.CurrentName or "").strip().lower()
+            nombre = elemento.CurrentName or ""
         except Exception:  # noqa: BLE001
             continue
-        if nombre and any(t in nombre for t in trozos):
-            return elemento
-    return None
+        if _coincide(nombre, trozos):
+            hallados.append(elemento)
+    return hallados
+
+
+def _buscar(botones: list[Any], trozos: tuple[str, ...]) -> Optional[Any]:
+    hallados = _coincidentes(botones, trozos)
+    return hallados[0] if hallados else None
+
+
+def _buscar_interruptor(botones: list[Any], trozos: tuple[str, ...], interruptor_de=None) -> tuple[Any, Any]:
+    """El primer botón que coincide **y tiene interruptor**, con su interruptor.
+
+    Puede haber varios botones con el nombre parecido; el que interesa es el
+    que se puede encender y apagar. Devuelve ``(None, None)`` si no hay.
+    """
+    interruptor_de = interruptor_de or _interruptor
+    for boton in _coincidentes(botones, trozos):
+        interruptor = interruptor_de(boton)
+        if interruptor is not None:
+            return boton, interruptor
+    return None, None
 
 
 def _interruptor(boton: Any):
@@ -233,10 +268,7 @@ class MicrofonoDeLaApp:
 
         trozos = self.perfil.get("interruptor")
         if trozos:
-            boton = _buscar(botones, trozos)
-            if boton is None:
-                return None
-            interruptor = _interruptor(boton)
+            _, interruptor = _buscar_interruptor(botones, trozos)
             if interruptor is None:
                 return None
             try:
@@ -290,10 +322,7 @@ class MicrofonoDeLaApp:
         trozos = self.perfil.get("interruptor")
         if trozos:
             # Un solo botón para las dos cosas.
-            boton = _buscar(botones, trozos)
-            if boton is None:
-                return None
-            interruptor = _interruptor(boton)
+            _, interruptor = _buscar_interruptor(botones, trozos)
             if interruptor is None:
                 return None
             try:
