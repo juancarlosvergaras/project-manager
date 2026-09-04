@@ -101,6 +101,13 @@ class PruebaTeclado(unittest.TestCase):
         self.assertEqual(self.teclado.leer_capa(0).como_texto()[3], "rueda-abajo")
         self.assertEqual(self.teclado.luces().como_dict()["color"], "#0080ff")
 
+    def test_sondear_devuelve_lo_que_conteste(self):
+        r = self.teclado.sondear(protocolo.ORDEN_INFORMACION)
+        self.assertEqual(r[0]["orden"], "0x0c")
+        self.assertEqual(r[0]["carga"], "a5 01 08 00 01 00 00 00")
+        r = self.teclado.sondear(0x0B, 0, 2, b"\x01")
+        self.assertTrue(r[-1]["rechazo"])
+
     def test_un_minimic_no_es_este_teclado(self):
         from minimic.config import TECLAS_DE_FABRICA as MINIMIC
         minimic = TecladoFingido(MINIMIC)  # cinco registros

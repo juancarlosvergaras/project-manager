@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 
 from minimic import dispositivo as _base
 from minimic.dispositivo import (  # noqa: F401 - se reexportan tal cual
-    PAGINA_DE_FABRICANTE, PID_CABLE, PID_RECEPTOR, VID_CABLE, VID_RECEPTOR, CanalHID, ErrorDispositivo,
+    _hid, PAGINA_DE_FABRICANTE, PID_CABLE, PID_RECEPTOR, VID_CABLE, VID_RECEPTOR, CanalHID, ErrorDispositivo,
     Microfono, Presencia, contenedores_del_teclado, hacer_predeterminado, microfono_predeterminado,
     microfonos_del_teclado, presencia, vigilar_presencia,
 )
@@ -73,3 +73,49 @@ class Teclado(_base.Teclado):
 
     def poner_luces(self, luces: Luces) -> None:
         self._exigir_acuse(protocolo.escribir_luces(luces), "cambio de las luces")
+
+
+    # --- para explorar el protocolo desde lejos ------------------------------
+
+    def sondear(self, orden: int, capa: int = 0, arg: int = 0, carga: bytes = b"") -> list[dict]:
+        """Manda una orden cruda (con su suma de control) y devuelve lo que conteste.
+
+        Es la herramienta para buscar órdenes que no se conocen —la batería,
+        por ejemplo— cuando el teclado está en otro PC y solo se llega por el
+        túnel. Devuelve cada informe con su orden, capa, arg y carga en hex.
+        """
+        respuestas = self._conversar(protocolo.paquete(orden & 0xFF, capa & 0xFF, arg & 0xFF, carga))
+        return [{"orden": f"{r.orden:#04x}", "capa": r.capa, "arg": r.arg, "carga": r.carga.hex(" "),
+                 "acuse": r.es_acuse, "rechazo": r.es_rechazo} for r in respuestas]
+
+
+def descriptores_del_teclado() -> list[dict]:
+    """Las interfaces HID del teclado (cable y receptor) con su descriptor de informe.
+
+    Si el receptor publica la batería como un uso HID (página 0x06, uso 0x20
+    «Battery Strength», o la página 0x85), se ve aquí sin adivinar nada.
+    """
+    resultado: list[dict] = []
+    try:
+        aparatos = _hid().enumerate()
+    except Exception as e:  # noqa: BLE001
+        return [{"error": str(e)}]
+    for a in aparatos:
+        if (a["vendor_id"], a["product_id"]) not in ((VID_CABLE, PID_CABLE), (VID_RECEPTOR, PID_RECEPTOR)):
+            continue
+        ficha = {
+            "vid": f"{a['vendor_id']:04x}", "pid": f"{a['product_id']:04x}", "serie": a.get("serial_number"),
+            "interfaz": a.get("interface_number"), "pagina": f"{a.get('usage_page', 0):#06x}", "uso": f"{a.get('usage', 0):#04x}",
+            "descriptor": "",
+        }
+        try:
+            d = _hid().device()
+            d.open_path(a["path"])
+            try:
+                ficha["descriptor"] = bytes(d.get_report_descriptor()).hex(" ")
+            finally:
+                d.close()
+        except Exception as e:  # noqa: BLE001 - abrirla puede fallar; se anota
+            ficha["descriptor"] = f"(no se pudo leer: {e})"
+        resultado.append(ficha)
+    return resultado

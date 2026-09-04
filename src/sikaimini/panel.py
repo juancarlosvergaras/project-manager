@@ -368,6 +368,16 @@ class PanelWeb:
             # el túnel desde lejos, que es donde hace falta.
             programa = str(datos.get("programa") or "claude")
             return self._json_ok(await en_hilo(_botones_de, programa))
+        if ruta == "/api/sonda" and metodo == "POST":
+            # Explorar el protocolo desde lejos: {"orden": 11, "capa": 0, "arg": 0, "carga": "01 02"}.
+            try:
+                orden, capa, arg = int(datos.get("orden")), int(datos.get("capa", 0)), int(datos.get("arg", 0))
+                carga = bytes.fromhex(str(datos.get("carga", "")).replace(" ", ""))
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"orden, capa y arg son números; carga es hex: {e}") from e
+            return self._json_ok({"respuestas": await en_hilo(s.teclado.sondear, orden, capa, arg, carga)})
+        if ruta == "/api/descriptores" and metodo == "GET":
+            return self._json_ok({"interfaces": await en_hilo(dispositivo.descriptores_del_teclado)})
         if ruta == "/api/registro" and metodo == "GET":
             # La cola del registro del servicio, para verla desde el panel: el
             # archivo vive en el AppData de verdad, que desde otros sitios no se ve.
