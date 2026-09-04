@@ -326,8 +326,7 @@ function conectar() {
     const r = await pedir("/api/registro");
     const pre = $("#registro");
     pre.hidden = false;
-    pre.textContent = (r.lineas && r.lineas.length) ? r.lineas.join("
-") : `Sin registro en ${r.ruta}`;
+    pre.textContent = (r.lineas && r.lineas.length) ? r.lineas.join("\n") : `Sin registro en ${r.ruta}`;
     pre.scrollTop = pre.scrollHeight;
   });
   $("#btn-guardar-portero").addEventListener("click", async () => {
