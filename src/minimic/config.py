@@ -31,6 +31,9 @@ ATAJO_MICROFONO = "ctrl-mayus-alt-f14"
 #: Lo que trae el teclado de fábrica, para poder devolverlo a como venía.
 TECLAS_DE_FABRICA = ("ctrl-a", "ctrl-v", "retroceso", "intro", "ctrl-win")
 
+#: Atajos de dictado que traen los programas hoy (septiembre de 2026).
+ATAJOS_DE_FABRICA = {"claude": "", "chatgpt": "ctrl+shift+d"}
+
 #: Programas entre los que elegir a quién se le habla. Mismos valores que en
 #: TecladoIA: nombre del proceso y cómo abrirlo si no está.
 PROGRAMAS = (
@@ -73,6 +76,10 @@ class Ajustes:
     #: Preferir el botón de dictado del propio programa (Claude, ChatGPT) al
     #: Win+H de Windows, que con este micrófono falla mucho. Igual que en TecladoIA.
     usar_microfono_propio: bool = True
+    #: Atajo de dictado de cada programa, de respaldo cuando no se encuentra su
+    #: botón. Se puede cambiar desde el panel si el programa cambia el suyo.
+    #: Vacío = ese programa no tiene atajo (Claude solo tiene botón).
+    atajos_dictado: dict[str, str] = field(default_factory=lambda: dict(ATAJOS_DE_FABRICA))
 
     # --- el micrófono ---
     adoptar_microfono: bool = True  #: ponerlo como micrófono del sistema al aparecer
@@ -126,6 +133,10 @@ class Ajustes:
             if nombre in ("teclas", "ultimo_mapa"):
                 if not isinstance(valor, list) or not all(isinstance(v, str) for v in valor):
                     continue
+            if nombre == "atajos_dictado":
+                if not isinstance(valor, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in valor.items()):
+                    continue
+                valor = {**ATAJOS_DE_FABRICA, **{k: v for k, v in valor.items() if k in ATAJOS_DE_FABRICA}}
             limpio[nombre] = valor
         ajustes = cls(**limpio)
         if len(ajustes.teclas) != protocolo.NUMERO_DE_TECLAS:
@@ -154,3 +165,21 @@ def programa_por_proceso(proceso: str) -> dict[str, str]:
         if p["proceso"] and p["proceso"].lower() == nombre:
             return p
     return PROGRAMAS[-1]
+
+
+def aplicar_atajos_de_dictado(atajos: dict[str, str]) -> None:
+    """Pone los atajos configurados en los perfiles de ``tecladoia.microfono_propio``.
+
+    Es el único sitio donde MiniMic toca TecladoIA por dentro: los perfiles son
+    un diccionario de módulo y se cambian en caliente, sin reiniciar nada.
+    """
+    try:
+        from tecladoia.microfono_propio import PERFILES
+    except Exception:  # noqa: BLE001 - sin Windows no está
+        return
+    for programa, atajo in atajos.items():
+        perfil = PERFILES.setdefault(programa, {})
+        if atajo.strip():
+            perfil["atajo"] = atajo.strip().lower()
+        else:
+            perfil.pop("atajo", None)

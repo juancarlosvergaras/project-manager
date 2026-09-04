@@ -269,6 +269,30 @@ class PruebaProgramaActivo(unittest.TestCase):
         self.assertEqual(a.programa_elegido("ChatGPT")["id"], "claude")
 
 
+class PruebaAtajosDeDictado(unittest.TestCase):
+    def test_se_aplican_a_los_perfiles_de_tecladoia(self):
+        from tecladoia.microfono_propio import PERFILES
+        from minimic.config import aplicar_atajos_de_dictado
+        original = dict(PERFILES["chatgpt"])
+        try:
+            aplicar_atajos_de_dictado({"chatgpt": "ctrl+alt+m", "claude": "ctrl+shift+v"})
+            self.assertEqual(PERFILES["chatgpt"]["atajo"], "ctrl+alt+m")
+            self.assertEqual(PERFILES["claude"]["atajo"], "ctrl+shift+v")
+            aplicar_atajos_de_dictado({"claude": ""})
+            self.assertNotIn("atajo", PERFILES["claude"])
+        finally:
+            PERFILES["chatgpt"] = original
+            PERFILES["claude"].pop("atajo", None)
+
+    def test_config_completa_lo_que_falte(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            ruta = Path(d) / "c.json"
+            ruta.write_text(json.dumps({"atajos_dictado": {"chatgpt": "ctrl+d", "marciano": "x"}}), encoding="utf-8")
+            a = Ajustes.cargar(ruta)
+            self.assertEqual(a.atajos_dictado, {"claude": "", "chatgpt": "ctrl+d"})
+
+
 class PruebaConfig(PruebaAislada):
     def setUp(self) -> None:
         super().setUp()

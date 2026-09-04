@@ -118,6 +118,9 @@ function pintarAjustes(a) {
   $("#enviar_al_cerrar").checked = !!a.enviar_al_cerrar;
   $("#pitido_al_abrir").checked = !!a.pitido_al_abrir;
   $("#alto_cuadro").value = a.alto_cuadro || 0;
+  const atajos = a.atajos_dictado || {};
+  $("#atajo_chatgpt").value = atajos.chatgpt || "";
+  $("#atajo_claude").value = atajos.claude || "";
 }
 
 function pintarPaquete(p) {
@@ -224,6 +227,10 @@ function conectar() {
     } else {
       avisar("Guardado");
     }
+  });
+  $("#btn-guardar-atajos").addEventListener("click", async () => {
+    await pedir("/api/ajustes", { atajos_dictado: { chatgpt: $("#atajo_chatgpt").value.trim(), claude: $("#atajo_claude").value.trim() } });
+    avisar("Atajos guardados; ya se usan");
   });
   $("#btn-guardar-clave").addEventListener("click", async () => {
     const clave = $("#clave_panel").value;

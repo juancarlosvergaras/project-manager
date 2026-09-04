@@ -20,7 +20,7 @@ from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__, dispositivo, empaquetado, protocolo
-from .config import PROGRAMAS, Ajustes
+from .config import ATAJOS_DE_FABRICA, PROGRAMAS, Ajustes, aplicar_atajos_de_dictado
 from .servicio import Servicio
 
 registro = logging.getLogger("minimic.panel")
@@ -246,7 +246,7 @@ class PanelWeb:
         ruta = empaquetado.ruta_ejecutable()
         if ruta is None:
             return self._error("404 Not Found", "el ejecutable no está construido en este equipo")
-        return "200 OK", "application/vnd.microsoft.portable-executable", ruta.read_bytes()
+        return "200 OK", "application/zip", ruta.read_bytes()
 
     @staticmethod
     def _json_ok(datos: Any) -> tuple[str, str, bytes]:
@@ -324,6 +324,18 @@ class PanelWeb:
 
     def _guardar_ajustes(self, datos: dict[str, Any]) -> dict[str, Any]:
         cambiados: list[str] = []
+        if "atajos_dictado" in datos:
+            atajos = datos["atajos_dictado"]
+            if not isinstance(atajos, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in atajos.items()):
+                raise ValueError("«atajos_dictado» tiene que ser un objeto de textos")
+            for programa, atajo in atajos.items():
+                if programa not in ATAJOS_DE_FABRICA:
+                    raise ValueError(f"no conozco el programa «{programa}»")
+                if atajo and not all(parte.strip() for parte in atajo.split("+")):
+                    raise ValueError(f"atajo mal escrito: «{atajo}» (por ejemplo ctrl+shift+d)")
+                self.ajustes.atajos_dictado[programa] = atajo.strip().lower()
+            aplicar_atajos_de_dictado(self.ajustes.atajos_dictado)
+            cambiados.append("atajos_dictado")
         for campo, tipo in _CAMPOS_AJUSTES.items():
             if campo not in datos:
                 continue

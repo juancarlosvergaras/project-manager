@@ -11,14 +11,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
-NOMBRE_EXE = "MiniMic.exe"
+NOMBRE_EXE = "MiniMic.zip"  # una carpeta en un zip; ver construir_minimic.py
 
 
 def ruta_ejecutable() -> Path | None:
+    """El zip para repartir. Desde el código, en ``dist/``; desde el propio
+    programa instalado, el ``MiniMic.zip`` que haya junto a su carpeta, si lo hay."""
     if getattr(sys, "frozen", False):
-        propio = Path(sys.executable).resolve()
-        return propio if propio.is_file() else None
-    candidato = Path(__file__).resolve().parents[2] / "dist" / NOMBRE_EXE
+        candidato = Path(sys.executable).resolve().parent.parent / NOMBRE_EXE
+    else:
+        candidato = Path(__file__).resolve().parents[2] / "dist" / NOMBRE_EXE
     return candidato if candidato.is_file() else None
 
 

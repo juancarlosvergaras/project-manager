@@ -28,7 +28,7 @@ from typing import Any, Callable
 from tecladoia.sucesos import Bus
 
 from . import __version__, dispositivo, protocolo
-from .config import ATAJO_MICROFONO, TECLAS_DE_FABRICA, Ajustes
+from .config import ATAJO_MICROFONO, TECLAS_DE_FABRICA, Ajustes, aplicar_atajos_de_dictado
 from .protocolo import Atajo
 
 registro = logging.getLogger("minimic.servicio")
@@ -255,6 +255,7 @@ class Servicio:
         # El botón de dictado del propio programa antes que Win+H, como en el
         # AhaKey: se le puede preguntar si está grabando, y Win+H no.
         self._dictado.usar_el_propio = self.ajustes.usar_microfono_propio
+        aplicar_atajos_de_dictado(self.ajustes.atajos_dictado)
         if not hay_soporte():
             self.estado.atajo_reservado = False
             return

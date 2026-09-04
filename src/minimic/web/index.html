@@ -163,6 +163,17 @@
       </div>
 
       <div class="tarjeta">
+        <h2 class="editor-titulo">Atajos de dictado de cada programa</h2>
+        <p class="editor-sub">Primero se pulsa el botón de dictado del programa por accesibilidad. Si no aparece, se manda su atajo de teclado. Si el programa cambia el atajo, ajústalo aquí. Vacío = no tiene.</p>
+        <div class="rejilla-campos">
+          <div class="campo"><label for="atajo_chatgpt">ChatGPT</label><input type="text" id="atajo_chatgpt" placeholder="ctrl+shift+d"></div>
+          <div class="campo"><label for="atajo_claude">Claude</label><input type="text" id="atajo_claude" placeholder="(solo botón)"></div>
+        </div>
+        <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-atajos">Guardar atajos</button></div>
+        <p class="nota">Se escriben con «+»: <kbd>ctrl</kbd>, <kbd>shift</kbd>, <kbd>alt</kbd>, <kbd>win</kbd> y una tecla o letra.</p>
+      </div>
+
+      <div class="tarjeta">
         <h2 class="editor-titulo">Afinar el dictado</h2>
         <label class="marca"><input type="checkbox" id="usar_microfono_propio">Usar el micrófono del propio programa cuando lo tenga (Claude, ChatGPT); Win+H solo de respaldo</label>
         <label class="marca"><input type="checkbox" id="pinchar_cuadro">Pinchar el cuadro de escribir antes de abrir el dictado</label>
@@ -222,14 +233,15 @@
     <h2 class="editor-titulo">MiniMic en otro PC</h2>
     <p class="editor-sub">El teclado se lleva a cualquier equipo, pero la tecla blanca y el micrófono los maneja este servicio, que tiene que estar en el PC que tenga el teclado cerca. Un solo archivo, con Python dentro: no hay que instalar nada antes.</p>
     <div class="acciones">
-      <a class="btn btn-verde" id="btn-descargar" href="/descargar/MiniMic.exe" download>Descargar MiniMic.exe</a>
+      <a class="btn btn-verde" id="btn-descargar" href="/descargar/MiniMic.zip" download>Descargar MiniMic.zip</a>
       <span class="nota" id="nota-descarga"></span>
     </div>
     <ol class="lista-pasos" style="margin-top:1rem">
-      <li>Descárgalo y ábrelo con doble clic. Hace la instalación guiada: crea la tarea que lo arranca con Windows y lo pone en marcha.</li>
+      <li>Descárgalo, extrae la carpeta <b>MiniMic</b> donde quieras tenerla (por ejemplo en Documentos) y abre <b>MiniMic.exe</b>. Hace la instalación guiada: crea la tarea que lo arranca con Windows y lo pone en marcha.</li>
+      <li>Es una carpeta y no un solo archivo a propósito: el ejecutable de un solo archivo se autoextrae al arrancar y el antivirus lo confundía con un troyano. No muevas la carpeta después de instalar.</li>
       <li>Si Windows avisa de «editor desconocido», elige «Más información › Ejecutar de todas formas»: no está firmado.</li>
       <li>Abre <code>http://127.0.0.1:8771</code> en ese PC. Conecta el teclado por cable una vez para que se le graben las teclas; después puede ir por el receptor.</li>
-      <li>Para publicarlo por Internet como aquí, ponle clave en Ajustes y arráncalo con <code>MiniMic.exe servicio --host &lt;ip&gt;</code>.</li>
+      <li>Para que <b>minimic.proyectoia.org</b> pase a ese equipo cuando tenga el teclado, en Ajustes ponle clave y elige «Escuchar en» su dirección de Tailscale.</li>
     </ol>
   </div>
 </section>

@@ -1,7 +1,12 @@
-"""Construye MiniMic.exe: un solo archivo, con Python dentro.
+"""Construye MiniMic: una carpeta con el ejecutable y Python al lado, en un zip.
 
-``python construir_minimic.py`` deja ``dist/MiniMic.exe``. Misma receta que
-``construir_exe.py`` (TecladoIA), con lo que MiniMic necesita:
+``python construir_minimic.py`` deja ``dist/MiniMic/MiniMic.exe`` y
+``dist/MiniMic.zip``. Misma receta que ``construir_exe.py`` (TecladoIA) salvo
+en una cosa: **carpeta, no un solo archivo**. El ``.exe`` de un solo archivo
+se autoextrae al arrancar, y eso es justo lo que la heurística de Defender
+(«Trojan:Win32/Bearfoos.A!ml») marca en cuanto llega descargado: el mismo
+archivo escaneado en disco estaba limpio. Con la carpeta no hay
+autoextracción y no salta.
 
 * **La carpeta ``web`` de MiniMic viaja dentro**, en la misma ruta relativa;
   sin ella el panel sale en blanco.
@@ -29,10 +34,20 @@ OCULTOS = [
 ]
 
 
+LEEME = """MiniMic
+
+Deja esta carpeta entera donde quieras tenerla (por ejemplo en Documentos)
+y abre MiniMic.exe. Hace la instalación guiada: crea la tarea que lo arranca
+con Windows y lo pone en marcha. El panel queda en http://127.0.0.1:8771
+
+No muevas ni borres la carpeta _internal: es el Python que lleva dentro.
+"""
+
+
 def construir() -> int:
     orden = [
         sys.executable, "-m", "PyInstaller",
-        "--onefile", "--name", "MiniMic", "--console", "--noconfirm", "--clean",
+        "--onedir", "--name", "MiniMic", "--console", "--noconfirm", "--clean",
         "--distpath", str(RAIZ / "dist"),
         "--workpath", str(RAIZ / "build"),
         "--specpath", str(RAIZ / "build"),
@@ -49,12 +64,21 @@ def construir() -> int:
     if hecho.returncode != 0:
         print("La construcción falló.")
         return hecho.returncode
-    exe = RAIZ / "dist" / "MiniMic.exe"
+    carpeta = RAIZ / "dist" / "MiniMic"
+    exe = carpeta / "MiniMic.exe"
     if not exe.exists():
         print("PyInstaller terminó pero no dejó el ejecutable donde se esperaba.")
         return 1
-    print(f"Listo: {exe}  ({exe.stat().st_size / 1_048_576:.1f} MB)")
+    (carpeta / "LEEME.txt").write_text(LEEME, encoding="utf-8")
+    zip_final = RAIZ / "dist" / "MiniMic.zip"
+    if zip_final.exists():
+        zip_final.unlink()
+    shutil.make_archive(str(zip_final.with_suffix("")), "zip", RAIZ / "dist", "MiniMic")
+    print(f"Listo: {zip_final}  ({zip_final.stat().st_size / 1_048_576:.1f} MB)")
     shutil.rmtree(RAIZ / "build", ignore_errors=True)
+    viejo = RAIZ / "dist" / "MiniMic.exe"
+    if viejo.exists():
+        viejo.unlink()
     return 0
 
 
