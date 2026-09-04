@@ -56,6 +56,7 @@ class Tunel:
         self.ultimo_error = ""
         self.abiertas = 0
         self._parar = asyncio.Event()
+        self._tareas: set = set()  # las conexiones de datos en curso, para que nadie las recoja a medias
 
     # --- lo que ve el panel ------------------------------------------------
 
@@ -107,7 +108,9 @@ class Tunel:
                     except (ValueError, UnicodeDecodeError):
                         continue
                     if isinstance(orden, dict) and orden.get("abrir"):
-                        asyncio.ensure_future(self._abrir(str(orden["abrir"])))
+                        tarea = asyncio.ensure_future(self._abrir(str(orden["abrir"])))
+                        self._tareas.add(tarea)
+                        tarea.add_done_callback(self._tareas.discard)
             finally:
                 latidos.cancel()
         finally:

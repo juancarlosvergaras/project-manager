@@ -38,6 +38,31 @@ _CAMPOS_AJUSTES = {
 }
 
 
+def _botones_de(programa: str) -> dict[str, Any]:
+    """Nombres de los botones de la ventana de ese programa, y qué dice el buscador de dictado."""
+    try:
+        from tecladoia.dictado import _ventana_de
+        from tecladoia.microfono_propio import _botones, buscar
+    except Exception as e:  # noqa: BLE001
+        return {"programa": programa, "error": f"sin accesibilidad: {e}"}
+    hwnd = _ventana_de(programa)
+    if not hwnd:
+        return {"programa": programa, "ventana": None, "botones": [], "dictado": None}
+    nombres: list[str] = []
+    for b in _botones(hwnd):
+        try:
+            nombres.append(b.CurrentName or "")
+        except Exception:  # noqa: BLE001
+            nombres.append("?")
+    micro = None
+    try:
+        m = buscar(hwnd, programa)
+        micro = None if m is None else {"grabando": m.estado()}
+    except Exception as e:  # noqa: BLE001
+        micro = {"error": str(e)}
+    return {"programa": programa, "ventana": hwnd, "botones": nombres, "dictado": micro}
+
+
 def _cola_del_registro(cuantas: int = 120) -> list[str]:
     try:
         with open(ruta_registro(), "rb") as f:
@@ -337,6 +362,12 @@ class PanelWeb:
             })
         if ruta == "/api/paquete" and metodo == "GET":
             return self._json_ok(empaquetado.resumen_ejecutable())
+        if ruta == "/api/botones" and metodo in ("GET", "POST"):
+            # Los botones que publica la ventana de un programa, para saber cómo
+            # se llama su botón de dictado cuando no se encuentra. Se lee por
+            # el túnel desde lejos, que es donde hace falta.
+            programa = str(datos.get("programa") or "claude")
+            return self._json_ok(await en_hilo(_botones_de, programa))
         if ruta == "/api/registro" and metodo == "GET":
             # La cola del registro del servicio, para verla desde el panel: el
             # archivo vive en el AppData de verdad, que desde otros sitios no se ve.
