@@ -484,7 +484,13 @@ preguntarle enseguida devuelve el valor viejo y parece que no obedeció.
 - **Claude**: un solo botón con patrón `Toggle`, que además **se renombra**. En
   reposo es «Mantén presionado para grabar»; grabando pasa a «Detener dictado».
   Buscando solo el primer nombre, en cuanto empieza deja de encontrarse y
-  parece que el programa se quedó sin dictado.
+  parece que el programa se quedó sin dictado. **Y hay otro Claude** (visto el
+  4/9/2026 por el túnel en el PC del usuario): sin interruptor, con un botón
+  «Dictar» normal que al grabar se cambia por «Detener dictado», como ChatGPT.
+  El perfil prueba primero el interruptor y, si no está, cae a botón y
+  presencia. «Entrada de voz» es el modo de voz, no el dictado: no tocarlo.
+  Para ver cómo se llaman los botones de un PC lejano: `GET /api/botones`
+  del panel de SikaiMini (con clave), por el túnel.
 - **ChatGPT**: no publica `Toggle`; **cambia de botones**. Parado enseña
   «Dictar»; grabando salen «Detener dictado», «Transcribir y enviar» y
   «Cancelar dictado». El estado se lee por presencia. Y su «Transcribir y
