@@ -66,6 +66,11 @@ PERFILES: dict[str, dict[str, tuple[str, ...]]] = {
         ),
     },
     "chatgpt": {
+        # Su propio atajo. Se prefiere a pulsar el botón porque no depende de
+        # cómo se llamen los botones ni de que el árbol de accesibilidad esté
+        # asentado: la ventana ya está enfocada cuando llegamos aquí, así que
+        # basta con mandar la combinación.
+        "atajo": "ctrl+shift+d",
         "empezar": ("dictar", "dictate"),
         "parar": ("detener dictado", "stop dictation"),
         "enviar": ("transcribir y enviar", "transcribe and send"),
@@ -135,6 +140,43 @@ def _interruptor(boton: Any):
         return crudo.QueryInterface(UIA.IUIAutomationTogglePattern)
     except Exception:  # noqa: BLE001
         return None
+
+
+#: Cómo se escribe cada tecla de un atajo, en códigos de Windows.
+_TECLAS = {
+    "ctrl": 0x11, "control": 0x11,
+    "shift": 0x10, "may": 0x10, "mayus": 0x10,
+    "alt": 0x12, "win": 0x5B,
+}
+
+
+def _mandar_atajo(atajo: str) -> bool:
+    """Manda una combinación de teclas a la ventana que esté delante.
+
+    Se importa aquí dentro y no arriba porque ``dictado`` ya importa este
+    módulo: hacerlo al revés en la cabecera cerraría el círculo.
+    """
+    from .dictado import _pulsar as pulsar_teclas
+    from .dictado import _soltar_modificadores
+
+    codigos = []
+    for parte in atajo.lower().split("+"):
+        parte = parte.strip()
+        if not parte:
+            continue
+        if parte in _TECLAS:
+            codigos.append(_TECLAS[parte])
+        elif len(parte) == 1:
+            codigos.append(ord(parte.upper()))
+        else:
+            _log.debug("No sé escribir la tecla «%s» del atajo «%s»", parte, atajo)
+            return False
+    if not codigos:
+        return False
+    # Sin esto el atajo llega contaminado con lo que la persona tenga pulsado.
+    _soltar_modificadores()
+    time.sleep(0.05)
+    return pulsar_teclas(*codigos) > 0
 
 
 def _pulsar(boton: Any) -> bool:
@@ -255,6 +297,11 @@ class MicrofonoDeLaApp:
                 interruptor.Toggle()
             except Exception:  # noqa: BLE001
                 _log.debug("El interruptor no aceptó la pulsación", exc_info=True)
+                return None
+        elif self.perfil.get("atajo") and papel in ("empezar", "parar"):
+            # El atajo del propio programa: más robusto que el botón, porque no
+            # depende de cómo se llame ni de que el árbol esté asentado.
+            if not _mandar_atajo(self.perfil["atajo"]):
                 return None
         else:
             boton = _buscar(botones, self.perfil.get(papel, ()))

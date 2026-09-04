@@ -395,7 +395,10 @@ preguntarle enseguida devuelve el valor viejo y parece que no obedeció.
   reposo es «Mantén presionado para grabar»; grabando pasa a «Detener dictado».
   Buscando solo el primer nombre, en cuanto empieza deja de encontrarse y
   parece que el programa se quedó sin dictado.
-- **ChatGPT**: no publica `Toggle`; **cambia de botones**. Parado enseña
+- **ChatGPT**: tiene atajo propio, **`Ctrl+Mayús+D`**, y se prefiere a pulsar el
+  botón porque no depende de cómo se llame ni de que el árbol esté asentado —la
+  ventana ya está enfocada cuando llegamos ahí—. No publica `Toggle`; **cambia
+  de botones**. Parado enseña
   «Dictar»; grabando salen «Detener dictado», «Transcribir y enviar» y
   «Cancelar dictado». El estado se lee por presencia. Y su «Transcribir y
   enviar» es justo lo de la palanca arriba, hecho por él, que sabe cuándo ha

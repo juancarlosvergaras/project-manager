@@ -233,3 +233,67 @@ class PruebaPrimeraPulsacion(PruebaAislada):
             self.assertEqual(len(cerrados), 1, "siguio cerrando en cada apertura")
         finally:
             dic.cerrar_dictado = previo
+
+
+class PruebaMicrofonoPropio(PruebaAislada):
+    """Cada programa cuenta su dictado a su manera, y hay que saber las dos.
+
+    La ganancia de fondo no es la calidad del dictado: es que **se puede saber
+    si esta grabando**. Win+H es un interruptor a ciegas —el panel de Windows
+    no es una ventana ni se asoma a la accesibilidad— y de ahi venia casi todo
+    lo que fallaba del microfono.
+    """
+
+    def test_claude_conoce_los_dos_nombres_de_su_boton(self):
+        """Se renombra al grabar, y con un solo nombre se pierde a mitad.
+
+        En reposo es «Manten presionado para grabar»; grabando pasa a «Detener
+        dictado». Buscando solo el primero, en cuanto empieza deja de
+        encontrarse y parece que el programa se quedo sin dictado.
+        """
+        from tecladoia.microfono_propio import perfil_de
+
+        nombres = perfil_de("claude")["interruptor"]
+        self.assertTrue(any("grabar" in n for n in nombres))
+        self.assertTrue(any("detener" in n for n in nombres))
+
+    def test_chatgpt_sabe_enviar_el_solo(self):
+        """Su «Transcribir y enviar» es justo lo de la palanca arriba.
+
+        Y lo hace el, que sabe cuando ha terminado de transcribir; nosotros
+        solo podiamos esperar medio segundo y pulsar Intro a ver si ya estaba.
+        """
+        from tecladoia.microfono_propio import perfil_de
+
+        self.assertTrue(perfil_de("ChatGPT").get("enviar"))
+
+    def test_chatgpt_usa_su_atajo(self):
+        from tecladoia.microfono_propio import perfil_de
+
+        self.assertEqual(perfil_de("ChatGPT").get("atajo"), "ctrl+shift+d")
+
+    def test_el_atajo_se_traduce_a_teclas(self):
+        from tecladoia.microfono_propio import _TECLAS
+
+        self.assertEqual(_TECLAS["ctrl"], 0x11)
+        self.assertEqual(_TECLAS["shift"], 0x10)
+
+    def test_lo_desconocido_no_se_inventa(self):
+        """Un programa sin dictado propio devuelve «no lo se», no «no graba».
+
+        La diferencia importa: «no lo se» manda a Win+H, que funciona en
+        cualquier sitio. Inventarse la respuesta seria repetir el error que
+        esto viene a corregir.
+        """
+        from tecladoia.microfono_propio import MicrofonoDeLaApp
+
+        m = MicrofonoDeLaApp(0, "un-programa-cualquiera")
+        self.assertIsNone(m.estado())
+        self.assertFalse(m.hay_dictado())
+
+    def test_se_puede_volver_a_win_h(self):
+        a = Ajustes()
+        self.assertTrue(a.usar_microfono_propio, "de fabrica se prefiere el propio")
+        a.usar_microfono_propio = False
+        a.guardar()
+        self.assertFalse(Ajustes.cargar().usar_microfono_propio)
