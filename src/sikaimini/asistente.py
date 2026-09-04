@@ -143,6 +143,52 @@ def detener_servicios_anteriores() -> int:
     return len([l for l in hecho.stdout.split() if l.strip().isdigit()])
 
 
+def arrancar_ahora(host: str = "") -> bool:
+    """Arranca el servicio ya, sin esperar al programador de tareas.
+
+    Pedírselo a la tarea (`schtasks /Run`) devuelve «correcto» al instante y
+    Windows lo deja en cola: a veces arranca en dos segundos y a veces en
+    medio minuto, y mientras tanto el panel recién abierto no tiene a quién
+    preguntar. Se lanza aquí mismo, sin ventana, con la salida al registro;
+    la tarea queda para los siguientes arranques (si encuentra este vivo, se
+    retira sola).
+    """
+    if os.name != "nt":
+        return False
+    registro = ruta_registro()
+    registro.parent.mkdir(parents=True, exist_ok=True)
+    orden = f'{orden_de_arranque()} servicio' + (f" --host {host}" if host else "")
+    try:
+        with open(registro, "ab") as salida:
+            subprocess.Popen(
+                orden, shell=True, stdout=salida, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                cwd=str(Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path.cwd()),
+                creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def esperar_al_servicio(puerto: int, plazo_s: float = 30.0) -> str:
+    """Devuelve la versión que contesta en /api/salud, o «» si no llega a tiempo."""
+    import json
+    import time
+    import urllib.request
+
+    limite = time.monotonic() + plazo_s
+    while time.monotonic() < limite:
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{puerto}/api/salud", timeout=2) as r:
+                datos = json.loads(r.read().decode("utf-8"))
+            if isinstance(datos, dict) and datos.get("app") == "sikaimini":
+                return str(datos.get("version") or "?")
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(0.5)
+    return ""
+
+
 def ejecutar(preguntar=input, escribir=print) -> int:
     """La instalación guiada: lo que hace `SikaiMini.exe` al abrirse sin argumentos."""
     from . import dispositivo
@@ -222,9 +268,17 @@ def ejecutar(preguntar=input, escribir=print) -> int:
     escribir("==> Dejando el servicio arrancando con el equipo")
     hecho, detalle = registrar_tarea(ajustes.host_panel if ajustes.host_panel != "127.0.0.1" else "")
     escribir(("    [ok] " if hecho else "    [!]  ") + detalle)
-    if hecho:
-        arrancado = subprocess.run(["schtasks", "/Run", "/TN", TAREA], capture_output=True, text=True).returncode == 0
-        escribir("    [ok] servicio arrancado" if arrancado else "    [!]  no se pudo arrancar ahora; arrancará al iniciar sesión")
+    host_publico = ajustes.host_panel if ajustes.host_panel != "127.0.0.1" else ""
+    if arrancar_ahora(host_publico):
+        escribir("    … arrancando el servicio")
+        version = esperar_al_servicio(ajustes.puerto_panel)
+        if version:
+            escribir(f"    [ok] el servicio contesta: {NOMBRE} {version}")
+        else:
+            escribir(f"    [!]  el servicio no contesta en 30 s; mira {ruta_registro()}")
+    elif hecho:
+        subprocess.run(["schtasks", "/Run", "/TN", TAREA], capture_output=True, text=True)
+        escribir("    [ok] se le pidió arrancar a la tarea programada")
     else:
         escribir(f"    Puedes arrancarlo a mano: {orden_de_arranque()} servicio")
 
@@ -240,7 +294,7 @@ def ejecutar(preguntar=input, escribir=print) -> int:
     escribir(f"    El panel de este equipo: {local}  (sin clave desde aquí)")
     if ajustes.host_panel not in ("", "127.0.0.1"):
         escribir(f"    Y desde fuera, con clave: http://{ajustes.host_panel}:{ajustes.puerto_panel}")
-    if hecho and abrir_en_el_navegador(local):
+    if esperar_al_servicio(ajustes.puerto_panel, 5.0) and abrir_en_el_navegador(local):
         escribir("    [ok] abierto en el navegador")
     escribir("")
     escribir("    La tecla del micrófono abre el dictado en el programa que elijas en el panel.")
