@@ -31,7 +31,7 @@ import time
 from ctypes import wintypes
 from typing import Callable, Optional
 
-from .microfono_propio import buscar_boton, esta_grabando, poner
+from .microfono_propio import buscar as buscar_microfono_propio
 from .registro import obtener
 
 _log = obtener("dictado")
@@ -662,19 +662,16 @@ class Dictado:
         # por su cuenta o el servicio se reiniciara— se le pregunta.
         propio = self._boton_propio(programa)
         if propio is not None:
-            grabando = esta_grabando(propio)
-            if grabando:
-                enviado = False
-                if enviar_al_cerrar:
-                    time.sleep(0.5)   # que termine de escribir lo dictado
-                    _pulsar(VK_INTRO)
-                    enviado = True
-                    time.sleep(0.25)
-                poner(propio, False)
+            if propio.estado():
+                # Con la palanca arriba se usa el «transcribir y enviar» del
+                # propio programa cuando lo tiene: lo hace él, que sabe cuándo
+                # ha terminado de transcribir. Nosotros solo podíamos esperar
+                # medio segundo y pulsar Intro a ver si ya estaba.
+                propio.parar(enviar=enviar_al_cerrar)
                 self.abierto = False
                 return {
                     "accion": "cerrado", "programa": programa,
-                    "enviado": enviado, "con_el_propio": True,
+                    "enviado": bool(enviar_al_cerrar), "con_el_propio": True,
                 }
             hecho = dictar_en(
                 programa, lanzar,
@@ -728,7 +725,7 @@ class Dictado:
             hwnd = _ventana_de(programa)
             if not hwnd:
                 return None
-            return buscar_boton(hwnd, programa)
+            return buscar_microfono_propio(hwnd, programa)
         except Exception:  # noqa: BLE001 - nunca vale la pena morir por esto
             _log.debug("No se pudo mirar el micrófono propio", exc_info=True)
             return None
@@ -806,11 +803,11 @@ def dictar_en(
     # sitio aunque sea a ciegas.
     con_el_propio = False
     if usar_el_propio and hwnd:
-        from .microfono_propio import buscar_boton, poner
+        from .microfono_propio import buscar as buscar_propio
 
-        boton = buscar_boton(hwnd, proceso)
+        boton = buscar_propio(hwnd, proceso)
         if boton is not None:
-            quedo = poner(boton, grabando)
+            quedo = boton.arrancar() if grabando else boton.parar()
             if quedo is not None:
                 con_el_propio = True
                 _log.info(

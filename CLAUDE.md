@@ -388,6 +388,23 @@ access» sin decir de dónde viene. Hay que pedir el interruptor de verdad. Y tr
 pulsarlo, el estado tarda un momento en reflejarse (`ESPERA_DEL_ESTADO_S`):
 preguntarle enseguida devuelve el valor viejo y parece que no obedeció.
 
+**Cada programa lo cuenta a su manera** y hay que hablar los dos idiomas
+(`microfono_propio.PERFILES`):
+
+- **Claude**: un solo botón con patrón `Toggle`, que además **se renombra**. En
+  reposo es «Mantén presionado para grabar»; grabando pasa a «Detener dictado».
+  Buscando solo el primer nombre, en cuanto empieza deja de encontrarse y
+  parece que el programa se quedó sin dictado.
+- **ChatGPT**: no publica `Toggle`; **cambia de botones**. Parado enseña
+  «Dictar»; grabando salen «Detener dictado», «Transcribir y enviar» y
+  «Cancelar dictado». El estado se lee por presencia. Y su «Transcribir y
+  enviar» es justo lo de la palanca arriba, hecho por él, que sabe cuándo ha
+  terminado de transcribir — mejor que nuestro medio segundo y un Intro a ver.
+
+Se pregunta **dos veces** (`estado(intentos=2)`): son Chromium por dentro y su
+árbol tarda un instante en reasentarse justo después de arrancar o parar, que
+es cuando más falta hace leerlo.
+
 Si el programa no lo tiene, o le cambia el nombre al botón, queda Win+H, que
 funciona en cualquier sitio aunque sea a ciegas.
 

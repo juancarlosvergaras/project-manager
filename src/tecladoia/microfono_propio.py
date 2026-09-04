@@ -1,7 +1,8 @@
 """Usar el micrófono de la propia aplicación en vez del dictado de Windows.
 
 Claude y ChatGPT traen su dictado dentro, y es mejor que el de Windows por una
-razón que no es de calidad sino de mecánica: **su botón dice si está grabando**.
+razón que no es de calidad sino de mecánica: **se puede saber si está
+grabando**.
 
 Win+H es un interruptor a ciegas. El panel de dictado de Windows no es una
 ventana ni se asoma a la capa de accesibilidad —se buscó y no está—, así que no
@@ -10,12 +11,20 @@ micrófono: pulsabas para cerrar y se abría, Windows lo cerraba solo tras un
 silencio y nuestras cuentas se desalineaban, y la primera pulsación tras
 reiniciar hacía lo contrario de lo que querías.
 
-El botón de la aplicación, en cambio, expone el patrón ``Toggle`` de la capa de
-accesibilidad. Se le puede preguntar **y** pulsar. No hay que adivinar nada.
+**Cada programa lo cuenta a su manera**, y hay que hablar los dos idiomas:
 
-Lo que se pierde: esto solo vale para programas que tengan dictado propio y lo
-publiquen. Para los demás sigue estando Win+H, que funciona en cualquier sitio.
-Por eso esto no sustituye al otro, se antepone.
+* **Claude** tiene un solo botón que se enciende y se apaga, y publica el
+  patrón ``Toggle``: se le pregunta directamente.
+* **ChatGPT** cambia de botones. Con el micrófono parado enseña «Dictar»; en
+  cuanto empieza, ese desaparece y salen «Detener dictado», «Transcribir y
+  enviar» y «Cancelar dictado». Así que el estado se lee por lo que hay en
+  pantalla, y encima sale gratis algo que nosotros hacíamos a mano: para la
+  palanca arriba está su propio «Transcribir y enviar», que es exactamente eso
+  y lo hace él.
+
+Si un programa no tiene dictado propio —o le cambia el nombre a los botones—
+queda Win+H, que funciona en cualquier sitio aunque sea a ciegas. Por eso esto
+no sustituye al otro, se antepone.
 """
 
 from __future__ import annotations
@@ -28,139 +37,240 @@ from .registro import obtener
 
 _log = obtener("microfono")
 
-#: Cómo se llama el botón del micrófono en cada programa.
-#:
-#: Se buscan trozos, en minúsculas, y basta con que uno encaje. Van varios
-#: idiomas porque la aplicación se pone en el del sistema y no controlamos eso:
-#: el mismo botón es «Mantén presionado para grabar» o «Hold to record».
-NOMBRES_DEL_BOTON = {
-    "claude": ("grabar", "record", "dictad", "dictat", "voz", "voice"),
-    "chatgpt": ("dictar", "dictate", "voz", "voice", "micr", "grabar"),
-}
-
-#: Para lo que no esté en la lista, se prueba con lo más común.
-NOMBRES_POR_OMISION = ("dictar", "grabar", "record", "dictat", "micr", "voz", "voice")
-
-#: Identificador del patrón Toggle en la capa de accesibilidad de Windows.
+#: Identificadores de los patrones de la capa de accesibilidad que se usan.
+PATRON_INVOKE = 10000
 PATRON_TOGGLE = 10015
 
-#: Lo que tarda el botón en reflejar el cambio. Preguntarle antes de esto
-#: devuelve el estado viejo — comprobado: tras pulsarlo seguía diciendo
-#: «grabando» hasta pasado un momento, y eso hacía creer que no había obedecido.
+#: Tipo de control «botón».
+TIPO_BOTON = 50000
+
+#: Lo que tarda la interfaz en reflejar el cambio. Preguntar antes de esto
+#: devuelve el estado viejo — comprobado: tras pulsar el botón de Claude seguía
+#: diciendo «grabando» hasta pasado un momento, y parecía que no había obedecido.
 ESPERA_DEL_ESTADO_S = 1.2
 
+#: Cómo habla cada programa.
+#:
+#: Los nombres se buscan en minúsculas y por trozos, y van en varios idiomas
+#: porque la aplicación se pone en el del sistema y eso no lo controlamos: el
+#: mismo botón es «Dictar» o «Dictate».
+PERFILES: dict[str, dict[str, tuple[str, ...]]] = {
+    "claude": {
+        # Un solo botón que se enciende y se apaga... **y se renombra**: en
+        # reposo es «Mantén presionado para grabar» y mientras graba pasa a
+        # llamarse «Detener dictado». Si solo se busca el primer nombre, en
+        # cuanto empieza a grabar deja de encontrarse y parece que el programa
+        # no tiene dictado. Hay que conocer los dos.
+        "interruptor": (
+            "grabar", "record", "detener dictado", "stop dictation",
+        ),
+    },
+    "chatgpt": {
+        "empezar": ("dictar", "dictate"),
+        "parar": ("detener dictado", "stop dictation"),
+        "enviar": ("transcribir y enviar", "transcribe and send"),
+        "cancelar": ("cancelar dictado", "cancel dictation"),
+    },
+}
 
-def _trozos_para(programa: str) -> tuple[str, ...]:
+#: Para lo que no esté descrito, se prueba lo más común.
+PERFIL_POR_OMISION = {
+    "empezar": ("dictar", "dictate", "grabar", "record"),
+    "parar": ("detener dictado", "stop dictation"),
+}
+
+
+def perfil_de(programa: str) -> dict[str, tuple[str, ...]]:
     bajo = (programa or "").lower()
-    for clave, nombres in NOMBRES_DEL_BOTON.items():
+    for clave, perfil in PERFILES.items():
         if clave in bajo:
-            return nombres
-    return NOMBRES_POR_OMISION
+            return perfil
+    return PERFIL_POR_OMISION
 
 
-def buscar_boton(hwnd: int, programa: str = "") -> Optional[Any]:
-    """El botón de micrófono de esa ventana, si lo publica.
-
-    Devuelve ``None`` sin quejarse cuando no lo hay: no todos los programas
-    tienen dictado propio, y quien llama ya sabe qué hacer entonces.
-    """
+def _botones(hwnd: int) -> list[Any]:
+    """Todos los botones de la ventana, o una lista vacía si no se puede."""
     if not hay_soporte():
-        return None
+        return []
     try:
         uia, UIA = _automatizacion()
     except Exception:  # noqa: BLE001 - sin la biblioteca no hay nada que hacer
         _log.debug("No se pudo abrir la automatización de interfaz", exc_info=True)
-        return None
-
+        return []
     _despertar_accesibilidad(hwnd)
-    trozos = _trozos_para(programa)
     try:
         raiz = uia.ElementFromHandle(hwnd)
-        condicion = uia.CreatePropertyCondition(UIA.UIA_ControlTypePropertyId, 50000)
+        condicion = uia.CreatePropertyCondition(UIA.UIA_ControlTypePropertyId, TIPO_BOTON)
         hallados = raiz.FindAll(UIA.TreeScope_Descendants, condicion)
+        return [hallados.GetElement(i) for i in range(hallados.Length)]
     except Exception:  # noqa: BLE001 - la ventana puede irse mientras se mira
         _log.debug("Fallo mirando los botones de la ventana", exc_info=True)
-        return None
+        return []
 
-    for i in range(hallados.Length):
+
+def _buscar(botones: list[Any], trozos: tuple[str, ...]) -> Optional[Any]:
+    for elemento in botones:
         try:
-            elemento = hallados.GetElement(i)
             nombre = (elemento.CurrentName or "").strip().lower()
-            if not nombre or not any(t in nombre for t in trozos):
-                continue
-            # Tiene que poder encenderse y apagarse. Un botón que solo se
-            # pulsa no sirve: sin saber en qué estado está volveríamos al
-            # problema de Win+H, que es justo lo que se viene a resolver.
-            #
-            # Y no basta con mirar si ``GetCurrentPattern`` devuelve algo:
-            # cuando el elemento no admite el patrón devuelve un **puntero
-            # nulo**, que en Python no es ``None`` y pasa cualquier
-            # comprobación ingenua. El fallo aparece después, al usarlo, con un
-            # «NULL COM pointer access» que no dice de dónde viene. Se pide el
-            # interruptor de verdad: si sale, sirve.
-            if _interruptor(elemento) is None:
-                continue
-            return elemento
         except Exception:  # noqa: BLE001
             continue
+        if nombre and any(t in nombre for t in trozos):
+            return elemento
     return None
 
 
 def _interruptor(boton: Any):
-    """El interruptor del botón, o ``None`` si ese botón no tiene."""
+    """El interruptor de un botón, o ``None`` si ese botón no tiene.
+
+    No basta con mirar si ``GetCurrentPattern`` devuelve algo: cuando el
+    elemento no admite el patrón devuelve un **puntero nulo**, que en Python no
+    es ``None`` y pasa cualquier comprobación ingenua. El fallo aparece después,
+    al usarlo, con un «NULL COM pointer access» que no dice de dónde viene.
+    """
     try:
         _, UIA = _automatizacion()
         crudo = boton.GetCurrentPattern(PATRON_TOGGLE)
-        if not crudo:  # puntero nulo: el elemento no admite el patrón
+        if not crudo:
             return None
         return crudo.QueryInterface(UIA.IUIAutomationTogglePattern)
-    except Exception:  # noqa: BLE001 - el elemento puede irse mientras se mira
-        return None
-
-
-def esta_grabando(boton: Any) -> Optional[bool]:
-    """¿Está grabando ahora mismo? ``None`` si no se puede saber."""
-    interruptor = _interruptor(boton)
-    if interruptor is None:
-        return None
-    try:
-        return bool(interruptor.CurrentToggleState == 1)
     except Exception:  # noqa: BLE001
         return None
 
 
-def alternar(boton: Any) -> Optional[bool]:
-    """Pulsa el botón y devuelve si quedó grabando.
-
-    Se espera antes de leer el estado: el botón tarda un momento en reflejar
-    el cambio y preguntarle enseguida devuelve el valor viejo.
-    """
-    interruptor = _interruptor(boton)
-    if interruptor is None:
-        return None
+def _pulsar(boton: Any) -> bool:
+    """Pulsa un botón por accesibilidad. Devuelve si se pudo."""
     try:
-        interruptor.Toggle()
+        _, UIA = _automatizacion()
+        crudo = boton.GetCurrentPattern(PATRON_INVOKE)
+        if not crudo:
+            return False
+        crudo.QueryInterface(UIA.IUIAutomationInvokePattern).Invoke()
+        return True
     except Exception:  # noqa: BLE001 - el botón puede irse mientras se pulsa
-        _log.debug("El botón del micrófono no aceptó la pulsación", exc_info=True)
+        _log.debug("El botón no aceptó la pulsación", exc_info=True)
+        return False
+
+
+class MicrofonoDeLaApp:
+    """El dictado de un programa concreto, leído y manejado por accesibilidad."""
+
+    def __init__(self, hwnd: int, programa: str) -> None:
+        self.hwnd = hwnd
+        self.programa = programa
+        self.perfil = perfil_de(programa)
+
+    # --- lectura ------------------------------------------------------
+    def estado(self, intentos: int = 2) -> Optional[bool]:
+        """¿Está grabando? ``None`` si este programa no lo cuenta.
+
+        Devolver ``None`` es importante: significa «no lo sé», y quien llama
+        debe entonces irse a Win+H en vez de inventarse una respuesta. Adivinar
+        aquí sería repetir el error que se viene a corregir.
+
+        Se pregunta dos veces porque estas aplicaciones son Chromium por
+        dentro y su árbol tarda un instante en reasentarse cuando los botones
+        acaban de cambiar —justo después de arrancar o parar el dictado, que es
+        cuando más falta hace leerlo—. Una sola lectura ahí devuelve vacío y
+        parece que el programa se quedó sin dictado.
+        """
+        for intento in range(max(1, intentos)):
+            leido = self._leer_estado()
+            if leido is not None:
+                return leido
+            if intento < intentos - 1:
+                time.sleep(0.35)
         return None
-    time.sleep(ESPERA_DEL_ESTADO_S)
-    return esta_grabando(boton)
 
+    def _leer_estado(self) -> Optional[bool]:
+        botones = self._botones()
+        if not botones:
+            return None
 
-def poner(boton: Any, grabando: bool) -> Optional[bool]:
-    """Deja el micrófono como se pida, mirando antes cómo está.
+        trozos = self.perfil.get("interruptor")
+        if trozos:
+            boton = _buscar(botones, trozos)
+            if boton is None:
+                return None
+            interruptor = _interruptor(boton)
+            if interruptor is None:
+                return None
+            try:
+                return bool(interruptor.CurrentToggleState == 1)
+            except Exception:  # noqa: BLE001
+                return None
 
-    Aquí está la diferencia con Win+H: como se puede preguntar, se puede
-    **poner** en una posición en vez de alternar a ciegas. Si ya estaba como
-    se quería, no se toca —y eso evita cerrarle el micrófono a quien está
-    hablando, que es lo que hacía el interruptor ciego.
-    """
-    actual = esta_grabando(boton)
-    if actual is None:
+        # Por presencia: si está el botón de parar, es que está grabando.
+        if _buscar(botones, self.perfil.get("parar", ())) is not None:
+            return True
+        if _buscar(botones, self.perfil.get("empezar", ())) is not None:
+            return False
         return None
-    if actual == grabando:
-        return actual
-    return alternar(boton)
+
+    def hay_dictado(self) -> bool:
+        """¿Este programa publica un dictado que sepamos manejar?"""
+        return self.estado() is not None
+
+    # --- mando --------------------------------------------------------
+    def arrancar(self) -> Optional[bool]:
+        """Pone a grabar. Si ya estaba, no toca nada."""
+        actual = self.estado()
+        if actual is None or actual:
+            return actual
+        return self._accionar("empezar", quedando=True)
+
+    def parar(self, enviar: bool = False) -> Optional[bool]:
+        """Deja de grabar. Con ``enviar``, además manda lo dictado.
+
+        Cuando el programa tiene su propio «transcribir y enviar» se usa ese,
+        que es más fiable que dictar, cerrar y pulsar Intro por nuestra cuenta:
+        lo hace él, sabiendo cuándo ha terminado de transcribir.
+        """
+        actual = self.estado()
+        if actual is None or not actual:
+            return actual
+        if enviar and self.perfil.get("enviar"):
+            return self._accionar("enviar", quedando=False)
+        return self._accionar("parar", quedando=False)
+
+    def puede_enviar_el_solo(self) -> bool:
+        """¿Trae su propio «transcribir y enviar»?"""
+        return bool(self.perfil.get("enviar")) and self.estado() is not None
+
+    # --- interior -----------------------------------------------------
+    def _botones(self) -> list[Any]:
+        return _botones(self.hwnd)
+
+    def _accionar(self, papel: str, quedando: bool) -> Optional[bool]:
+        botones = self._botones()
+        trozos = self.perfil.get("interruptor")
+        if trozos:
+            # Un solo botón para las dos cosas.
+            boton = _buscar(botones, trozos)
+            if boton is None:
+                return None
+            interruptor = _interruptor(boton)
+            if interruptor is None:
+                return None
+            try:
+                interruptor.Toggle()
+            except Exception:  # noqa: BLE001
+                _log.debug("El interruptor no aceptó la pulsación", exc_info=True)
+                return None
+        else:
+            boton = _buscar(botones, self.perfil.get(papel, ()))
+            if boton is None or not _pulsar(boton):
+                return None
+        time.sleep(ESPERA_DEL_ESTADO_S)
+        leido = self.estado()
+        return quedando if leido is None else leido
 
 
-__all__ = ["buscar_boton", "esta_grabando", "alternar", "poner", "NOMBRES_DEL_BOTON"]
+def buscar(hwnd: int, programa: str) -> Optional["MicrofonoDeLaApp"]:
+    """El dictado propio de esa ventana, si lo hay y lo entendemos."""
+    if not hwnd or not hay_soporte():
+        return None
+    micro = MicrofonoDeLaApp(hwnd, programa)
+    return micro if micro.hay_dictado() else None
+
+
+__all__ = ["MicrofonoDeLaApp", "buscar", "perfil_de", "PERFILES"]
