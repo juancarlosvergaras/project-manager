@@ -33,6 +33,7 @@ _FIN = "\r\n"
 _CAMPOS_AJUSTES = {
     "programa": str, "alto_cuadro": int, "pinchar_cuadro": bool, "enviar_al_cerrar": bool,
     "adoptar_microfono": bool, "pitido_al_abrir": bool, "clave_panel": str,
+    "usar_microfono_propio": bool,
 }
 
 

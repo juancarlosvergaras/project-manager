@@ -191,6 +191,11 @@ registro, `Enum\USB\VID…\<serie>\ContainerID`) y a su punto de audio
 lee el puntero a mano en `dispositivo._guid_de`). Cambiarlo usa la interfaz no
 documentada `IPolicyConfig`, la misma que usa el propio panel de sonido.
 
+**El micrófono propio del programa también manda aquí** (`usar_microfono_propio`,
+encendido de fábrica): la tecla blanca pasa por `Dictado.usar_el_propio`, así que
+con Claude o ChatGPT pulsa su botón de dictado y solo cae a Win+H si no lo hay. El
+micrófono de este teclado falla mucho con Win+H; con el botón del programa no.
+
 **Config en `%APPDATA%\MiniMic\config.json`** (`MINIMIC_INICIO` la cambia;
 las pruebas la aíslan). Misma trampa del AppData redirigido que TecladoIA:
 desde una sesión de Claude no se escribe la de verdad. La clave del panel se

@@ -252,6 +252,9 @@ class Servicio:
             self._avisar(f"sin dictado: {e}")
             return
         self._dictado = Dictado()
+        # El botón de dictado del propio programa antes que Win+H, como en el
+        # AhaKey: se le puede preguntar si está grabando, y Win+H no.
+        self._dictado.usar_el_propio = self.ajustes.usar_microfono_propio
         if not hay_soporte():
             self.estado.atajo_reservado = False
             return
@@ -278,6 +281,7 @@ class Servicio:
                 avisar()
             except Exception:  # noqa: BLE001
                 pass
+        self._dictado.usar_el_propio = self.ajustes.usar_microfono_propio  # por si cambió en el panel
         hecho = self._dictado.alternar(
             programa["proceso"], programa["lanzar"],
             pinchar_el_cuadro=self.ajustes.pinchar_cuadro,
@@ -286,7 +290,11 @@ class Servicio:
         )
         self.estado.dictado_abierto = bool(self._dictado.abierto)
         self.estado.ultima_pulsacion = time.time()
-        registro.info("tecla del micrófono: %s (%s)", hecho.get("accion"), programa["nombre"])
-        self.publicar("pulsacion", {"tecla": 5, "accion": hecho.get("accion"), "programa": programa["nombre"]})
+        registro.info(
+            "tecla del micrófono: %s (%s, %s)", hecho.get("accion"), programa["nombre"],
+            "micrófono propio" if hecho.get("con_el_propio") else "Win+H",
+        )
+        self.publicar("pulsacion", {"tecla": 5, "accion": hecho.get("accion"), "programa": programa["nombre"],
+                                    "con_el_propio": bool(hecho.get("con_el_propio"))})
         self.publicar("estado")
         return hecho

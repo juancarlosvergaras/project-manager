@@ -70,6 +70,9 @@ class Ajustes:
     alto_cuadro: int = 0  #: píxeles desde abajo hasta el cuadro de escribir; 0 = el 10 %
     pinchar_cuadro: bool = True
     enviar_al_cerrar: bool = True  #: al cerrar el dictado con la tecla, manda Intro
+    #: Preferir el botón de dictado del propio programa (Claude, ChatGPT) al
+    #: Win+H de Windows, que con este micrófono falla mucho. Igual que en TecladoIA.
+    usar_microfono_propio: bool = True
 
     # --- el micrófono ---
     adoptar_microfono: bool = True  #: ponerlo como micrófono del sistema al aparecer

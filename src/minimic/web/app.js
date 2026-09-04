@@ -113,6 +113,7 @@ function pintarAjustes(a) {
   estado.ajustes = a;
   $("#programa").value = a.programa;
   $("#adoptar_microfono").checked = !!a.adoptar_microfono;
+  $("#usar_microfono_propio").checked = a.usar_microfono_propio !== false;
   $("#pinchar_cuadro").checked = !!a.pinchar_cuadro;
   $("#enviar_al_cerrar").checked = !!a.enviar_al_cerrar;
   $("#pitido_al_abrir").checked = !!a.pitido_al_abrir;
@@ -206,6 +207,7 @@ function conectar() {
   $("#adoptar_microfono").addEventListener("change", async () => { await pedir("/api/ajustes", { adoptar_microfono: $("#adoptar_microfono").checked }); });
   $("#btn-guardar-dictado").addEventListener("click", async () => {
     await pedir("/api/ajustes", {
+      usar_microfono_propio: $("#usar_microfono_propio").checked,
       pinchar_cuadro: $("#pinchar_cuadro").checked, enviar_al_cerrar: $("#enviar_al_cerrar").checked,
       pitido_al_abrir: $("#pitido_al_abrir").checked, alto_cuadro: Number($("#alto_cuadro").value) || 0,
     });
@@ -232,7 +234,7 @@ function escuchar() {
     const d = JSON.parse(e.data);
     const b = $(`.tecla-mm[data-tecla="${(d.tecla || 5) - 1}"]`);
     if (b) { b.classList.add("pulsada"); setTimeout(() => b.classList.remove("pulsada"), 350); }
-    avisar(`Tecla del micrófono: ${d.accion} (${d.programa})`);
+    avisar(`Tecla del micrófono: ${d.accion} (${d.programa}, ${d.con_el_propio ? "micrófono propio" : "Win+H"})`);
   });
   fuente.onerror = () => { $("#chip-vivo").hidden = true; };
 }
