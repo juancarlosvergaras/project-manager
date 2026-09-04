@@ -368,15 +368,19 @@ function escuchar() {
   aplicarTema(tema);
   conectar();
   if (location.hash.length > 1) irA(location.hash.slice(1));
+  // Primero lo que pinta la cabecera y el canal en vivo; lo lento (el
+  // paquete, las opciones con el nombre del equipo en la red) va después.
   try {
-    pintarPaquete(await pedir("/api/paquete"));
-    pintarOpciones(await pedir("/api/opciones"));
-    pintarAjustes(await pedir("/api/ajustes"));
     await refrescar();
   } catch (e) {
     $("#ind-conexion").textContent = "el servicio no contesta (" + (e && e.message ? e.message : e) + ")";
   }
   escuchar();
+  try {
+    pintarOpciones(await pedir("/api/opciones"));
+    pintarAjustes(await pedir("/api/ajustes"));
+    pintarPaquete(await pedir("/api/paquete"));
+  } catch (e) { /* ya se avisó */ }
   // Si el canal en vivo no llega, se sigue preguntando cada pocos segundos.
   setInterval(() => { if ($("#chip-vivo").hidden) refrescar().catch(() => {}); }, 5000);
 })();
