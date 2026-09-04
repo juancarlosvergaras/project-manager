@@ -67,7 +67,9 @@ class Ajustes:
     programa: str = "activo"
     alto_cuadro: int = 0
     pinchar_cuadro: bool = True
-    enviar_al_cerrar: bool = True
+    #: Al cerrar el dictado con la tecla, mandar Intro. Apagado: la tecla solo
+    #: abre y cierra el micrófono; enviar es cosa de la tecla Sí.
+    enviar_al_cerrar: bool = False
     usar_microfono_propio: bool = True
     atajos_dictado: dict[str, str] = field(default_factory=lambda: dict(ATAJOS_DE_FABRICA))
 
