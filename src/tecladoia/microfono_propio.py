@@ -66,10 +66,8 @@ PERFILES: dict[str, dict[str, tuple[str, ...]]] = {
         ),
     },
     "chatgpt": {
-        # Su propio atajo. Se prefiere a pulsar el botón porque no depende de
-        # cómo se llamen los botones ni de que el árbol de accesibilidad esté
-        # asentado: la ventana ya está enfocada cuando llegamos aquí, así que
-        # basta con mandar la combinación.
+        # Su atajo, de respaldo por si algún día no se encuentra el botón.
+        # No va primero: un atajo necesita la ventana al frente y el botón no.
         "atajo": "ctrl+shift+d",
         "empezar": ("dictar", "dictate"),
         "parar": ("detener dictado", "stop dictation"),
@@ -298,15 +296,22 @@ class MicrofonoDeLaApp:
             except Exception:  # noqa: BLE001
                 _log.debug("El interruptor no aceptó la pulsación", exc_info=True)
                 return None
-        elif self.perfil.get("atajo") and papel in ("empezar", "parar"):
-            # El atajo del propio programa: más robusto que el botón, porque no
-            # depende de cómo se llame ni de que el árbol esté asentado.
-            if not _mandar_atajo(self.perfil["atajo"]):
-                return None
         else:
+            # **El botón primero, el atajo de respaldo.** Parece al revés de lo
+            # que uno esperaría, y hay una razón medida: pulsar un botón por
+            # accesibilidad no necesita que la ventana esté al frente, y un
+            # atajo de teclado sí. Nosotros enfocamos el cuadro de escribir por
+            # accesibilidad, que no siempre trae la ventana adelante, así que
+            # el atajo se iba a cualquier otro sitio y ChatGPT no arrancaba
+            # nunca —quedaba «parado» en el registro después de pedirle que
+            # grabara—. El botón, en cambio, va directo al programa.
             boton = _buscar(botones, self.perfil.get(papel, ()))
             if boton is None or not _pulsar(boton):
-                return None
+                atajo = self.perfil.get("atajo")
+                if not atajo or papel not in ("empezar", "parar"):
+                    return None
+                if not _mandar_atajo(atajo):
+                    return None
         time.sleep(ESPERA_DEL_ESTADO_S)
         leido = self.estado()
         return quedando if leido is None else leido

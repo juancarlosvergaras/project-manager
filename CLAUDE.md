@@ -395,14 +395,20 @@ preguntarle enseguida devuelve el valor viejo y parece que no obedeció.
   reposo es «Mantén presionado para grabar»; grabando pasa a «Detener dictado».
   Buscando solo el primer nombre, en cuanto empieza deja de encontrarse y
   parece que el programa se quedó sin dictado.
-- **ChatGPT**: tiene atajo propio, **`Ctrl+Mayús+D`**, y se prefiere a pulsar el
-  botón porque no depende de cómo se llame ni de que el árbol esté asentado —la
-  ventana ya está enfocada cuando llegamos ahí—. No publica `Toggle`; **cambia
-  de botones**. Parado enseña
+- **ChatGPT**: no publica `Toggle`; **cambia de botones**. Parado enseña
   «Dictar»; grabando salen «Detener dictado», «Transcribir y enviar» y
   «Cancelar dictado». El estado se lee por presencia. Y su «Transcribir y
   enviar» es justo lo de la palanca arriba, hecho por él, que sabe cuándo ha
   terminado de transcribir — mejor que nuestro medio segundo y un Intro a ver.
+
+**El botón antes que el atajo, y parece al revés.** ChatGPT tiene su propio
+`Ctrl+Mayús+D` —lo enseña en su globito—, pero va de respaldo: pulsar un botón
+por accesibilidad **no necesita la ventana al frente** y un atajo de teclado sí.
+Nosotros enfocamos el cuadro de escribir por accesibilidad, que no siempre trae
+la ventana adelante, así que el atajo se iba a cualquier otra parte y en el
+registro quedaba «se le pidió arrancar y siguió parado». Con el botón va
+directo al programa. Claude no tiene este problema porque su camino ya era el
+botón.
 
 Se pregunta **dos veces** (`estado(intentos=2)`): son Chromium por dentro y su
 árbol tarda un instante en reasentarse justo después de arrancar o parar, que
