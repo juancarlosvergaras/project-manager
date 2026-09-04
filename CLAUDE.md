@@ -246,7 +246,9 @@ que hacen las dos con un receptor —adoptar el micrófono, esperar su tecla— 
 inofensivo por duplicado.
 
 **La tecla del micrófono manda `Ctrl+Mayús+Alt+F15`** (F13 es del AhaKey, F14
-del MiniMic). **La perilla queda como rueda del ratón**: giro A → rueda abajo,
+del MiniMic). **Solo abre y cierra el dictado**: `enviar_al_cerrar` viene apagado
+en este teclado porque el usuario manda el Intro con la tecla Sí (lo pidió el
+4/9/2026 tras ver que cerrar el micrófono enviaba solo). **La perilla queda como rueda del ratón**: giro A → rueda abajo,
 giro B → rueda arriba, pulsación → clic central. Si desplaza al revés, se
 cambian los dos giros entre sí desde el panel. De fábrica traía Vol+, Vol− y
 Alt derecho.
@@ -270,6 +272,18 @@ túnel llegaría Internet entera como si fuera local. Lo cubre
 **El panel local no pide clave y escucha siempre en `127.0.0.1`**, aunque esté
 publicado en Tailscale (los tres teclados). La clave es para quien entra desde
 fuera. El instalador deja un acceso directo al panel en el escritorio y lo abre.
+
+**El instalador (0.1.7) hace todo lo que antes había que hacer a mano**: para el
+servicio anterior, graba el teclado si está por cable, pregunta por la clave
+(sin clave no se publica) y por Tailscale, deja el acceso directo en el
+escritorio, **arranca el servicio él mismo** (pedírselo a la tarea programada
+podía tardar medio minuto y el navegador se abría antes) y abre el panel solo
+cuando `/api/salud` contesta. El zip se llama `SikaiMini-<versión>.zip`.
+
+**Para mirar un PC lejano sin tocarlo**, por el túnel y con clave:
+`/api/estado`, `/api/registro` (cola del registro real, que desde Claude no se
+ve) y `/api/botones` (los botones que publica la ventana de un programa; así se
+vio que el Claude del usuario tiene «Dictar» en vez del interruptor).
 
 **La misma trampa de `AppData`** que TecladoIA y MiniMic, con una vuelta más:
 la carpeta real `AppData\Roaming\SikaiMini` no existe hasta que algo la crea
@@ -649,4 +663,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-265, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+268, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
