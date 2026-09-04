@@ -172,6 +172,7 @@ class PruebaPanel(PruebaAislada):
             servicio.bucle = asyncio.get_running_loop()
             servicio.estado.presencia = dispositivo.Presencia(cable=True, receptor=False, ruta_configuracion=b"x")
             panel = PanelWeb(servicio, ajustes)
+            panel.confiar_en_local = False  # las pruebas vienen de 127.0.0.1 y quieren probar la clave
             await panel.arrancar()
             try:
                 return await caso(panel, servicio)
@@ -221,6 +222,13 @@ class PruebaPanel(PruebaAislada):
             estado, _, cuerpo = await self.pedir(panel.puerto, "GET", "/api/salud")
             self.assertTrue(estado.startswith("HTTP/1.1 200"))
             self.assertEqual(json.loads(cuerpo)["app"], "minimic")
+        self.correr(caso, clave="secreta1")
+
+    def test_desde_el_propio_equipo_no_se_pide_clave(self):
+        async def caso(panel, servicio):
+            panel.confiar_en_local = True
+            estado, _, _ = await self.pedir(panel.puerto, "GET", "/api/estado")
+            self.assertTrue(estado.startswith("HTTP/1.1 200"))
         self.correr(caso, clave="secreta1")
 
     def test_fuera_de_local_sin_clave_no_abre(self):

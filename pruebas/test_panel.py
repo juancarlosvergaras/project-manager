@@ -22,6 +22,7 @@ class PruebaPanel(PruebaAislada):
         await gestor.conectar()
         servidor = ServidorEnganches(gestor, ajustes)
         panel = PanelWeb(gestor, servidor, ajustes)
+        panel.confiar_en_local = False  # las pruebas vienen de 127.0.0.1 y prueban la clave
         await panel.arrancar()
         return panel, gestor, simulado
 
@@ -118,6 +119,7 @@ class PruebaClaveDelPanel(PruebaAislada):
         await gestor.conectar()
         servidor = ServidorEnganches(gestor, ajustes)
         panel = PanelWeb(gestor, servidor, ajustes)
+        panel.confiar_en_local = False  # las pruebas vienen de 127.0.0.1 y prueban la clave
         await panel.arrancar()
         return panel
 

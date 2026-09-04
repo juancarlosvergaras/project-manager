@@ -73,6 +73,33 @@ def hay_tarea() -> bool:
     return hecho.returncode == 0
 
 
+def acceso_directo_en_el_escritorio(url: str) -> str:
+    """Deja un «.url» con el nombre de la aplicación en el escritorio apuntando al panel local. Devuelve la ruta o «»."""
+    if os.name != "nt":
+        return ""
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(260)
+        ctypes.windll.shell32.SHGetFolderPathW(0, 0x10, 0, 0, buf)  # CSIDL_DESKTOPDIRECTORY
+        escritorio = Path(buf.value) if buf.value else Path.home() / "Desktop"
+        destino = escritorio / f"{NOMBRE}.url"
+        destino.write_text(f"[InternetShortcut]
+URL={url}
+IconIndex=0
+", encoding="utf-8")
+        return str(destino)
+    except Exception:  # noqa: BLE001 - un escritorio raro no debe tumbar la instalación
+        return ""
+
+
+def abrir_en_el_navegador(url: str) -> bool:
+    try:
+        import webbrowser
+        return bool(webbrowser.open(url))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def ejecutar(preguntar=input, escribir=print) -> int:
     """La instalación guiada: lo que hace `MiniMic.exe` al abrirse sin argumentos."""
     from . import dispositivo
@@ -127,7 +154,17 @@ def ejecutar(preguntar=input, escribir=print) -> int:
     escribir("")
     escribir("==> Listo")
     escribir(f"    Configuración en {ruta_config()}")
-    escribir(f"    Abre  http://{ajustes.host_panel or '127.0.0.1'}:{ajustes.puerto_panel}")
+    # El panel de este equipo es el camino principal: no depende de Internet
+    # ni de ningún otro ordenador. Se deja a mano y se abre.
+    local = f"http://127.0.0.1:{ajustes.puerto_panel}/"
+    acceso = acceso_directo_en_el_escritorio(local)
+    if acceso:
+        escribir(f"    [ok] acceso directo al panel en el escritorio: {acceso}")
+    escribir(f"    El panel de este equipo: {local}  (sin clave desde aquí)")
+    if ajustes.host_panel not in ("", "127.0.0.1"):
+        escribir(f"    Y desde fuera, con clave: http://{ajustes.host_panel}:{ajustes.puerto_panel}")
+    if hecho and abrir_en_el_navegador(local):
+        escribir("    [ok] abierto en el navegador")
     escribir("")
     escribir("    La tecla blanca abre el dictado en el programa que elijas en el panel.")
     escribir("    Conecta el teclado por cable una vez para que se le graben las teclas.")

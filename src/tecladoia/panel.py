@@ -300,7 +300,7 @@ class PanelWeb:
             partes = urlparse(destino)
             consulta = parse_qs(partes.query)
             extras: list[str] = []
-            if not self._autorizado(cabeceras, consulta):
+            if not self._autorizado(cabeceras, consulta, self._es_local(escritor)):
                 estado, tipo, datos = self._sin_permiso()
             else:
                 if consulta.get("clave"):
@@ -336,14 +336,29 @@ class PanelWeb:
             with contextlib.suppress(Exception):
                 await escritor.wait_closed()
 
-    def _autorizado(self, cabeceras: dict[str, str], consulta: dict[str, list[str]]) -> bool:
+    #: Desde el propio equipo no se pide clave: la clave es para quien entre
+    #: desde fuera. Las pruebas lo apagan para ejercitar la clave desde 127.0.0.1.
+    confiar_en_local = True
+
+    @staticmethod
+    def _es_local(escritor: asyncio.StreamWriter) -> bool:
+        try:
+            par = escritor.get_extra_info("peername")
+        except Exception:  # noqa: BLE001
+            return False
+        return bool(par) and par[0] in ("127.0.0.1", "::1")
+
+    def _autorizado(self, cabeceras: dict[str, str], consulta: dict[str, list[str]], es_local: bool = False) -> bool:
         """Comprueba la clave del panel, si la hay.
 
         Se acepta por cabecera ``Authorization: Bearer``, por ``?clave=`` y por
         la cookie que deja la primera visita. La comparación es de tiempo
-        constante para no filtrar la clave a base de medir respuestas.
+        constante para no filtrar la clave a base de medir respuestas. Desde
+        el propio equipo no hace falta.
         """
         esperada = self.ajustes.clave_panel
+        if esperada and es_local and self.confiar_en_local:
+            return True
         if not esperada:
             return True
 

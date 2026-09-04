@@ -30,6 +30,7 @@ class BasePanel(PruebaAislada):
         for campo, valor in extra.items():
             setattr(ajustes, campo, valor)
         panel = PanelWeb(gestor, servidor, ajustes)
+        panel.confiar_en_local = False  # las pruebas vienen de 127.0.0.1 y prueban la clave
         await panel.arrancar()
         return panel
 
@@ -313,6 +314,7 @@ class PruebaClaveDeAcceso(BasePanel):
             gestor = GestorTeclado(ajustes, TransporteSimulado())
             servidor = ServidorEnganches(gestor, ajustes)
             panel = PanelWeb(gestor, servidor, ajustes)
+            panel.confiar_en_local = False  # las pruebas vienen de 127.0.0.1 y prueban la clave
             await panel.arrancar()
             # No se abre: sin clave, publicarlo seria dejar la palanca en manos
             # de cualquiera que alcance el equipo por la red.

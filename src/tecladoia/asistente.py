@@ -137,6 +137,33 @@ def registrar_tarea(host: str = "") -> tuple[bool, str]:
     )
 
 
+def acceso_directo_en_el_escritorio(url: str) -> str:
+    """Deja «TecladoIA.url» en el escritorio apuntando al panel local. Devuelve la ruta o «»."""
+    if os.name != "nt":
+        return ""
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(260)
+        ctypes.windll.shell32.SHGetFolderPathW(0, 0x10, 0, 0, buf)  # CSIDL_DESKTOPDIRECTORY
+        escritorio = Path(buf.value) if buf.value else Path.home() / "Desktop"
+        destino = escritorio / "TecladoIA.url"
+        destino.write_text(f"[InternetShortcut]
+URL={url}
+IconIndex=0
+", encoding="utf-8")
+        return str(destino)
+    except Exception:  # noqa: BLE001 - un escritorio raro no debe tumbar la instalación
+        return ""
+
+
+def abrir_en_el_navegador(url: str) -> bool:
+    try:
+        import webbrowser
+        return bool(webbrowser.open(url))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def ejecutar(preguntar=input, escribir=print) -> int:
     """El asistente completo. Se le pueden pasar otras funciones para probarlo."""
     escribir("")
@@ -205,8 +232,17 @@ def ejecutar(preguntar=input, escribir=print) -> int:
     escribir("==> Listo")
     escribir(f"    Configuración en {ruta_config()}")
     puerto = ajustes.puerto_panel
-    donde = ajustes.host_panel or "127.0.0.1"
-    escribir(f"    Abre  http://{donde}:{puerto}")
+    # El panel de este equipo es el camino principal: no depende de Internet
+    # ni de ningún otro ordenador. Se deja a mano y se abre.
+    local = f"http://127.0.0.1:{puerto}/"
+    acceso = acceso_directo_en_el_escritorio(local)
+    if acceso:
+        escribir(f"    [ok] acceso directo al panel en el escritorio: {acceso}")
+    escribir(f"    El panel de este equipo: {local}  (sin clave desde aquí)")
+    if ajustes.host_panel and ajustes.host_panel != "127.0.0.1":
+        escribir(f"    Y desde fuera, con clave: http://{ajustes.host_panel}:{puerto}")
+    if hecho and abrir_en_el_navegador(local):
+        escribir("    [ok] abierto en el navegador")
     escribir("")
     escribir("    Si el teclado no aparece: enciéndelo y espera unos segundos.")
     escribir("    Y cierra la aplicación oficial de AhaKey si la tienes abierta,")

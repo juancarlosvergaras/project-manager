@@ -155,7 +155,7 @@ class PanelWeb:
                     "teclado": self.servicio.estado.presencia.conectado,
                     "equipo": _nombre_del_equipo(),
                 })
-            elif not self._autorizado(cabeceras, consulta):
+            elif not self._autorizado(cabeceras, consulta, self._es_local(escritor)):
                 estado, tipo, datos = self._sin_permiso()
             elif consulta.get("clave"):
                 extras.append(f"Set-Cookie: sikaimini={self.ajustes.clave_panel}; Path=/; HttpOnly; SameSite=Strict")
@@ -175,9 +175,24 @@ class PanelWeb:
             with contextlib.suppress(Exception):
                 await escritor.wait_closed()
 
-    def _autorizado(self, cabeceras: dict[str, str], consulta: dict[str, list[str]]) -> bool:
+    #: Desde el propio equipo no se pide clave: la clave es para quien entre
+    #: desde fuera. Quien está sentado en el PC ya puede con todo. Las pruebas
+    #: lo apagan para ejercitar la clave desde 127.0.0.1.
+    confiar_en_local = True
+
+    @staticmethod
+    def _es_local(escritor: asyncio.StreamWriter) -> bool:
+        try:
+            par = escritor.get_extra_info("peername")
+        except Exception:  # noqa: BLE001
+            return False
+        return bool(par) and par[0] in ("127.0.0.1", "::1")
+
+    def _autorizado(self, cabeceras: dict[str, str], consulta: dict[str, list[str]], es_local: bool = False) -> bool:
         esperada = self.ajustes.clave_panel
         if not esperada:
+            return True
+        if es_local and self.confiar_en_local:
             return True
         candidatas: list[str] = []
         autorizacion = cabeceras.get("authorization", "")
