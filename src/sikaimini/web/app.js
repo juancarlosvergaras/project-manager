@@ -87,6 +87,14 @@ function irA(nombre) {
 // --- pintar ---------------------------------------------------------------------
 
 function pintar(p) {
+  try { pintarDeVerdad(p); } catch (e) {
+    // Que un dato que falte no deje la página muda: se dice qué pasó.
+    $("#ind-conexion").textContent = "error al pintar: " + (e && e.message ? e.message : e);
+    console.error(e);
+  }
+}
+
+function pintarDeVerdad(p) {
   estado.panorama = p;
   const c = p.conexion;
   $("#ind-conexion").textContent = c.descripcion;
@@ -347,7 +355,10 @@ function escuchar() {
     if (b) { b.classList.add("pulsada"); setTimeout(() => b.classList.remove("pulsada"), 350); }
     avisar(`Tecla del micrófono: ${d.accion} (${d.programa}, ${d.con_el_propio ? "micrófono propio" : "Win+H"})`);
   });
-  fuente.onerror = () => { $("#chip-vivo").hidden = true; };
+  fuente.onerror = () => {
+    $("#chip-vivo").hidden = true;
+    if ($("#ind-conexion").textContent === "Esperando…") $("#ind-conexion").textContent = "sin canal en vivo; reintentando";
+  };
 }
 
 (async function arrancar() {
@@ -361,6 +372,10 @@ function escuchar() {
     pintarOpciones(await pedir("/api/opciones"));
     pintarAjustes(await pedir("/api/ajustes"));
     await refrescar();
-  } catch (e) { /* ya se avisó */ }
+  } catch (e) {
+    $("#ind-conexion").textContent = "el servicio no contesta (" + (e && e.message ? e.message : e) + ")";
+  }
   escuchar();
+  // Si el canal en vivo no llega, se sigue preguntando cada pocos segundos.
+  setInterval(() => { if ($("#chip-vivo").hidden) refrescar().catch(() => {}); }, 5000);
 })();
