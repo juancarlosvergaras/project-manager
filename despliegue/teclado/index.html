@@ -4,22 +4,59 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mis teclados</title>
-<meta name="description" content="Teclados con aplicación propia: AhaKey X1, MiniMic y macropad YXT K100.">
+<meta name="description" content="Teclados con aplicación propia: AhaKey X1, MiniMic, SiKai mini y macropad YXT K100.">
 <style>
   :root{
+    color-scheme:light;
     --azul-900:#0B2C6B; --azul-700:#1D4ED8; --azul-600:#2563EB;
     --azul-500:#3B82F6; --azul-100:#DBEAFE; --azul-50:#EFF6FF;
     --naranja:#F97316; --naranja-claro:#FB923C; --naranja-50:#FFF7ED;
     --tinta:#0F172A; --gris:#64748B; --gris-borde:#E2E8F0;
-    --blanco:#FFFFFF;
+    --blanco:#FFFFFF; --fondo:#FFFFFF; --tarjeta:#FFFFFF;
+    --cristal:rgba(255,255,255,.72);
+    --boton:#1D4ED8; --boton-hover:#0B2C6B;
+    --aviso-fondo:#0F172A; --aviso-texto:#FFFFFF;
     --sombra:0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
     --sombra-alta:0 18px 50px -12px rgba(29,78,216,.28);
+  }
+  /* El tema oscuro se aplica cuando lo pide el sistema y nadie ha elegido lo
+     contrario, y cuando se elige a mano con los botones de la cabecera. Las
+     dos reglas declaran lo mismo para que ninguna dependa de la otra. Las
+     ilustraciones no cambian: el MiniMic es negro y el SiKai es blanco. */
+  @media (prefers-color-scheme:dark){
+    :root:not([data-tema="claro"]){
+      color-scheme:dark;
+      --azul-900:#5B87F5; --azul-700:#7DA2FF; --azul-600:#3B82F6;
+      --azul-100:#1E2A4A; --azul-50:#16203A;
+      --naranja-50:#2A1C0A;
+      --tinta:#E8EDF5; --gris:#97A3B6; --gris-borde:#242B37;
+      --fondo:#0B0F16; --tarjeta:#151A23;
+      --cristal:rgba(11,15,22,.72);
+      --boton:#2563EB; --boton-hover:#1D4ED8;
+      --aviso-fondo:#E8EDF5; --aviso-texto:#0B0F16;
+      --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      --sombra-alta:0 18px 50px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-tema="oscuro"]{
+    color-scheme:dark;
+    --azul-900:#5B87F5; --azul-700:#7DA2FF; --azul-600:#3B82F6;
+    --azul-100:#1E2A4A; --azul-50:#16203A;
+    --naranja-50:#2A1C0A;
+    --tinta:#E8EDF5; --gris:#97A3B6; --gris-borde:#242B37;
+    --fondo:#0B0F16; --tarjeta:#151A23;
+    --cristal:rgba(11,15,22,.72);
+    --boton:#2563EB; --boton-hover:#1D4ED8;
+    --aviso-fondo:#E8EDF5; --aviso-texto:#0B0F16;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    --sombra-alta:0 18px 50px -12px rgba(0,0,0,.6);
   }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
-    background:var(--blanco); color:var(--tinta);
+    background:var(--fondo); color:var(--tinta);
+    transition:background .3s,color .3s;
     -webkit-font-smoothing:antialiased; line-height:1.6;
     min-height:100vh; overflow-x:hidden;
   }
@@ -51,7 +88,7 @@
   header{position:sticky;top:0;z-index:50;
     backdrop-filter:saturate(180%) blur(14px);
     -webkit-backdrop-filter:saturate(180%) blur(14px);
-    background:rgba(255,255,255,.72);
+    background:var(--cristal);
     border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s}
   header.desplazado{border-bottom-color:var(--gris-borde);box-shadow:0 1px 20px rgba(15,23,42,.05)}
   .barra{display:flex;align-items:center;justify-content:space-between;height:72px}
@@ -69,9 +106,15 @@
   .marca span{color:var(--gris);font-weight:500}
   .volver{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--gris);
     padding:7px 14px;border:1px solid var(--gris-borde);border-radius:99px;
-    background:rgba(255,255,255,.6);text-decoration:none;transition:.3s}
+    background:var(--cristal);text-decoration:none;transition:.3s}
   .volver:hover{border-color:var(--azul-100);color:var(--azul-700)}
   .volver svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+  .derecha{display:flex;align-items:center;gap:10px}
+  .tema{display:flex;gap:2px;padding:3px;border:1px solid var(--gris-borde);border-radius:99px;background:var(--cristal)}
+  .tema button{font:inherit;font-size:.76rem;font-weight:600;color:var(--gris);background:none;border:0;
+    border-radius:99px;padding:5px 11px;cursor:pointer;transition:.25s}
+  .tema button:hover{color:var(--tinta)}
+  .tema button.activo{background:var(--boton);color:#fff}
 
   /* ---------- portada ---------- */
   .portada{padding:88px 0 48px;text-align:center}
@@ -90,7 +133,7 @@
   /* ---------- destacado ---------- */
   .destacado{
     display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:44px;align-items:center;
-    background:var(--blanco);border:1px solid var(--gris-borde);border-radius:24px;
+    background:var(--tarjeta);border:1px solid var(--gris-borde);border-radius:24px;
     padding:40px;margin:48px 0 8px;box-shadow:var(--sombra);position:relative;overflow:hidden}
   .destacado::after{content:"";position:absolute;top:0;left:0;height:4px;width:100%;
     background:linear-gradient(90deg,var(--azul-600),var(--naranja))}
@@ -102,8 +145,8 @@
   .acciones{display:flex;flex-wrap:wrap;gap:12px}
   .accion{display:inline-flex;align-items:center;gap:8px;text-decoration:none;
     font-size:.92rem;font-weight:600;padding:12px 22px;border-radius:12px;transition:.3s}
-  .accion.principal{background:var(--azul-700);color:#fff;box-shadow:0 8px 22px rgba(29,78,216,.28)}
-  .accion.principal:hover{background:var(--azul-900);transform:translateY(-2px)}
+  .accion.principal{background:var(--boton);color:#fff;box-shadow:0 8px 22px rgba(29,78,216,.28)}
+  .accion.principal:hover{background:var(--boton-hover);transform:translateY(-2px)}
   .accion.secundaria{border:1px solid var(--gris-borde);color:var(--tinta)}
   .accion.secundaria:hover{border-color:var(--azul-700);color:var(--azul-700)}
   .accion svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -117,7 +160,7 @@
     padding:40px 0 8px;margin:0 auto}
   .boton{
     position:relative;flex:1 1 300px;max-width:none;min-height:190px;
-    background:var(--blanco);border:1px solid var(--gris-borde);border-radius:18px;
+    background:var(--tarjeta);border:1px solid var(--gris-borde);border-radius:18px;
     padding:26px;text-align:left;cursor:pointer;overflow:hidden;
     display:flex;flex-direction:column;justify-content:space-between;
     box-shadow:var(--sombra);font-family:inherit;
@@ -157,7 +200,7 @@
 
   /* ---------- aviso ---------- */
   .aviso{position:fixed;left:50%;bottom:32px;transform:translate(-50%,24px);
-    background:var(--tinta);color:#fff;padding:13px 24px;border-radius:99px;
+    background:var(--aviso-fondo);color:var(--aviso-texto);padding:13px 24px;border-radius:99px;
     font-size:.89rem;font-weight:500;z-index:100;display:flex;align-items:center;gap:10px;
     box-shadow:0 16px 40px rgba(15,23,42,.3);opacity:0;visibility:hidden;pointer-events:none;
     transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .35s,visibility .35s}
@@ -165,7 +208,7 @@
   .aviso i{width:7px;height:7px;border-radius:50%;background:var(--naranja);font-style:normal;flex:none}
 
   /* ---------- animacion de entrada ---------- */
-  .destacado.aparece.d5{margin-top:28px}
+  .destacado.aparece.d5,.destacado.aparece.d6{margin-top:28px}
   .aparece{opacity:0;transform:translateY(26px);
     animation:surgir .85s cubic-bezier(.22,1,.36,1) forwards}
   @keyframes surgir{to{opacity:1;transform:translateY(0)}}
@@ -182,7 +225,7 @@
     .boton{flex:1 1 100%;min-height:auto}
     .pie-boton{opacity:1;transform:none}
     .boton::after{transform:scaleX(1)}
-    .volver span{display:none}
+    .volver{display:none}
   }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
@@ -207,9 +250,16 @@
       </div>
       Mis <span>teclados</span>
     </div>
-    <div class="volver" style="cursor:default">
-      <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-      <span>Taller personal</span>
+    <div class="derecha">
+      <div class="tema" role="group" aria-label="Tema de la página">
+        <button type="button" data-tema="sistema" title="Seguir al sistema">Auto</button>
+        <button type="button" data-tema="claro" title="Fondo claro">Claro</button>
+        <button type="button" data-tema="oscuro" title="Fondo oscuro">Oscuro</button>
+      </div>
+      <div class="volver" style="cursor:default">
+        <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+        <span>Taller personal</span>
+      </div>
     </div>
   </div>
 </header>
@@ -465,6 +515,133 @@
     </div>
   </section>
 
+  <!-- ===================== SIKAI MINI ===================== -->
+  <section class="destacado aparece d6" aria-labelledby="t-sikai">
+    <div>
+      <h2 id="t-sikai">SiKai mini</h2>
+      <p>
+        Tres teclas y una perilla, todo blanco, con el micrófono dentro y una base
+        translúcida por la que asoma la luz. Las teclas dicen <b>No</b>, <b>Sí</b> y
+        <b>micrófono</b>: rechazar, aceptar y hablarle al agente. La perilla se
+        deja como rueda del ratón —gira para desplazar la conversación, púlsala
+        para el clic central— aunque admite volumen, zoom o cualquier tecla. La
+        aplicación —<b>SikaiMini</b>, en español— lee y reescribe las seis piezas
+        por el canal del fabricante, graba el color de las luces y adopta su
+        micrófono cuando aparece, por cable o por su receptor de 2,4 GHz.
+      </p>
+      <div class="fichas">
+        <span class="ficha">3 teclas + perilla</span>
+        <span class="ficha">Micrófono incorporado</span>
+        <span class="ficha">USB · 2,4 GHz</span>
+        <span class="ficha">Luces programables</span>
+        <span class="ficha">Dictado a distancia</span>
+      </div>
+      <div class="acciones">
+        <a class="accion principal" href="https://sikaimini.proyectoia.org">
+          Abrir la aplicación
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+        <a class="accion secundaria" href="https://sikaimini.proyectoia.org/descargar/SikaiMini.zip">
+          Descargar SikaiMini
+          <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        </a>
+        <a class="accion secundaria" href="https://github.com/juancarlosvergaras/project-manager/tree/claude/keyboard-app-spanish-pc5t9p" target="_blank" rel="noopener noreferrer">
+          Repositorio
+          <svg viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 00-1.3-3.2 4.3 4.3 0 00-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 00-6.2 0C6.6 2.6 5.6 2.9 5.6 2.9a4.3 4.3 0 00-.1 3.2A4.6 4.6 0 004.2 9.3c0 4.6 2.7 5.7 5.5 6-.4.4-.5.9-.5 1.6V21"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="retrato">
+      <!-- Ilustración del SiKai mini, dibujada a partir de la foto del aparato:
+           barra blanca alargada sobre una base translúcida con luz, tres teclas
+           cuadradas (No, Sí, micrófono) y una perilla estriada al extremo.
+           Es blanco de verdad, así que se dibuja blanco en los dos temas. -->
+      <svg viewBox="0 0 420 260" role="img" aria-labelledby="titulo-sikai">
+        <title id="titulo-sikai">SiKai mini: barra blanca con tres teclas (No, Sí y micrófono), una perilla estriada y una base translúcida iluminada</title>
+        <defs>
+          <linearGradient id="sk-cuerpo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E3E8EF"/>
+          </linearGradient>
+          <linearGradient id="sk-canto" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#D3DAE4"/><stop offset="100%" stop-color="#AEB8C6"/>
+          </linearGradient>
+          <linearGradient id="sk-base" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#7DA2FF" stop-opacity=".55"/>
+            <stop offset="50%" stop-color="#C4B5FD" stop-opacity=".6"/>
+            <stop offset="100%" stop-color="#F97316" stop-opacity=".5"/>
+          </linearGradient>
+          <linearGradient id="sk-tecla" x1=".2" y1="0" x2=".8" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E6EBF2"/>
+          </linearGradient>
+          <radialGradient id="sk-perilla" cx=".38" cy=".35" r=".75">
+            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="70%" stop-color="#E4E9F0"/>
+            <stop offset="100%" stop-color="#B7C0CD"/>
+          </radialGradient>
+          <linearGradient id="sk-brillo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".9"/>
+            <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <ellipse cx="212" cy="222" rx="170" ry="14" fill="#0F172A" opacity=".12"/>
+
+        <!-- base translúcida con la luz dentro -->
+        <rect x="34" y="112" width="352" height="84" rx="26" fill="url(#sk-base)"/>
+        <rect x="34" y="112" width="352" height="84" rx="26" fill="none" stroke="#C3CCD8" stroke-width="1.4"/>
+        <rect x="52" y="176" width="316" height="10" rx="5" fill="#FFFFFF" opacity=".45"/>
+        <!-- tornillos, vistos a través de la base -->
+        <g fill="none" stroke="#9AA6B6" stroke-width="1.3" opacity=".8">
+          <circle cx="56" cy="180" r="4.5"/><circle cx="364" cy="180" r="4.5"/>
+        </g>
+
+        <!-- barra blanca: canto y cuerpo -->
+        <rect x="34" y="86" width="352" height="74" rx="24" fill="url(#sk-canto)"/>
+        <rect x="34" y="72" width="352" height="74" rx="24" fill="url(#sk-cuerpo)" stroke="#C6CFDB" stroke-width="1.5"/>
+
+        <!-- tres teclas -->
+        <g>
+          <rect x="62" y="92" width="56" height="56" rx="10" fill="url(#sk-canto)"/>
+          <rect x="62" y="84" width="56" height="56" rx="10" fill="url(#sk-tecla)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <path d="M80 102l20 20M100 102l-20 20" fill="none" stroke="#334155" stroke-width="2.6" stroke-linecap="round"/>
+          <text x="90" y="134" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif" font-size="8" font-weight="700" fill="#64748B">NO</text>
+
+          <rect x="134" y="92" width="56" height="56" rx="10" fill="url(#sk-canto)"/>
+          <rect x="134" y="84" width="56" height="56" rx="10" fill="url(#sk-tecla)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <path d="M150 112l8 9 16-19" fill="none" stroke="#334155" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="162" y="134" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif" font-size="8" font-weight="700" fill="#64748B">SÍ</text>
+
+          <rect x="206" y="92" width="56" height="56" rx="10" fill="url(#sk-canto)"/>
+          <rect x="206" y="84" width="56" height="56" rx="10" fill="url(#sk-tecla)" stroke="#C6CFDB" stroke-width="1.3"/>
+          <g transform="translate(234 110)" fill="none" stroke="#334155" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="-4.5" y="-13" width="9" height="15" rx="4.5"/>
+            <path d="M-8 -1a8 8 0 0016 0"/><path d="M0 7v5M-4 12h8"/>
+          </g>
+          <circle cx="252" cy="92" r="2.6" fill="#16A34A"/>
+        </g>
+
+        <!-- perilla estriada -->
+        <g transform="translate(330 108)">
+          <ellipse cx="0" cy="12" rx="36" ry="36" fill="#9AA5B4"/>
+          <g fill="none" stroke="#AEB8C6" stroke-width="2">
+            <circle cx="0" cy="0" r="36" stroke-dasharray="3 3.4"/>
+          </g>
+          <circle cx="0" cy="0" r="36" fill="url(#sk-perilla)" stroke="#B7C0CD" stroke-width="1.4"/>
+          <circle cx="0" cy="0" r="27" fill="none" stroke="#D3DAE4" stroke-width="1.2"/>
+          <circle cx="0" cy="0" r="16" fill="#F4F6F9" stroke="#D3DAE4" stroke-width="1"/>
+          <path d="M0 -23v9" stroke="#334155" stroke-width="2.4" stroke-linecap="round"/>
+          <!-- flechas del giro -->
+          <path d="M-52 -2a52 52 0 0110 -24" fill="none" stroke="#7DA2FF" stroke-width="2" stroke-linecap="round"/>
+          <path d="M-46 -30l4 6-7 1" fill="none" stroke="#7DA2FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
+        <!-- reflejo del plástico -->
+        <path d="M34 96a24 24 0 0124-24h120l-80 74H58a24 24 0 01-24-24z" fill="url(#sk-brillo)" opacity=".6"/>
+      </svg>
+      <p class="pie-retrato">SiKai mini &mdash; ilustración</p>
+    </div>
+  </section>
+
   <!-- ===================== RESTO DE BOTONES ===================== -->
   <section class="rejilla-botones" aria-label="Más teclados y recursos">
 
@@ -521,6 +698,18 @@
 <div class="aviso" id="aviso" role="status" aria-live="polite"><i></i><span id="aviso-texto"></span></div>
 
 <script>
+  // Tema: se recuerda en este navegador; sin elección se sigue al sistema.
+  function aplicarTema(tema){
+    if (tema === 'sistema') delete document.documentElement.dataset.tema;
+    else document.documentElement.dataset.tema = tema;
+    try { localStorage.setItem('teclados-tema', tema); } catch (e) { /* sin memoria */ }
+    document.querySelectorAll('.tema button').forEach(b => b.classList.toggle('activo', b.dataset.tema === tema));
+  }
+  let temaGuardado = 'sistema';
+  try { temaGuardado = localStorage.getItem('teclados-tema') || 'sistema'; } catch (e) { /* nada */ }
+  aplicarTema(temaGuardado);
+  document.querySelectorAll('.tema button').forEach(b => b.addEventListener('click', () => aplicarTema(b.dataset.tema)));
+
   const cabecera = document.getElementById('cabecera');
   addEventListener('scroll', () => cabecera.classList.toggle('desplazado', scrollY > 8), {passive:true});
 

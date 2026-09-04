@@ -32,10 +32,13 @@ ble = ["bleak>=0.22"]
 cuadro = ["comtypes>=1.2"]
 # MiniMic: el teclado de voz se configura por HID y su micrófono se maneja por COM.
 minimic = ["hidapi>=0.14", "pycaw>=20240210", "comtypes>=1.2"]
+# SikaiMini: mismo chip y mismas piezas que MiniMic.
+sikaimini = ["hidapi>=0.14", "pycaw>=20240210", "comtypes>=1.2"]
 
 [project.scripts]
 tecladoia = "tecladoia.cli:main"
 minimic = "minimic.cli:main"
+sikaimini = "sikaimini.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -44,3 +47,4 @@ where = ["src"]
 [tool.setuptools.package-data]
 tecladoia = ["py.typed", "web/*"]
 minimic = ["web/*"]
+sikaimini = ["web/*"]

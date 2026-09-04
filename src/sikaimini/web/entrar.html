@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SikaiMini · entrar</title>
+<style>
+  :root{color-scheme:light dark;--fondo:#F2F5F9;--tarjeta:#fff;--texto:#0F172A;
+        --tenue:#64748B;--borde:#E3E8EF;--azul:#2563EB}
+  @media (prefers-color-scheme:dark){:root{--fondo:#0B0F16;--tarjeta:#151A23;
+        --texto:#E8EDF5;--tenue:#97A3B6;--borde:#242B37;--azul:#7DA2FF}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--fondo);
+       color:var(--texto);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  form{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;
+       padding:2rem;width:min(25rem,92vw);display:grid;gap:.9rem;
+       box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.08)}
+  .marca{display:flex;align-items:center;gap:.6rem;font-weight:800;letter-spacing:-.02em}
+  .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+        background:linear-gradient(135deg,#F97316,#0B2C6B)}
+  .logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  h1{font-size:1.1rem;margin:.3rem 0 0}
+  p{margin:0;color:var(--tenue);font-size:.9rem}
+  input,button{font:inherit;padding:.6rem .8rem;border-radius:9px;border:1px solid var(--borde)}
+  input{background:var(--fondo);color:var(--texto);width:100%}
+  input:focus{outline:2px solid var(--azul);outline-offset:1px}
+  button{background:var(--azul);color:#fff;border-color:var(--azul);cursor:pointer;font-weight:600}
+  .error{color:#c0392b;font-size:.88rem;min-height:1.2em}
+</style>
+</head>
+<body>
+<form id="acceso">
+  <div class="marca">
+    <span class="logo"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/></svg></span>
+    SikaiMini
+  </div>
+  <h1>Hace falta la clave</h1>
+  <p>Este panel reescribe las teclas y la perilla del teclado y decide a qué programa se le
+     habla, así que no se abre sin identificarse.</p>
+  <input id="clave" type="password" placeholder="Clave del panel" autocomplete="current-password" autofocus>
+  <button type="submit">Entrar</button>
+  <div class="error" id="error" role="alert"></div>
+  <p>La clave se pone en el equipo donde corre el servicio, en su configuración.</p>
+</form>
+<script>
+document.getElementById("acceso").addEventListener("submit", (evento) => {
+  evento.preventDefault();
+  const clave = document.getElementById("clave").value;
+  if (!clave) return;
+  location.replace("/?clave=" + encodeURIComponent(clave));
+});
+if (location.search.includes("clave=")) {
+  document.getElementById("error").textContent = "Esa clave no es la del panel.";
+  history.replaceState(null, "", "/");
+}
+</script>
+</body>
+</html>

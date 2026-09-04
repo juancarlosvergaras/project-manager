@@ -204,12 +204,22 @@ class Teclado:
 
     def leer_capa(self, capa: int = 0) -> Mapa:
         mapa = Mapa(capa)
+        vistas: set[int] = set()
         for r in self._exigir_acuse(protocolo.leer_capa(capa), "leer la capa"):
             if r.orden == protocolo.ORDEN_REGISTRO_DE_TECLA:
+                vistas.add(r.arg)
                 try:
                     mapa.teclas[r.arg] = Atajo.desde_registro(r.carga)
                 except protocolo.ErrorProtocolo as e:
                     registro.warning("tecla %d de la capa %d ilegible: %s", r.arg + 1, capa + 1, e)
+        if len(vistas) > protocolo.NUMERO_DE_TECLAS:
+            # El SiKai mini lleva el mismo chip y el mismo VID/PID, con seis
+            # registros (y tipos de ratón y multimedia que aquí no se
+            # entienden). No es este teclado: no se le escribe nada.
+            raise ErrorDispositivo(
+                f"este teclado tiene {len(vistas)} registros y el MiniMic tiene {protocolo.NUMERO_DE_TECLAS}: "
+                "no es el MiniMic (¿es el SiKai mini?)"
+            )
         if len(mapa.teclas) < protocolo.NUMERO_DE_TECLAS:
             raise ErrorDispositivo(f"la capa {capa + 1} vino incompleta: {sorted(mapa.teclas)}")
         return mapa

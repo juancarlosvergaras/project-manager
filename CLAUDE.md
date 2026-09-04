@@ -201,6 +201,65 @@ las pruebas la aíslan). Misma trampa del AppData redirigido que TecladoIA:
 desde una sesión de Claude no se escribe la de verdad. La clave del panel se
 pone desde el propio panel abierto en local, que la guarda el servicio.
 
+## SikaiMini — el tercer teclado (misma carpeta, paquete `src/sikaimini`)
+
+Mini teclado blanco de **SiKai** (sikaiglobal.com): tres teclas —No ✗, Sí ✓ y
+micrófono—, una **perilla** con giro y pulsación, micrófono dentro, luz bajo
+la base translúcida, interruptor de encendido y receptor de 2,4 GHz. Panel en
+<http://100.79.52.120:8772> y, por el portero del Mac mini (puerto 8026,
+`com.jcvs.sikaimini-portero`), en <https://sikaimini.proyectoia.org>. Tarea
+programada **SikaiMini**. Clave `Unicartagena1`, cabecera `X-SikaiMini-Clave`.
+
+```bash
+python -m sikaimini servicio --host 100.79.52.120   # arrancar
+python -m sikaimini estado                           # ¿está? ¿por dónde va?
+python -m sikaimini teclas                           # piezas y luces (solo por cable)
+python construir_sikaimini.py                        # dist/SikaiMini.zip
+python -m unittest pruebas.test_sikaimini_protocolo pruebas.test_sikaimini_servicio
+```
+
+**Es el mismo chip Jieli que el MiniMic, con el mismo VID/PID** (514C:8850 por
+cable, 4C4A:4155 por el receptor) **y el mismo protocolo LQ**. Por eso
+`sikaimini` importa de `minimic` el protocolo, el canal HID, la presencia y el
+manejo del micrófono, y pone encima lo suyo. Lo que cambia, comprobado el
+4/9/2026 contra el aparato y espiando `LQ_Keyboard.exe` con Frida:
+
+- **Seis registros en una sola capa**: 0-2 las teclas, 3-5 la perilla (giro A,
+  giro B, pulsación). Las capas 1 y 2 devuelven rechazo.
+- **Dos tipos de registro más**: multimedia (`0x02`, uso *Consumer* de dos
+  bytes, bajo primero: `e9 00` es Vol+) y **ratón** (`0x03`, un byte). La tabla
+  de ratón se sacó pulsando uno a uno los botones de la pestaña «Mouse» del
+  programa del fabricante con `pywinauto`: `00` clic, `01` derecho, `02`
+  central, `03` rueda arriba, `04` rueda abajo, `05-0a` rueda con Ctrl, Mayús y
+  Alt, `0b-0e` gestos, `0f` «me gusta». Está en `protocolo.RATON`.
+- **Luces**: `0x0A` lee y **`0x09` escribe**, con arg `0xFE` y 52 bytes:
+  `[modo][R][G][B]` y una paleta de 16 colores. El teclado acusa y devuelve lo
+  escrito al releer. El programa del fabricante esconde la pestaña de luces para
+  este modelo, así que **qué hace cada modo se descubre mirando el teclado**; la
+  pestaña «Luces» del panel es para eso. Con `luces_modo = -1` no se tocan.
+
+**Cómo se distinguen los dos teclados**: solo leyéndolos. El MiniMic contesta
+cinco registros y el SiKai seis. `leer_capa` de cada aplicación exige su número
+y se niega con el otro, así que **ninguna le escribe al teclado de la otra**
+(probado en `test_sikaimini_servicio`). Por el receptor no se puede leer; lo
+que hacen las dos con un receptor —adoptar el micrófono, esperar su tecla— es
+inofensivo por duplicado.
+
+**La tecla del micrófono manda `Ctrl+Mayús+Alt+F15`** (F13 es del AhaKey, F14
+del MiniMic). **La perilla queda como rueda del ratón**: giro A → rueda abajo,
+giro B → rueda arriba, pulsación → clic central. Si desplaza al revés, se
+cambian los dos giros entre sí desde el panel. De fábrica traía Vol+, Vol− y
+Alt derecho.
+
+**La misma trampa de `AppData`** que TecladoIA y MiniMic, con una vuelta más:
+la carpeta real `AppData\Roaming\SikaiMini` no existe hasta que algo la crea
+**fuera** de la sesión de Claude, y la tarea programada redirige su registro a
+esa carpeta, así que sin ella `cmd` no puede abrir el archivo y el servicio
+muere sin dejar rastro. La primera vez se crea con
+`python ajustar_config.py --app SikaiMini clave_panel=… host_panel=…` a través
+de una tarea. Y **`schtasks /Run` desde Git Bash no funciona**: convierte
+`/Run` en una ruta. Usar PowerShell.
+
 ---
 
 ## Que arranque con Windows
@@ -527,4 +586,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-180, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+258, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
