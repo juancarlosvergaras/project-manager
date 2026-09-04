@@ -115,6 +115,33 @@ def ejecutar(preguntar=input, escribir=print) -> int:
         escribir("    [ok] clave guardada")
 
     escribir("")
+    escribir("==> Dónde escucha el panel")
+    from .panel import direcciones_locales
+
+    tailscale = [d for d in direcciones_locales() if d.startswith("100.")]
+    if not ajustes.clave_panel:
+        escribir("    Sin clave, solo en este equipo (http://127.0.0.1:%d)." % ajustes.puerto_panel)
+    elif not tailscale:
+        escribir("    No veo Tailscale en este equipo; el panel queda en http://127.0.0.1:%d." % ajustes.puerto_panel)
+        escribir("    Con Tailscale instalado, sikaimini.proyectoia.org pasaría a este equipo.")
+    else:
+        direccion = tailscale[0]
+        escribir(f"    Este equipo tiene Tailscale en {direccion}. Publicando el panel ahí,")
+        escribir("    sikaimini.proyectoia.org pasa a este equipo cuando tenga el teclado.")
+        try:
+            respuesta = (preguntar(f"    ¿Publicarlo en {direccion}? [S/n]: ") or "s").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            respuesta = "s"
+        if respuesta.startswith("s"):
+            ajustes.host_panel = direccion
+            ajustes.guardar()
+            escribir(f"    [ok] el panel escuchará en http://{direccion}:{ajustes.puerto_panel}")
+            escribir("         Si Windows pregunta si permite a SikaiMini en la red, di que sí.")
+        else:
+            ajustes.host_panel = "127.0.0.1"
+            ajustes.guardar()
+
+    escribir("")
     escribir("==> Dejando el servicio arrancando con el equipo")
     hecho, detalle = registrar_tarea(ajustes.host_panel if ajustes.host_panel != "127.0.0.1" else "")
     escribir(("    [ok] " if hecho else "    [!]  ") + detalle)
