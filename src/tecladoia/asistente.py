@@ -147,10 +147,7 @@ def acceso_directo_en_el_escritorio(url: str) -> str:
         ctypes.windll.shell32.SHGetFolderPathW(0, 0x10, 0, 0, buf)  # CSIDL_DESKTOPDIRECTORY
         escritorio = Path(buf.value) if buf.value else Path.home() / "Desktop"
         destino = escritorio / "TecladoIA.url"
-        destino.write_text(f"[InternetShortcut]
-URL={url}
-IconIndex=0
-", encoding="utf-8")
+        destino.write_text(f"[InternetShortcut]\nURL={url}\nIconIndex=0\n", encoding="utf-8")
         return str(destino)
     except Exception:  # noqa: BLE001 - un escritorio raro no debe tumbar la instalación
         return ""
