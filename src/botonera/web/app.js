@@ -197,6 +197,11 @@ function pintarDeVerdad(p) {
   }
   $("#escribir_al_conectar").checked = p.escribir_al_conectar !== false;
   $("#texto-servicio").textContent = `Botonera ${p.version}. Teclado ${c.descripcion}. ${p.mensajes_escritos ? p.mensajes_escritos + " mensajes grabados desde que arrancó." : ""}`;
+  const tunel = p.tunel || {};
+  $("#punto-tunel").className = "estado-punto " + (tunel.conectado ? "si" : (tunel.motivo ? "" : "no"));
+  $("#texto-tunel").textContent = tunel.conectado
+    ? `Presentado al portero ${tunel.portero}${tunel.conexiones ? ` (${tunel.conexiones} conexión(es) abiertas)` : ""}.`
+    : (tunel.motivo ? `No se presenta: ${tunel.motivo}.` : `Sin conexión con el portero ${tunel.portero}${tunel.ultimo_error ? ` (${tunel.ultimo_error})` : ""}; se reintenta cada 15 s.`);
   const lista = $("#avisos");
   lista.innerHTML = "";
   (p.avisos || []).forEach(a => { const li = document.createElement("li"); li.textContent = a; lista.appendChild(li); });
@@ -205,6 +210,8 @@ function pintarDeVerdad(p) {
 function pintarAjustes(a) {
   estado.ajustes = a;
   $("#escribir_al_conectar").checked = a.escribir_al_conectar !== false;
+  $("#usar_portero").checked = a.usar_portero !== false;
+  $("#portero").value = a.portero || "";
 }
 
 function pintarOpciones(o) {
@@ -335,6 +342,10 @@ function conectar() {
     const host = $("#host_panel").value;
     const r = await pedir("/api/ajustes", { host_panel: host });
     avisar(r.reabriendo && host !== "127.0.0.1" ? `El panel se está moviendo a http://${host}:8773. Si esta pestaña deja de responder, ábrelo ahí.` : "Guardado");
+  });
+  $("#btn-guardar-portero").addEventListener("click", async () => {
+    await pedir("/api/ajustes", { usar_portero: $("#usar_portero").checked, portero: $("#portero").value.trim() });
+    avisar("Guardado; el túnel se ajusta solo"); await refrescar();
   });
   $("#btn-guardar-clave").addEventListener("click", async () => {
     const clave = $("#clave_panel").value;

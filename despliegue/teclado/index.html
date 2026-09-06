@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mis teclados</title>
-<meta name="description" content="Teclados con aplicación propia: AhaKey X1, MiniMic, SiKai mini y macropad YXT K100.">
+<meta name="description" content="Teclados con aplicación propia: AhaKey X1, MiniMic, SiKai mini y la Botonera de 12 teclas y 3 perillas.">
 <style>
   :root{
     color-scheme:light;
@@ -154,6 +154,7 @@
   .retrato{display:grid;place-items:center}
   .retrato svg{width:100%;max-width:400px;height:auto;filter:drop-shadow(0 24px 44px rgba(15,23,42,.16))}
   .pie-retrato{font-size:.74rem;color:var(--gris);text-align:center;margin-top:14px}
+  .retrato img{width:100%;max-width:400px;height:auto;border-radius:22px;filter:drop-shadow(0 24px 44px rgba(15,23,42,.22))}
 
   /* ---------- botones ---------- */
   .rejilla-botones{display:flex;flex-wrap:wrap;gap:20px;
@@ -208,7 +209,7 @@
   .aviso i{width:7px;height:7px;border-radius:50%;background:var(--naranja);font-style:normal;flex:none}
 
   /* ---------- animacion de entrada ---------- */
-  .destacado.aparece.d5,.destacado.aparece.d6{margin-top:28px}
+  .destacado.aparece.d5,.destacado.aparece.d6,.destacado.aparece.d7{margin-top:28px}
   .aparece{opacity:0;transform:translateY(26px);
     animation:surgir .85s cubic-bezier(.22,1,.36,1) forwards}
   @keyframes surgir{to{opacity:1;transform:translateY(0)}}
@@ -642,6 +643,47 @@
     </div>
   </section>
 
+  <!-- ===================== BOTONERA (ledblanco) ===================== -->
+  <section class="destacado aparece d7" aria-labelledby="t-botonera">
+    <div>
+      <h2 id="t-botonera">Botonera</h2>
+      <p>
+        Doce teclas mecánicas en tres filas, tres perillas —dos pequeñas y una
+        grande—, luces RGB bajo la base translúcida y <b>tres perfiles</b> que se
+        cambian con un botón del propio teclado. Venía sin programa: lleva el mismo
+        chip que el MiniMic y el SiKai pero otro firmware, de <b>solo escritura</b>,
+        que no contesta nunca ni deja leer lo grabado. La aplicación —<b>Botonera</b>,
+        en español— guarda los tres perfiles, se los graba enteros al conectarlo por
+        cable, pone el color de cada perfil y <b>escucha lo que manda</b> cada tecla
+        para comprobarlo. Cada tecla admite una combinación, una secuencia de hasta
+        18 pasos, el ratón, multimedia o el dictado de los otros teclados de la casa.
+      </p>
+      <div class="fichas">
+        <span class="ficha">12 teclas + 3 perillas</span>
+        <span class="ficha">3 perfiles</span>
+        <span class="ficha">Luces RGB por perfil</span>
+        <span class="ficha">USB-C · Bluetooth</span>
+        <span class="ficha">Secuencias de 18 pasos</span>
+      </div>
+      <div class="acciones">
+        <a class="accion principal" href="https://ledblanco.proyectoia.org">
+          Abrir la aplicación
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+        <a class="accion secundaria" href="https://github.com/juancarlosvergaras/project-manager/tree/claude/keyboard-app-spanish-pc5t9p/src/botonera" target="_blank" rel="noopener noreferrer">
+          Repositorio
+          <svg viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 00-1.3-3.2 4.3 4.3 0 00-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 00-6.2 0C6.6 2.6 5.6 2.9 5.6 2.9a4.3 4.3 0 00-.1 3.2A4.6 4.6 0 004.2 9.3c0 4.6 2.7 5.7 5.5 6-.4.4-.5.9-.5 1.6V21"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="retrato">
+      <img src="ledblanco.jpg?v=20260906" width="400" height="371" loading="lazy"
+           alt="Botonera: teclado negro de doce teclas mecánicas en tres filas, tres perillas (dos pequeñas y una grande) y luces de colores bajo la base translúcida, con su cable USB-C">
+      <p class="pie-retrato">Botonera &mdash; foto del aparato</p>
+    </div>
+  </section>
+
   <!-- ===================== RESTO DE BOTONES ===================== -->
   <section class="rejilla-botones" aria-label="Más teclados y recursos">
 
@@ -659,19 +701,19 @@
       <div class="pie-boton">Descargar <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
     </a>
 
-    <button class="boton aparece d7" data-nombre="YXT K100 — configurador">
+    <a class="boton aparece d7" href="https://ledblanco.proyectoia.org">
       <div>
         <div class="icono">
           <svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" rx="2"/><circle cx="19" cy="8" r="2.4"/><circle cx="19" cy="16" r="2.4"/><path d="M6 9h.01M9.5 9h.01M6 12.5h.01M9.5 12.5h.01M6 16h.01M9.5 16h.01"/></svg>
         </div>
-        <div class="titulo-boton">YXT K100</div>
+        <div class="titulo-boton">Botonera</div>
         <div class="desc-boton">
-          Macropad de 12 teclas y 3 perillas. Configurador propio que intercepta cada
-          control por su dispositivo, porque su firmware no se deja reprogramar.
+          El panel del teclado de 12 teclas y 3 perillas: perfiles, teclas, perillas y
+          luces. Pasa al PC que tenga el teclado enchufado.
         </div>
       </div>
       <div class="pie-boton">Entrar <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-    </button>
+    </a>
 
     <a class="boton aparece d7" href="https://github.com/juancarlosvergaras/project-manager/tree/claude/keyboard-app-spanish-pc5t9p" target="_blank" rel="noopener noreferrer">
       <div>

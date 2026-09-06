@@ -133,6 +133,18 @@ class PruebaServicio(PruebaAislada):
             s.time.sleep = dormir
         self.assertEqual(self.canal.escritos, [])
 
+    def test_sin_clave_no_se_presenta_al_portero(self):
+        async def caso():
+            self.servicio.bucle = asyncio.get_running_loop()
+            self.servicio.asegurar_tunel()
+            self.assertIn("clave", self.servicio.motivo_sin_tunel)
+            self.assertFalse(self.servicio.resumen()["tunel"]["conectado"])
+            self.servicio.ajustes.usar_portero = False
+            self.servicio.ajustes.clave_panel = "secreta1"
+            self.servicio.asegurar_tunel()
+            self.assertIn("apagado", self.servicio.motivo_sin_tunel)
+        asyncio.run(caso())
+
     def test_resumen(self):
         r = self.servicio.resumen()
         self.assertEqual(len(r["perfiles"]), 3)

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from minimic.tunel import Tunel, analizar_portero, se_puede_usar_el_origen
 from tecladoia.sucesos import Bus
 
 from . import __version__, dispositivo, escucha, protocolo
@@ -51,16 +52,55 @@ class Servicio:
         self._parar = threading.Event()
         self._hilos: list[threading.Thread] = []
         self._cerrojo = threading.Lock()
+        self._tunel: Tunel | None = None
+        self._tarea_tunel: asyncio.Task | None = None
+        self.motivo_sin_tunel = ""
 
     # --- arranque y parada ------------------------------------------------
 
     async def arrancar(self) -> None:
         self.bucle = asyncio.get_running_loop()
         self._hilos.append(dispositivo.vigilar_presencia(self._al_cambiar_presencia, parar=self._parar))
+        self.asegurar_tunel()
         registro.info("Botonera %s en marcha", __version__)
 
     async def detener(self) -> None:
         self._parar.set()
+        if self._tunel is not None:
+            self._tunel.parar()
+
+    # --- el túnel al portero (ledblanco.proyectoia.org) ---------------------------
+
+    def asegurar_tunel(self) -> None:
+        """Abre (o cierra) el túnel según la configuración. Se puede llamar las veces que haga falta."""
+        destino = analizar_portero(self.ajustes.portero, 8029) if self.ajustes.usar_portero else None
+        if destino is None:
+            self.motivo_sin_tunel = "apagado en la configuración" if not self.ajustes.usar_portero else "sin dirección del portero"
+        elif not self.ajustes.clave_panel:
+            self.motivo_sin_tunel = "el panel no tiene clave: sin clave no se publica"
+            destino = None
+        elif not se_puede_usar_el_origen():
+            self.motivo_sin_tunel = "este sistema no deja salir desde 127.0.0.2, y sin eso el panel tomaría Internet por local"
+            destino = None
+        else:
+            self.motivo_sin_tunel = ""
+        quiere = destino is not None
+        tiene = self._tunel is not None and self._tarea_tunel is not None and not self._tarea_tunel.done()
+        if tiene and (not quiere or self._tunel.portero != destino):  # type: ignore[union-attr]
+            self._tunel.parar()  # type: ignore[union-attr]
+            self._tunel = None
+            tiene = False
+        if quiere and not tiene and self.bucle is not None:
+            self._tunel = Tunel("botonera", self.ajustes.puerto_panel, destino, self._presentacion)  # type: ignore[arg-type]
+            self._tarea_tunel = self.bucle.create_task(self._tunel.mantener())
+
+    def _presentacion(self) -> dict[str, Any]:
+        import socket
+        try:
+            equipo = socket.gethostname()
+        except OSError:
+            equipo = ""
+        return {"equipo": equipo, "teclado": self.estado.presencia.conectado}
 
     # --- lo que ve el panel ---------------------------------------------------
 
@@ -85,6 +125,8 @@ class Servicio:
             "escuchando": e.escuchando,
             "modos_de_luz": [{"valor": v, "nombre": n} for v, n in protocolo.MODOS_DE_LUZ.items()],
             "avisos": list(e.avisos),
+            "tunel": {**(self._tunel.resumen() if self._tunel else {"conectado": False, "portero": self.ajustes.portero}),
+                      "motivo": self.motivo_sin_tunel},
         }
 
     def publicar(self, tipo: str, datos: dict[str, Any] | None = None) -> None:

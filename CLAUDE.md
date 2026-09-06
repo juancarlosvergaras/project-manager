@@ -318,7 +318,12 @@ Teclado macro de **12 teclas en tres filas de cuatro, 3 perillas y luces RGB**,
 con **tres perfiles** que se cambian con un botón del propio teclado. Sin
 programa del fabricante. Panel en <http://127.0.0.1:8773> (y en
 <http://100.79.52.120:8773> con clave `Unicartagena1`, cabecera
-`X-Botonera-Clave`). Tarea programada **Botonera**. Descifrado el 6/9/2026.
+`X-Botonera-Clave`) y, por el portero del Mac mini (puerto 8028, agentes en
+`100.65.52.65:8029`, launchd `com.jcvs.ledblanco-portero`,
+`despliegue/botonera/portero.py`), en <https://ledblanco.proyectoia.org>. El
+servicio se presenta solo por el túnel de `minimic/tunel.py`, como SikaiMini.
+Tarea programada **Botonera**. Descifrado el 6/9/2026. La portada
+`teclado.proyectoia.org` lleva su tarjeta con la foto (`ledblanco.jpg`).
 
 ```bash
 python -m botonera servicio --host 100.79.52.120   # arrancar

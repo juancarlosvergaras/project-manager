@@ -162,6 +162,13 @@ class Ajustes:
     ultima_escritura: str = ""
     serie_del_teclado: str = ""
 
+    # --- el portero del Mac mini (ledblanco.proyectoia.org) ---
+    #: A quién se presenta el servicio para que la dirección pública pase a
+    #: este PC. Es la dirección de Tailscale del Mac mini; vacío = no
+    #: presentarse. Solo con clave puesta: sin clave, el panel no se publica.
+    portero: str = "100.65.52.65:8029"
+    usar_portero: bool = True
+
     def perfil(self, indice: int) -> Perfil:
         if not 0 <= indice < protocolo.NUMERO_DE_PERFILES:
             raise ErrorProtocolo(f"perfil {indice}: hay {protocolo.NUMERO_DE_PERFILES}, contados desde 0")

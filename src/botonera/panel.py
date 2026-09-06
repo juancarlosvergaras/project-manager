@@ -32,7 +32,7 @@ LATIDO_S = 20.0
 _FIN = "\r\n"
 
 #: Ajustes que se pueden cambiar desde la web, con su tipo.
-_CAMPOS_AJUSTES = {"clave_panel": str, "host_panel": str, "escribir_al_conectar": bool}
+_CAMPOS_AJUSTES = {"clave_panel": str, "host_panel": str, "escribir_al_conectar": bool, "usar_portero": bool, "portero": str}
 
 #: Combinaciones que abren el dictado de los otros servicios de la casa.
 ATAJOS_DE_DICTADO = [
@@ -385,6 +385,8 @@ class PanelWeb:
             setattr(self.ajustes, campo, valor)
             cambiados.append(campo)
         self.ajustes.guardar()
+        if any(c in cambiados for c in ("clave_panel", "portero", "usar_portero")):
+            self.servicio.asegurar_tunel()
         self.servicio.publicar("estado")
         if "host_panel" in cambiados:
             asyncio.get_running_loop().call_later(0.8, lambda: asyncio.ensure_future(self._reabrir()))
