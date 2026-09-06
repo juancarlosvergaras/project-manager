@@ -49,6 +49,7 @@ class PruebaServicio(PruebaAislada):
         self.ajustes = Ajustes()
         self.servicio = Servicio(self.ajustes, dispositivo.Teclado(self.canal.abrir))
         self.servicio.teclado.escribir = lambda mensajes, pausa_s=0: dispositivo.Teclado.escribir(self.servicio.teclado, mensajes, 0)  # type: ignore[method-assign]
+        self.servicio.PAUSA_ANTES_DE_LUCES_S = 0
         self.servicio.estado.presencia = presente()
 
     def test_aplicar_graba_los_tres_perfiles_enteros(self):
@@ -60,6 +61,7 @@ class PruebaServicio(PruebaAislada):
         self.assertEqual(self.canal.escritos[0][:19].hex(" "), "03 fd 01 01 01 00 04 00 00 f1 00 00 f2 00 00 f3 00 00 45")
         self.assertEqual(self.canal.escritos[2][:10].hex(" "), "03 fd 02 01 01 00 01 00 00 28")  # tecla 2: Intro
         self.assertEqual(self.canal.escritos[-1][:8].hex(" "), "03 fe b0 02 01 dc 26 26")
+        self.assertEqual(self.canal.escritos[41][:4].hex(" "), "03 fd fe ff")  # las 42 teclas del perfil 1 van seguidas
         guardados = Ajustes.cargar()
         self.assertTrue(guardados.ultima_escritura)
         self.assertEqual(guardados.serie_del_teclado, "CD70")
@@ -67,7 +69,7 @@ class PruebaServicio(PruebaAislada):
     def test_poner_pieza_graba_solo_esa_y_la_guarda(self):
         r = self.servicio.poner_pieza(1, 5, "Ctrl-C")
         self.assertEqual((r["escrito"], r["accion"]), (True, "ctrl-c"))
-        self.assertEqual(len(self.canal.escritos), 2)
+        self.assertEqual(len(self.canal.escritos), 3)  # la tecla, el cierre y las luces del perfil
         self.assertEqual(self.canal.escritos[0][:5].hex(" "), "03 fd 06 02 01")
         self.assertEqual(Ajustes.cargar().perfil(1).teclas[5], "ctrl-c")
         r = self.servicio.poner_pieza(0, 13, "rueda-arriba")  # perilla 1, pulsación
@@ -115,6 +117,7 @@ class PruebaServicio(PruebaAislada):
         self.assertTrue(r["escrito"])
         self.assertEqual(Ajustes.cargar().perfil(0).teclas, list(TECLAS_INICIALES))
         self.assertEqual(len(self.canal.escritos), 43)
+        self.assertEqual(self.canal.ordenes()[-1], "fe b0")
 
     def test_al_conectar_graba_si_esta_encendido(self):
         self.servicio.ajustes.escribir_al_conectar = True
@@ -154,6 +157,34 @@ class PruebaServicio(PruebaAislada):
         self.assertEqual(p.como_dict()["solo_cable"], [3, 4])
         viejo = Perfil.desde_dict({"teclas": ["ctrl-mayus-alt-f16"] + ["a"] * 11}, 0)
         self.assertEqual(viejo.teclas[0], ATAJO_MICROFONO)
+
+    def test_asignar_aplicacion_toma_un_hueco_y_graba_la_tecla(self):
+        r = self.servicio.asignar_aplicacion(0, 4, "Excel", "Microsoft.Office.EXCEL.EXE.15")
+        self.assertEqual((r["hueco"], r["accion"], r["escrito"]), (1, "ctrl-mayus-alt-f1", True))
+        r = self.servicio.asignar_aplicacion(1, 5, "Bloc de notas", "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")
+        self.assertEqual(r["hueco"], 2)
+        r = self.servicio.asignar_aplicacion(2, 6, "Excel", "Microsoft.Office.EXCEL.EXE.15")  # la misma: mismo hueco
+        self.assertEqual(r["hueco"], 1)
+        a = Ajustes.cargar()
+        self.assertEqual(a.lanzadores["1"]["nombre"], "Excel")
+        self.assertEqual(a.perfil(2).teclas[6], "ctrl-mayus-alt-f1")
+        self.assertEqual(self.servicio.resumen()["lanzadores"]["2"]["accion"], "ctrl-mayus-alt-f2")
+        self.assertEqual(self.servicio.al_pulsar_aplicacion(7), {"hueco": 7, "abierta": False})
+        self.servicio.quitar_lanzador(1)
+        self.assertNotIn("1", Ajustes.cargar().lanzadores)
+        with self.assertRaises(ValueError):
+            self.servicio.asignar_aplicacion(0, 0, "x", "")
+
+    def test_las_luces_van_al_final_y_tras_cada_tecla(self):
+        self.servicio.PAUSA_ANTES_DE_LUCES_S = 0
+        self.servicio.aplicar()
+        ordenes = self.canal.ordenes()
+        self.assertEqual(ordenes[-3:], ["fe b0"] * 3)
+        self.assertNotIn("fe b0", ordenes[:-3])
+        self.canal.escritos.clear()
+        self.servicio.poner_pieza(1, 2, "esc")
+        self.assertEqual(self.canal.ordenes(), ["fd 03", "fd fe", "fe b0"])
+        self.assertEqual(self.canal.escritos[-1][3], 1)  # las luces del perfil 2 (desde 0)
 
     def test_dictado_sin_preparar_no_revienta(self):
         self.assertEqual(TECLAS_INICIALES[0], ATAJO_MICROFONO)

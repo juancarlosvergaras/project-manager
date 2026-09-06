@@ -372,6 +372,20 @@ así de inicio. El teclado no tiene micrófono: habla el del sistema. El panel
 la ofrece en la familia «Dictado» del editor junto a Win+H (el dictado de
 Windows, para un equipo sin servicio) y las combinaciones de los otros tres.
 
+**Teclas que abren aplicaciones** (`botonera/lanzador.py`): once huecos,
+`ctrl-mayus-alt-f1`…`f11`, que el servicio reserva al arrancar; cada hueco
+guarda un AppID del menú Inicio (`Get-StartApps`) y se abre con
+`explorer.exe shell:appsFolder\<AppID>`, que vale para tienda y escritorio y
+trae al frente la que ya esté abierta. Se asigna desde el editor (familia
+«Aplicación»); pestaña «Aplicaciones» para ver, probar y quitar huecos.
+
+**Las luces se graban al final y con pausa.** Justo detrás de las 42 órdenes
+de teclas de un perfil, la de luces se perdía (el firmware sigue escribiendo
+flash) y el teclado quedaba a oscuras: «no funcionan los leds». Ahora
+`aplicar` manda primero todas las teclas, espera `PAUSA_ANTES_DE_LUCES_S`
+(0,6 s) y manda las tres órdenes de luces; y cada tecla grabada sola va
+seguida de las luces de su perfil.
+
 **Por Bluetooth no llegan las F13-F24.** El descriptor HID del lado Bluetooth
 (VID/PID de Apple 05AC:022C) declara teclas solo hasta el código `0x65`
 (`19 00 29 65 … 25 65`) y Windows tira las demás; por cable el descriptor

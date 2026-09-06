@@ -197,6 +197,11 @@ class Ajustes:
     pitido_al_abrir: bool = False
     atajos_dictado: dict[str, str] = field(default_factory=lambda: dict(ATAJOS_DE_FABRICA))
 
+    # --- teclas que abren aplicaciones: hueco "1".."11" -> {nombre, destino} ---
+    #: El hueco N es la combinación ctrl-mayus-alt-fN; el destino es el AppID
+    #: del menú Inicio (o una ruta). Ver ``lanzador.py``.
+    lanzadores: dict[str, dict] = field(default_factory=dict)
+
     # --- el portero del Mac mini (ledblanco.proyectoia.org) ---
     #: A quién se presenta el servicio para que la dirección pública pase a
     #: este PC. Es la dirección de Tailscale del Mac mini; vacío = no
@@ -246,6 +251,14 @@ class Ajustes:
                 continue
             if tipo in ("str", str) and not isinstance(valor, str):
                 continue
+            if nombre == "lanzadores":
+                if not isinstance(valor, dict):
+                    continue
+                valor = {
+                    str(k): {"nombre": str(v.get("nombre", "")), "destino": str(v.get("destino", ""))}
+                    for k, v in valor.items()
+                    if isinstance(v, dict) and v.get("destino") and str(k).isdigit() and 1 <= int(k) <= 11
+                }
             if nombre == "atajos_dictado":
                 if not isinstance(valor, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in valor.items()):
                     continue

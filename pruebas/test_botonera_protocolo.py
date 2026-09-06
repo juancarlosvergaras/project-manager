@@ -119,6 +119,17 @@ class PruebaAcciones(unittest.TestCase):
         self.assertEqual(a.a_carga()[-1], 0x65)
 
 
+class PruebaLanzador(unittest.TestCase):
+    def test_huecos_y_acciones(self):
+        from botonera import lanzador
+        self.assertEqual(lanzador.accion_del_hueco(3), "ctrl-mayus-alt-f3")
+        self.assertEqual(lanzador.hueco_de_accion("ctrl-mayus-alt-f11"), 11)
+        self.assertIsNone(lanzador.hueco_de_accion("ctrl-mayus-alt-f12"))  # el dictado
+        self.assertIsNone(lanzador.hueco_de_accion("ctrl-f1"))
+        with self.assertRaises(ValueError):
+            lanzador.accion_del_hueco(12)
+
+
 class PruebaLuces(unittest.TestCase):
     def test_valida_y_normaliza(self):
         self.assertEqual(Luces(1, "#FF8800").color, "#ff8800")

@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 
 from sikaimini.protocolo import CONSUMO
 
-from . import __version__, dispositivo, protocolo
+from . import __version__, dispositivo, lanzador, protocolo
 from .config import ATAJO_MICROFONO, ATAJOS_DE_FABRICA, PROGRAMAS, Ajustes, aplicar_atajos_de_dictado, ruta_registro
 from .servicio import Servicio
 
@@ -365,6 +365,22 @@ class PanelWeb:
         if ruta == "/api/restablecer" and metodo == "POST":
             perfil = self._entero(datos, "perfil", 0, ultimo_perfil, opcional=True)
             return self._json_ok(await en_hilo(s.restablecer, perfil))
+        if ruta == "/api/aplicaciones" and metodo == "GET":
+            return self._json_ok({"aplicaciones": await en_hilo(lanzador.listar_aplicaciones), "huecos": list(lanzador.HUECOS),
+                                  "lanzadores": s.lanzadores()})
+        if ruta == "/api/lanzador" and metodo == "POST":
+            perfil = self._entero(datos, "perfil", 0, ultimo_perfil)
+            pieza = self._entero(datos, "pieza", 0, protocolo.NUMERO_DE_PIEZAS - 1)
+            nombre, destino = datos.get("nombre", ""), datos.get("destino")
+            if not isinstance(destino, str) or not isinstance(nombre, str):
+                raise ValueError("faltan «nombre» y «destino» (texto) de la aplicación")
+            return self._json_ok(await en_hilo(s.asignar_aplicacion, perfil, pieza, nombre, destino))
+        if ruta == "/api/lanzador/quitar" and metodo == "POST":
+            hueco = self._entero(datos, "hueco", 1, 11)
+            return self._json_ok(s.quitar_lanzador(hueco))
+        if ruta == "/api/lanzador/probar" and metodo == "POST":
+            hueco = self._entero(datos, "hueco", 1, 11)
+            return self._json_ok(await en_hilo(s.al_pulsar_aplicacion, hueco))
         if ruta == "/api/dictado/probar" and metodo == "POST":
             return self._json_ok(await en_hilo(s.al_pulsar_microfono))
         if ruta == "/api/escuchar" and metodo == "POST":

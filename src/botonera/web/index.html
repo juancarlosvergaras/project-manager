@@ -120,6 +120,7 @@
   <button type="button" class="tab activa" data-seccion="teclado">Teclas y perillas</button>
   <button type="button" class="tab" data-seccion="luces">Luces</button>
   <button type="button" class="tab" data-seccion="dictado">Dictado</button>
+  <button type="button" class="tab" data-seccion="aplicaciones">Aplicaciones</button>
   <button type="button" class="tab" data-seccion="comportamiento">Comportamiento</button>
   <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
   <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
@@ -162,6 +163,7 @@
           <button type="button" data-familia="raton">Ratón</button>
           <button type="button" data-familia="multimedia">Multimedia</button>
           <button type="button" data-familia="dictado">Dictado</button>
+          <button type="button" data-familia="aplicacion">Aplicación</button>
         </div>
         <div id="familia-teclado">
           <div class="mods" id="mods">
@@ -184,6 +186,12 @@
         </div>
         <div id="familia-multimedia" hidden>
           <div class="campo"><label for="multimedia">Tecla multimedia</label><select id="multimedia"></select></div>
+        </div>
+        <div id="familia-aplicacion" hidden>
+          <p class="editor-sub">La tecla abrirá la aplicación elegida (o la traerá al frente si ya está abierta). Son las del menú Inicio de este equipo. Hay once huecos, <kbd>Ctrl+Mayús+Alt+F1</kbd> a <kbd>F11</kbd>; el servicio hace el resto.</p>
+          <div class="campo"><label for="filtro-aplicacion">Buscar</label><input type="text" id="filtro-aplicacion" placeholder="excel, notas, terminal…"></div>
+          <div class="campo"><label for="aplicacion">Aplicación</label><select id="aplicacion" size="8"></select></div>
+          <p class="nota" id="nota-aplicacion"></p>
         </div>
         <div id="familia-dictado" hidden>
           <p class="editor-sub">La primera es la de la Botonera: abre el dictado de Claude o ChatGPT según la ventana que tengas activa (se elige en la pestaña «Dictado»). Las otras son las de los demás teclados de la casa, por si prefieres que lo haga su servicio.</p>
@@ -270,6 +278,29 @@
         <h2 class="editor-titulo">Cómo funciona</h2>
         <p class="editor-sub">La tecla manda una combinación que solo entiende este servicio (<kbd>Ctrl+Mayús+Alt+F12</kbd>; F13, F14 y F15 son de los otros tres teclados, y F16 no vale porque por Bluetooth este teclado no manda las F13-F24). El servicio la reserva en Windows al arrancar y hace el resto. Si la combinación no se pudo reservar, lo dice aquí arriba: suele ser otra copia del servicio viva.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== APLICACIONES ============================== -->
+<section class="seccion" id="seccion-aplicaciones">
+  <div class="taller">
+    <div class="tarjeta">
+      <h2 class="editor-titulo">Teclas que abren aplicaciones</h2>
+      <p class="editor-sub">Cada hueco es una combinación privada, <kbd>Ctrl+Mayús+Alt+F1</kbd> a <kbd>F11</kbd>, que el servicio reserva al arrancar: cuando llega, abre la aplicación del hueco o la trae al frente. Se asigna desde el editor de una tecla, en la familia «Aplicación». Vale por cable y por Bluetooth.</p>
+      <div class="tabla-envoltura">
+        <table class="tabla-reglas" id="tabla-lanzadores"><thead><tr><th>Combinación</th><th>Aplicación</th><th>Teclas que la usan</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <p class="nota">Las aplicaciones son las del menú Inicio de <b>este</b> equipo. En otro PC el mismo hueco abriría lo que allí se configure.</p>
+    </div>
+    <div class="tarjeta">
+      <h2 class="editor-titulo">Cómo se asigna</h2>
+      <ol class="lista-pasos">
+        <li>En «Teclas y perillas», pulsa la tecla del dibujo que quieras.</li>
+        <li>Elige la familia <b>Aplicación</b>, busca la aplicación y pulsa «Grabar en el teclado».</li>
+        <li>La Botonera reserva un hueco libre (o reutiliza el de esa aplicación si ya tenía uno) y graba la tecla.</li>
+      </ol>
+      <div class="acciones"><button type="button" class="btn btn-claro" id="btn-ir-aplicacion">Ir a asignar una tecla</button></div>
     </div>
   </div>
 </section>

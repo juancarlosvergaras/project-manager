@@ -29,7 +29,7 @@ from typing import Any
 from minimic.tunel import Tunel, analizar_portero, se_puede_usar_el_origen
 from tecladoia.sucesos import Bus
 
-from . import __version__, dispositivo, escucha, protocolo
+from . import __version__, dispositivo, escucha, lanzador, protocolo
 from .config import ATAJO_MICROFONO, Ajustes, Perfil, aplicar_atajos_de_dictado
 from .protocolo import ErrorProtocolo, Luces
 
@@ -68,12 +68,14 @@ class Servicio:
         self.motivo_sin_tunel = ""
         self._dictado: Any = None
         self._escucha: Any = None
+        self._escucha_aplicaciones: lanzador.EscuchaAtajos | None = None
 
     # --- arranque y parada ------------------------------------------------
 
     async def arrancar(self) -> None:
         self.bucle = asyncio.get_running_loop()
         self._preparar_dictado()
+        self._preparar_lanzadores()
         self._hilos.append(dispositivo.vigilar_presencia(self._al_cambiar_presencia, parar=self._parar))
         self.asegurar_tunel()
         registro.info("Botonera %s en marcha", __version__)
@@ -87,6 +89,57 @@ class Servicio:
                 self._escucha.parar()
             except Exception:  # noqa: BLE001
                 pass
+        if self._escucha_aplicaciones is not None:
+            self._escucha_aplicaciones.parar()
+
+    # --- teclas que abren aplicaciones -------------------------------------------
+
+    def _preparar_lanzadores(self) -> None:
+        if not lanzador.hay_soporte():
+            return
+        self._escucha_aplicaciones, hilo = lanzador.hilo_de_escucha(self.al_pulsar_aplicacion)
+        self._hilos.append(hilo)
+
+    def al_pulsar_aplicacion(self, hueco: int) -> dict[str, Any]:
+        """Llegó Ctrl+Mayús+Alt+F<hueco>: se abre la aplicación de ese hueco, si la hay."""
+        datos = self.ajustes.lanzadores.get(str(hueco))
+        if not datos:
+            registro.info("tecla de aplicación %d sin aplicación asignada", hueco)
+            return {"hueco": hueco, "abierta": False}
+        try:
+            lanzador.abrir(datos["destino"])
+            registro.info("tecla de aplicación %d: abre %s", hueco, datos["nombre"])
+            self.publicar("aplicacion", {"hueco": hueco, "nombre": datos["nombre"]})
+            return {"hueco": hueco, "abierta": True, "nombre": datos["nombre"]}
+        except Exception as e:  # noqa: BLE001
+            self._avisar(f"no se pudo abrir {datos['nombre']}: {e}")
+            return {"hueco": hueco, "abierta": False, "error": str(e)}
+
+    def lanzadores(self) -> dict[str, dict[str, Any]]:
+        return {h: {**d, "accion": lanzador.accion_del_hueco(int(h))} for h, d in sorted(self.ajustes.lanzadores.items(), key=lambda kv: int(kv[0]))}
+
+    def asignar_aplicacion(self, perfil: int, pieza: int, nombre: str, destino: str) -> dict[str, Any]:
+        """Deja la pieza abriendo esa aplicación: reutiliza su hueco o toma uno libre, y graba la pieza."""
+        nombre, destino = (nombre or "").strip(), (destino or "").strip()
+        if not destino:
+            raise ValueError("falta «destino» (el AppID de la aplicación o su ruta)")
+        hueco = next((int(h) for h, d in self.ajustes.lanzadores.items() if d.get("destino") == destino), None)
+        if hueco is None:
+            libres = [h for h in lanzador.HUECOS if str(h) not in self.ajustes.lanzadores]
+            if not libres:
+                raise ValueError("los once huecos de aplicaciones están ocupados; quita alguno en la pestaña Aplicaciones")
+            hueco = libres[0]
+            self.ajustes.lanzadores[str(hueco)] = {"nombre": nombre or destino, "destino": destino}
+        r = self.poner_pieza(perfil, pieza, lanzador.accion_del_hueco(hueco))
+        r["hueco"] = hueco
+        r["aplicacion"] = self.ajustes.lanzadores[str(hueco)]
+        return r
+
+    def quitar_lanzador(self, hueco: int) -> dict[str, Any]:
+        quitado = self.ajustes.lanzadores.pop(str(hueco), None)
+        self.ajustes.guardar()
+        self.publicar("estado")
+        return {"hueco": hueco, "quitado": quitado}
 
     # --- la tecla de dictado ------------------------------------------------------
 
@@ -213,6 +266,7 @@ class Servicio:
             "escuchando": e.escuchando,
             "modos_de_luz": [{"valor": v, "nombre": n} for v, n in protocolo.MODOS_DE_LUZ.items()],
             "avisos": list(e.avisos),
+            "lanzadores": self.lanzadores(),
             "dictado": {"abierto": e.dictado_abierto, "programa": self.ajustes.programa_elegido()["nombre"],
                         "sigue_a_la_activa": self.ajustes.programa == "activo", "atajo": NOMBRE_ATAJO,
                         "accion": ATAJO_MICROFONO, "atajo_reservado": e.atajo_reservado},
@@ -272,16 +326,24 @@ class Servicio:
         motivo = "el teclado Jieli que hay por cable es otro (MiniMic o SiKai)" if self.estado.presencia.otro_jieli else "se grabará cuando el teclado esté por cable"
         return {"escrito": False, "aviso": f"guardado; {motivo}", **extra}
 
+    #: Cuánto se espera entre las teclas y las luces: recién grabadas 42 teclas,
+    #: el firmware sigue escribiendo en flash y la orden de luces se perdía.
+    PAUSA_ANTES_DE_LUCES_S = 0.6
+
     def aplicar(self, perfil: int | None = None) -> dict[str, Any]:
-        """Graba los tres perfiles (o uno) tal como están en la configuración."""
+        """Graba los tres perfiles (o uno) tal como están en la configuración: primero las teclas, luego las luces."""
         indices = [perfil] if perfil is not None else list(range(protocolo.NUMERO_DE_PERFILES))
-        mensajes: list[bytes] = []
+        teclas: list[bytes] = []
+        luces: list[bytes] = []
         for i in indices:
             p = self.ajustes.perfil(i)
-            mensajes.extend(protocolo.mensajes_de_perfil(i, p.acciones(), p.luces()))
+            teclas.extend(protocolo.mensajes_de_perfil(i, p.acciones()))
+            luces.append(protocolo.mensaje_de_luces(i, p.luces()))
         if not self.estado.presencia.configurable:
-            return self._sin_cable(mensajes=len(mensajes))
-        n = self._escribir(mensajes)
+            return self._sin_cable(mensajes=len(teclas) + len(luces))
+        n = self._escribir(teclas)
+        time.sleep(self.PAUSA_ANTES_DE_LUCES_S)
+        n += self._escribir(luces)
         self.publicar("estado")
         return {"escrito": True, "mensajes": n, "perfiles": indices, "ultima_escritura": self.estado.ultima_escritura}
 
@@ -295,6 +357,9 @@ class Servicio:
             self.publicar("estado")
             return self._sin_cable(accion=str(accion))
         self._escribir(protocolo.mensajes_de_pieza(perfil, pieza, accion))
+        # Grabar una tecla puede dejar las luces a oscuras: se le recuerdan.
+        time.sleep(self.PAUSA_ANTES_DE_LUCES_S / 2)
+        self._escribir([protocolo.mensaje_de_luces(perfil, p.luces())])
         self.publicar("estado")
         return {"escrito": True, "accion": str(accion), "pieza": pieza, "perfil": perfil}
 

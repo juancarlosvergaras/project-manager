@@ -9,6 +9,7 @@ const estado = {
   panorama: null,
   opciones: null,
   ajustes: null,
+  aplicaciones: [],
   perfil: 0,
   pieza: null,
   familia: "teclado",
@@ -60,8 +61,14 @@ const NOMBRES = {
   "ctrl-mayus-alt-f12": "Dictado", "ctrl-mayus-alt-f13": "Dictado TecladoIA", "ctrl-mayus-alt-f14": "Dictado MiniMic", "ctrl-mayus-alt-f15": "Dictado SikaiMini",
 };
 
+function lanzadorDe(texto) {
+  const l = (estado.panorama && estado.panorama.lanzadores) || {};
+  return Object.values(l).find(x => x.accion === texto) || null;
+}
+
 function familiaDe(texto) {
   const o = estado.opciones || { raton: [], multimedia: [], atajos_de_dictado: [] };
+  if (lanzadorDe(texto)) return "aplicacion";
   if (o.raton.includes(texto)) return "raton";
   if (o.multimedia.includes(texto)) return "multimedia";
   if ((o.atajos_de_dictado || []).some(a => a.accion === texto)) return "dictado";
@@ -71,6 +78,8 @@ function familiaDe(texto) {
 
 function nombreBonito(texto) {
   if (!texto || texto === "nada") return "nada";
+  const lanzador = lanzadorDe(texto);
+  if (lanzador) return "Abrir " + lanzador.nombre;
   if (NOMBRES[texto]) return NOMBRES[texto];
   if (texto.includes(",")) return texto.split(",").map(p => nombreBonito(p.trim())).join(" · ");
   return texto.split("-").map(p => NOMBRES[p] || p.toUpperCase()).join("+");
@@ -211,6 +220,33 @@ function pintarDeVerdad(p) {
   const lista = $("#avisos");
   lista.innerHTML = "";
   (p.avisos || []).forEach(a => { const li = document.createElement("li"); li.textContent = a; lista.appendChild(li); });
+  pintarLanzadores(p);
+}
+
+function pintarLanzadores(p) {
+  const cuerpo = $("#tabla-lanzadores tbody");
+  const lanzadores = p.lanzadores || {};
+  const huecos = Object.keys(lanzadores);
+  if (!huecos.length) {
+    cuerpo.innerHTML = "<tr><td colspan='4'>Todavía ninguna. Asigna una aplicación a una tecla desde el editor.</td></tr>";
+    return;
+  }
+  cuerpo.innerHTML = huecos.map(h => {
+    const l = lanzadores[h];
+    const usos = [];
+    (p.perfiles || []).forEach((perfil, pi) => {
+      for (let i = 0; i < TECLAS + 3 * PERILLAS; i++) if (textoDePieza(perfil, i) === l.accion) usos.push(`${perfil.nombre}: ${p.piezas[i]}`);
+    });
+    return `<tr><td><kbd>${nombreBonito(l.accion.replace(/^ctrl-mayus-alt-/, "ctrl-mayus-alt-")).replace(/^Abrir .*/, "Ctrl+Mayús+Alt+F" + h)}</kbd></td><td>${l.nombre}</td><td>${usos.join("<br>") || "<i>ninguna</i>"}</td>
+      <td><button type="button" class="btn btn-claro" data-probar="${h}">Probar</button> <button type="button" class="btn btn-claro" data-quitar="${h}">Quitar</button></td></tr>`;
+  }).join("");
+}
+
+function pintarAplicaciones(filtro) {
+  const f = (filtro || "").trim().toLowerCase();
+  const lista = estado.aplicaciones.filter(a => !f || a.nombre.toLowerCase().includes(f));
+  $("#aplicacion").innerHTML = lista.slice(0, 200).map(a => `<option value="${a.destino.replace(/"/g, "&quot;")}">${a.nombre}</option>`).join("");
+  $("#nota-aplicacion").textContent = lista.length ? `${lista.length} aplicación(es).` : (estado.aplicaciones.length ? "Nada con ese nombre." : "Cargando la lista del menú Inicio…");
 }
 
 function pintarAjustes(a) {
@@ -264,6 +300,7 @@ function elegirPieza(i) {
   if (estado.familia === "raton") $("#raton").value = actual;
   else if (estado.familia === "multimedia") $("#multimedia").value = actual;
   else if (estado.familia === "secuencia") $("#secuencia").value = actual;
+  else if (estado.familia === "aplicacion") { const l = lanzadorDe(actual); if (l) $("#aplicacion").value = l.destino; }
   else if (estado.familia === "teclado") { $("#combo").value = actual === "nada" ? "" : actual; desmontarCombo(actual); }
   const soloCable = perfil && (perfil.solo_cable || []).includes(i);
   $("#nota-pieza").textContent = (soloCable ? "⚠ Lo que tiene ahora usa F13-F24 y por Bluetooth no llega; por cable sí. " : "")
@@ -274,7 +311,8 @@ function elegirPieza(i) {
 function elegirFamilia(familia) {
   estado.familia = familia;
   $$("#familias button").forEach(b => b.classList.toggle("activo", b.dataset.familia === familia));
-  ["teclado", "secuencia", "raton", "multimedia", "dictado"].forEach(f => { $("#familia-" + f).hidden = f !== familia; });
+  ["teclado", "secuencia", "raton", "multimedia", "dictado", "aplicacion"].forEach(f => { $("#familia-" + f).hidden = f !== familia; });
+  if (familia === "aplicacion" && !estado.aplicaciones.length) cargarAplicaciones().catch(() => {});
 }
 
 function desmontarCombo(combo) {
@@ -296,12 +334,28 @@ function accionElegida() {
   if (estado.familia === "multimedia") return $("#multimedia").value;
   if (estado.familia === "secuencia") return $("#secuencia").value.trim().toLowerCase() || "nada";
   if (estado.familia === "dictado") return null;
+  if (estado.familia === "aplicacion") return "aplicacion";
   return $("#combo").value.trim().toLowerCase() || "nada";
+}
+
+async function cargarAplicaciones() {
+  const r = await pedir("/api/aplicaciones");
+  estado.aplicaciones = r.aplicaciones || [];
+  pintarAplicaciones($("#filtro-aplicacion").value);
 }
 
 async function guardarPieza(accion) {
   if (estado.pieza === null) return;
-  if (accion === null) { avisar("Elige uno de los tres dictados"); return; }
+  if (accion === null) { avisar("Elige uno de los dictados"); return; }
+  if (accion === "aplicacion") {
+    const opcion = $("#aplicacion option:checked");
+    if (!opcion) { avisar("Elige una aplicación de la lista"); return; }
+    const r = await pedir("/api/lanzador", { perfil: estado.perfil, pieza: estado.pieza, nombre: opcion.textContent, destino: opcion.value });
+    avisar(r.escrito ? `Grabado: abrir ${r.aplicacion.nombre} (hueco F${r.hueco})` : (r.aviso || "Guardado"));
+    await refrescar();
+    elegirPieza(estado.pieza);
+    return;
+  }
   const r = await pedir("/api/pieza", { perfil: estado.perfil, pieza: estado.pieza, accion });
   avisar(r.escrito ? `Grabado: ${nombreBonito(r.accion)}` : (r.aviso || "Guardado"));
   await refrescar();
@@ -355,6 +409,16 @@ function conectar() {
     avisar($("#escribir_al_conectar").checked ? "Se grabará al conectar" : "Ya no se graba solo al conectar");
   });
   $("#btn-escuchar").addEventListener("click", escuchar);
+  $("#filtro-aplicacion").addEventListener("input", () => pintarAplicaciones($("#filtro-aplicacion").value));
+  $("#aplicacion").addEventListener("dblclick", () => guardarPieza("aplicacion").catch(() => {}));
+  $("#btn-ir-aplicacion").addEventListener("click", () => { irA("teclado"); if (estado.pieza === null) elegirPieza(1); elegirFamilia("aplicacion"); });
+  $("#tabla-lanzadores").addEventListener("click", async e => {
+    const probar = e.target.closest("[data-probar]"), quitar = e.target.closest("[data-quitar]");
+    if (probar) { const r = await pedir("/api/lanzador/probar", { hueco: Number(probar.dataset.probar) }); avisar(r.abierta ? `Abriendo ${r.nombre}` : (r.error || "No se pudo abrir")); }
+    if (quitar && confirm("¿Quitar esta aplicación de su hueco? Las teclas que la usaban quedarán mandando la combinación sin efecto.")) {
+      await pedir("/api/lanzador/quitar", { hueco: Number(quitar.dataset.quitar) }); avisar("Quitada"); await refrescar();
+    }
+  });
   $("#programa").addEventListener("change", async () => { await pedir("/api/ajustes", { programa: $("#programa").value }); avisar("Ahora le hablas a: " + $("#programa option:checked").textContent); await refrescar(); });
   $("#btn-probar-dictado").addEventListener("click", async () => { const r = await pedir("/api/dictado/probar", {}); avisar("Dictado: " + (r.accion || "?")); });
   $("#btn-ir-tecla").addEventListener("click", () => { irA("teclado"); if (estado.pieza === null) elegirPieza(0); elegirFamilia("dictado"); });
@@ -450,6 +514,7 @@ function escuchando() {
   const fuente = new EventSource("/api/sucesos");
   fuente.addEventListener("bienvenida", e => { $("#chip-vivo").hidden = false; pintar(JSON.parse(e.data)); });
   fuente.addEventListener("estado", e => pintar(JSON.parse(e.data)));
+  fuente.addEventListener("aplicacion", e => { const d = JSON.parse(e.data); avisar(`Tecla de aplicación F${d.hueco}: abriendo ${d.nombre}`); });
   fuente.addEventListener("pulsacion", e => {
     const d = JSON.parse(e.data);
     avisar(`Tecla de dictado: ${d.accion} (${d.programa}, ${d.con_el_propio ? "micrófono propio" : "Win+H"})`);

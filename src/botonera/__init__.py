@@ -14,4 +14,4 @@ import sys as _sys
 
 _sys.coinit_flags = 0  # type: ignore[attr-defined]
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
