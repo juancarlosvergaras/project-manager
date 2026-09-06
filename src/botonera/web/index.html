@@ -103,6 +103,7 @@
     <div class="indicadores">
       <div class="indicador"><span class="ind-etiqueta">Teclado</span><span class="ind-valor" id="ind-conexion">Esperando…</span></div>
       <div class="indicador"><span class="ind-etiqueta">Última grabación</span><span class="ind-valor" id="ind-grabacion">—</span></div>
+      <div class="indicador"><span class="ind-etiqueta">Dictado</span><span class="ind-valor" id="ind-dictado">—</span></div>
     </div>
   </div>
   <div class="cabecera-der">
@@ -118,6 +119,7 @@
 <nav class="barra-secciones" aria-label="Secciones">
   <button type="button" class="tab activa" data-seccion="teclado">Teclas y perillas</button>
   <button type="button" class="tab" data-seccion="luces">Luces</button>
+  <button type="button" class="tab" data-seccion="dictado">Dictado</button>
   <button type="button" class="tab" data-seccion="comportamiento">Comportamiento</button>
   <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
   <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
@@ -184,7 +186,7 @@
           <div class="campo"><label for="multimedia">Tecla multimedia</label><select id="multimedia"></select></div>
         </div>
         <div id="familia-dictado" hidden>
-          <p class="editor-sub">La combinación privada de cada servicio de la casa: al pulsarla, ese servicio trae su programa al frente y abre el dictado.</p>
+          <p class="editor-sub">La primera es la de la Botonera: abre el dictado de Claude o ChatGPT según la ventana que tengas activa (se elige en la pestaña «Dictado»). Las otras son las de los demás teclados de la casa, por si prefieres que lo haga su servicio.</p>
           <div class="atajos-dictado" id="atajos-dictado"></div>
         </div>
         <div class="acciones">
@@ -225,6 +227,49 @@
         <li><b>Arcoíris</b>: colores que corren por filas o por columnas; el color elegido no cuenta.</li>
       </ul>
       <p class="nota">Los nombres vienen del firmware común de estos teclados; si en el tuyo alguno hace otra cosa, el modo sigue valiendo, solo cambia el nombre.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================ DICTADO ================================ -->
+<section class="seccion" id="seccion-dictado">
+  <div class="taller">
+    <div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">A quién le hablas</h2>
+        <p class="editor-sub">Cualquier tecla puesta como «Dictado de la Botonera» (<kbd id="atajo-texto">Ctrl+Mayús+Alt+F16</kbd>) trae este programa al frente, pincha su cuadro de escribir y abre el dictado. Al volver a pulsarla, lo cierra. Con «el programa que esté activo», mira qué ventana tienes delante: Claude, ChatGPT o Cursor.</p>
+        <div class="campo"><label for="programa">Programa</label><select id="programa"></select></div>
+        <div class="acciones">
+          <button type="button" class="btn btn-naranja" id="btn-probar-dictado">Probar como si pulsara la tecla</button>
+          <button type="button" class="btn btn-claro" id="btn-ir-tecla">Poner el dictado en una tecla</button>
+        </div>
+        <p class="nota" id="nota-dictado"></p>
+      </div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Cómo se abre el micrófono</h2>
+        <p class="editor-sub">Claude y ChatGPT tienen su propio botón de dictado y se pulsa por accesibilidad, sin adivinar dónde está. Si el programa no lo tiene, queda Win+H, que funciona en cualquier sitio. Este teclado no lleva micrófono: se usa el del sistema.</p>
+        <label class="marca"><input type="checkbox" id="usar_microfono_propio">Usar el micrófono del propio programa cuando lo tenga (Claude, ChatGPT); Win+H solo de respaldo</label>
+        <label class="marca"><input type="checkbox" id="pinchar_cuadro">Pinchar el cuadro de escribir antes de abrir el dictado</label>
+        <label class="marca"><input type="checkbox" id="enviar_al_cerrar">Al cerrar el dictado con la tecla, mandar Intro</label>
+        <label class="marca"><input type="checkbox" id="pitido_al_abrir">Dos pitidos al abrir</label>
+        <div class="campo" style="margin-top:.8rem"><label for="alto_cuadro">Si el clic no cae en el cuadro: píxeles desde abajo (0 = el 10 % de la ventana)</label><input type="number" id="alto_cuadro" min="0" max="2000"></div>
+        <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-dictado">Guardar</button></div>
+      </div>
+    </div>
+    <div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Atajos de dictado de cada programa</h2>
+        <p class="editor-sub">Primero se pulsa el botón de dictado del programa por accesibilidad. Si no aparece, se manda su atajo de teclado. Vacío = no tiene.</p>
+        <div class="rejilla-campos">
+          <div class="campo"><label for="atajo_chatgpt">ChatGPT</label><input type="text" id="atajo_chatgpt" placeholder="ctrl+shift+d"></div>
+          <div class="campo"><label for="atajo_claude">Claude</label><input type="text" id="atajo_claude" placeholder="(solo botón)"></div>
+        </div>
+        <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-atajos">Guardar atajos</button></div>
+      </div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Cómo funciona</h2>
+        <p class="editor-sub">La tecla manda una combinación que solo entiende este servicio (<kbd>Ctrl+Mayús+Alt+F16</kbd>; F13, F14 y F15 son de los otros tres teclados). El servicio la reserva en Windows al arrancar y hace el resto. Si la combinación no se pudo reservar, lo dice aquí arriba: suele ser otra copia del servicio viva.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -307,6 +352,7 @@
       <li><b>Conecta el teclado por cable.</b> Al verlo, la Botonera le graba los tres perfiles tal como están aquí. Por Bluetooth funciona igual, pero no se puede reconfigurar hasta volver al cable.</li>
       <li><b>Elige un perfil</b> arriba del dibujo y <b>pulsa una pieza</b>: una tecla, el disco de una perilla (pulsarla) o uno de sus giros.</li>
       <li><b>Dile qué hace</b>: una tecla o combinación (<kbd>ctrl-c</kbd>, <kbd>win-h</kbd>), una secuencia de pasos (<kbd>ctrl-c, ctrl-v</kbd>), algo del ratón (rueda, clic), una tecla multimedia (volumen, reproducir) o el dictado de otro servicio de la casa. «Grabar en el teclado» lo escribe al momento.</li>
+      <li><b>Para hablarle a Claude o ChatGPT</b>, pon una tecla como «Dictado de la Botonera» (la tecla 1 ya viene así): abre el dictado del programa que tengas delante, y al volver a pulsarla lo cierra. En «Dictado» se elige a quién le hablas y cómo.</li>
       <li><b>Ponle color a cada perfil</b> en «Luces»: así sabes en cuál está el teclado. El botón del propio teclado cambia de perfil.</li>
       <li><b>Comprueba</b> en «Comportamiento › Escuchar»: pulsa y mira qué llega.</li>
     </ol>

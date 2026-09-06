@@ -364,6 +364,14 @@ giro, pulsación, giro. Qué giro es izquierda o derecha se asumió como en la
 herramienta (antihorario, pulsar, horario) y **no está verificado**: si va al
 revés, se cambian los giros entre sí desde el panel.
 
+**Tecla de dictado propia: `ctrl-mayus-alt-f16`** (F13 AhaKey, F14 MiniMic,
+F15 SiKai). Cualquier pieza puesta a esa combinación abre el dictado del
+programa activo (o del elegido en la pestaña Dictado), con el mismo
+`tecladoia.dictado` y la misma ficha de programas de MiniMic. La tecla 1 viene
+así de inicio. El teclado no tiene micrófono: habla el del sistema. El panel
+la ofrece en la familia «Dictado» del editor junto a las combinaciones de los
+otros tres servicios.
+
 **Cómo se distingue de los otros dos Jieli**: por el descriptor HID de la
 interfaz de fabricante (`75 08 95 40` = 64 bytes es la Botonera; `95 3F` los
 otros), en `dispositivo.es_botonera`, sin mandar nada. MiniMic y SikaiMini no

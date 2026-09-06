@@ -7,9 +7,12 @@ hacen MiniMic y SikaiMini: **graba entero**. Al verlo por cable (si
 tocadas en el momento, y guarda la configuración, que es la única copia de
 lo que el teclado tiene.
 
-No hay dictado ni micrófono aquí: este teclado no los tiene. Para abrir el
-dictado de los otros servicios basta con ponerle a una tecla su combinación
-(``ctrl-mayus-alt-f13`` TecladoIA, ``f14`` MiniMic, ``f15`` SikaiMini).
+La tecla de dictado funciona como en los otros tres teclados: cualquier pieza
+puesta a ``ctrl-mayus-alt-f16`` (combinación que solo reserva este servicio)
+trae al frente el programa elegido —o el que esté activo: Claude, ChatGPT,
+Cursor— y alterna su dictado con ``tecladoia.dictado``. El teclado no lleva
+micrófono, así que habla el del sistema. Las combinaciones de los otros
+servicios (F13, F14, F15) también se pueden poner en una tecla.
 """
 
 from __future__ import annotations
@@ -26,10 +29,14 @@ from minimic.tunel import Tunel, analizar_portero, se_puede_usar_el_origen
 from tecladoia.sucesos import Bus
 
 from . import __version__, dispositivo, escucha, protocolo
-from .config import Ajustes, Perfil
+from .config import ATAJO_MICROFONO, Ajustes, Perfil, aplicar_atajos_de_dictado
 from .protocolo import ErrorProtocolo, Luces
 
 registro = logging.getLogger("botonera.servicio")
+
+VK_F16 = 0x7F
+IDENTIFICADOR_ATAJO = 0xA17D
+NOMBRE_ATAJO = "ctrl+alt+may+f16"
 
 
 @dataclass
@@ -39,6 +46,9 @@ class Estado:
     escuchando: bool = False
     ultima_escritura: str = ""
     mensajes_escritos: int = 0
+    dictado_abierto: bool = False
+    ultima_pulsacion: float = 0.0
+    atajo_reservado: bool | None = None
     avisos: list[str] = field(default_factory=list)
 
 
@@ -55,11 +65,14 @@ class Servicio:
         self._tunel: Tunel | None = None
         self._tarea_tunel: asyncio.Task | None = None
         self.motivo_sin_tunel = ""
+        self._dictado: Any = None
+        self._escucha: Any = None
 
     # --- arranque y parada ------------------------------------------------
 
     async def arrancar(self) -> None:
         self.bucle = asyncio.get_running_loop()
+        self._preparar_dictado()
         self._hilos.append(dispositivo.vigilar_presencia(self._al_cambiar_presencia, parar=self._parar))
         self.asegurar_tunel()
         registro.info("Botonera %s en marcha", __version__)
@@ -68,6 +81,80 @@ class Servicio:
         self._parar.set()
         if self._tunel is not None:
             self._tunel.parar()
+        if self._escucha is not None:
+            try:
+                self._escucha.parar()
+            except Exception:  # noqa: BLE001
+                pass
+
+    # --- la tecla de dictado ------------------------------------------------------
+
+    def _preparar_dictado(self) -> None:
+        try:
+            from tecladoia.dictado import Dictado, EscuchaDictado, hay_soporte
+        except Exception as e:  # noqa: BLE001
+            self._avisar(f"sin dictado: {e}")
+            return
+        self._dictado = Dictado()
+        self._dictado.usar_el_propio = self.ajustes.usar_microfono_propio
+        aplicar_atajos_de_dictado(self.ajustes.atajos_dictado)
+        if not hay_soporte():
+            self.estado.atajo_reservado = False
+            return
+        self._escucha = EscuchaDictado(self.al_pulsar_microfono, IDENTIFICADOR_ATAJO, VK_F16, NOMBRE_ATAJO)
+        hilo = threading.Thread(target=self._correr_escucha, name="botonera-atajo", daemon=True)
+        hilo.start()
+        self._hilos.append(hilo)
+
+    def _correr_escucha(self) -> None:
+        self.estado.atajo_reservado = True
+        try:
+            self._escucha.correr()
+        finally:
+            self.estado.atajo_reservado = False
+
+    @staticmethod
+    def _proceso_al_frente() -> str:
+        try:
+            from tecladoia.enfoque import _ventana_al_frente
+            ventana = _ventana_al_frente()
+            return ventana.proceso if ventana else ""
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def al_pulsar_microfono(self) -> dict[str, Any]:
+        """Lo que pasa cuando llega la combinación de la tecla de dictado.
+
+        Trae al frente el programa elegido —o el que esté activo, si así está
+        configurado— y alterna su dictado: el botón propio de Claude o ChatGPT
+        si lo tienen, Win+H si no.
+        """
+        if self._dictado is None:
+            return {"accion": "sin dictado"}
+        programa = self.ajustes.programa_elegido(self._proceso_al_frente())
+        if self.ajustes.pitido_al_abrir and not self._dictado.abierto:
+            try:
+                from tecladoia.sonido import avisar
+                avisar()
+            except Exception:  # noqa: BLE001
+                pass
+        self._dictado.usar_el_propio = self.ajustes.usar_microfono_propio
+        hecho = self._dictado.alternar(
+            programa["proceso"], programa["lanzar"],
+            pinchar_el_cuadro=self.ajustes.pinchar_cuadro,
+            enviar_al_cerrar=self.ajustes.enviar_al_cerrar,
+            alto_del_cuadro=self.ajustes.alto_cuadro,
+        )
+        self.estado.dictado_abierto = bool(self._dictado.abierto)
+        self.estado.ultima_pulsacion = time.time()
+        registro.info(
+            "tecla de dictado: %s (%s, %s)", hecho.get("accion"), programa["nombre"],
+            "micrófono propio" if hecho.get("con_el_propio") else "Win+H",
+        )
+        self.publicar("pulsacion", {"accion": hecho.get("accion"), "programa": programa["nombre"],
+                                    "con_el_propio": bool(hecho.get("con_el_propio"))})
+        self.publicar("estado")
+        return hecho
 
     # --- el túnel al portero (ledblanco.proyectoia.org) ---------------------------
 
@@ -125,6 +212,9 @@ class Servicio:
             "escuchando": e.escuchando,
             "modos_de_luz": [{"valor": v, "nombre": n} for v, n in protocolo.MODOS_DE_LUZ.items()],
             "avisos": list(e.avisos),
+            "dictado": {"abierto": e.dictado_abierto, "programa": self.ajustes.programa_elegido()["nombre"],
+                        "sigue_a_la_activa": self.ajustes.programa == "activo", "atajo": NOMBRE_ATAJO,
+                        "accion": ATAJO_MICROFONO, "atajo_reservado": e.atajo_reservado},
             "tunel": {**(self._tunel.resumen() if self._tunel else {"conectado": False, "portero": self.ajustes.portero}),
                       "motivo": self.motivo_sin_tunel},
         }

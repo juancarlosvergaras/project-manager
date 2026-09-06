@@ -7,4 +7,11 @@ tres perfiles que se cambian con un botón del propio teclado y luces RGB.
 El fabricante no da programa; este lo sustituye.
 """
 
-__version__ = "0.1.0"
+# COM en MTA antes de importar nada, por la misma razón que en las otras tres:
+# la capa de accesibilidad (con la que se pulsa el botón de dictado de Claude
+# o ChatGPT) lo inicializa en STA si nadie lo dice antes.
+import sys as _sys
+
+_sys.coinit_flags = 0  # type: ignore[attr-defined]
+
+__version__ = "0.2.0"

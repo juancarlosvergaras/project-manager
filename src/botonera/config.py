@@ -18,15 +18,25 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
+from minimic.config import (  # noqa: F401 - se reexportan: mismos programas, mismo dictado
+    ATAJOS_DE_FABRICA, PROGRAMAS, aplicar_atajos_de_dictado, programa_por_proceso,
+)
+
 from . import protocolo
 from .protocolo import Accion, ErrorProtocolo, Luces
 
 NOMBRE = "Botonera"
 
-#: Con lo que se estrena cada perfil: F13-F24 en las teclas (no chocan con
-#: nada y TecladoIA, MiniMic y SikaiMini ya entienden las suyas), volumen en la
-#: primera perilla, desplazamiento en la segunda y música en la tercera.
-TECLAS_INICIALES: tuple[str, ...] = tuple(f"f{13 + i}" for i in range(protocolo.NUMERO_DE_TECLAS))
+#: Combinación privada de la tecla de dictado. F16: el AhaKey tiene F13, el
+#: MiniMic F14 y el SiKai F15; Windows solo deja reservar cada combinación a un
+#: proceso. Al pulsarla, el servicio trae al frente el programa elegido (o el
+#: que esté activo) y abre su dictado.
+ATAJO_MICROFONO = "ctrl-mayus-alt-f16"
+
+#: Con lo que se estrena cada perfil: la tecla 1 abre el dictado del programa
+#: activo, las demás F14-F24 (no chocan con nada), volumen en la primera
+#: perilla, desplazamiento en la segunda y música en la tercera.
+TECLAS_INICIALES: tuple[str, ...] = (ATAJO_MICROFONO,) + tuple(f"f{14 + i}" for i in range(protocolo.NUMERO_DE_TECLAS - 1))
 PERILLAS_INICIALES: tuple[tuple[str, str, str], ...] = (
     ("vol-", "silencio", "vol+"),
     ("rueda-abajo", "clic-central", "rueda-arriba"),
@@ -162,12 +172,29 @@ class Ajustes:
     ultima_escritura: str = ""
     serie_del_teclado: str = ""
 
+    # --- la tecla de dictado (a quién se le habla, igual que en MiniMic) ---
+    programa: str = "activo"  #: uno de PROGRAMAS por su id; «activo» sigue a la ventana que tengas delante
+    alto_cuadro: int = 0
+    pinchar_cuadro: bool = True
+    enviar_al_cerrar: bool = False
+    usar_microfono_propio: bool = True
+    pitido_al_abrir: bool = False
+    atajos_dictado: dict[str, str] = field(default_factory=lambda: dict(ATAJOS_DE_FABRICA))
+
     # --- el portero del Mac mini (ledblanco.proyectoia.org) ---
     #: A quién se presenta el servicio para que la dirección pública pase a
     #: este PC. Es la dirección de Tailscale del Mac mini; vacío = no
     #: presentarse. Solo con clave puesta: sin clave, el panel no se publica.
     portero: str = "100.65.52.65:8029"
     usar_portero: bool = True
+
+    def programa_elegido(self, proceso_al_frente: str = "") -> dict[str, str]:
+        if self.programa == "activo":
+            return programa_por_proceso(proceso_al_frente)
+        for p in PROGRAMAS:
+            if p["id"] == self.programa:
+                return p
+        return PROGRAMAS[-1]
 
     def perfil(self, indice: int) -> Perfil:
         if not 0 <= indice < protocolo.NUMERO_DE_PERFILES:
@@ -203,6 +230,10 @@ class Ajustes:
                 continue
             if tipo in ("str", str) and not isinstance(valor, str):
                 continue
+            if nombre == "atajos_dictado":
+                if not isinstance(valor, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in valor.items()):
+                    continue
+                valor = {**ATAJOS_DE_FABRICA, **{k: v for k, v in valor.items() if k in ATAJOS_DE_FABRICA}}
             if nombre == "perfiles":
                 if not isinstance(valor, list):
                     continue

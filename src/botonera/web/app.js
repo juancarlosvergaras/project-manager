@@ -57,7 +57,7 @@ const NOMBRES = {
   "vol+": "Volumen +", "vol-": "Volumen −", silencio: "Silencio", siguiente: "Pista siguiente", anterior: "Pista anterior",
   parar: "Parar", reproducir: "Reproducir / pausa", "brillo+": "Brillo +", "brillo-": "Brillo −", calculadora: "Calculadora",
   equipo: "Este equipo", navegador: "Navegador", correo: "Correo", reproductor: "Reproductor", actualizar: "Actualizar", adelante: "Adelante", atras: "Atrás",
-  "ctrl-mayus-alt-f13": "Dictado TecladoIA", "ctrl-mayus-alt-f14": "Dictado MiniMic", "ctrl-mayus-alt-f15": "Dictado SikaiMini",
+  "ctrl-mayus-alt-f16": "Dictado", "ctrl-mayus-alt-f13": "Dictado TecladoIA", "ctrl-mayus-alt-f14": "Dictado MiniMic", "ctrl-mayus-alt-f15": "Dictado SikaiMini",
 };
 
 function familiaDe(texto) {
@@ -160,6 +160,11 @@ function pintarDeVerdad(p) {
   const c = p.conexion;
   $("#ind-conexion").textContent = c.descripcion + (p.escribiendo ? " · grabando…" : "");
   $("#ind-grabacion").textContent = p.ultima_escritura ? p.ultima_escritura.replace("T", " ") : "nunca";
+  const dictado = p.dictado || {};
+  $("#ind-dictado").textContent = dictado.abierto ? "abierto en " + dictado.programa : "cerrado";
+  $("#nota-dictado").textContent = dictado.atajo_reservado === false
+    ? "La combinación de la tecla de dictado no se pudo reservar: ¿hay otra copia del servicio viva?"
+    : (dictado.sigue_a_la_activa ? "Ahora mismo seguiría a la ventana activa." : `Ahora mismo le hablarías a ${dictado.programa}.`);
 
   const banda = $("#banda-teclado");
   if (c.otro_jieli && !c.cable) {
@@ -212,6 +217,15 @@ function pintarAjustes(a) {
   $("#escribir_al_conectar").checked = a.escribir_al_conectar !== false;
   $("#usar_portero").checked = a.usar_portero !== false;
   $("#portero").value = a.portero || "";
+  if (a.programa) $("#programa").value = a.programa;
+  $("#usar_microfono_propio").checked = a.usar_microfono_propio !== false;
+  $("#pinchar_cuadro").checked = !!a.pinchar_cuadro;
+  $("#enviar_al_cerrar").checked = !!a.enviar_al_cerrar;
+  $("#pitido_al_abrir").checked = !!a.pitido_al_abrir;
+  $("#alto_cuadro").value = a.alto_cuadro || 0;
+  const atajos = a.atajos_dictado || {};
+  $("#atajo_chatgpt").value = atajos.chatgpt || "";
+  $("#atajo_claude").value = atajos.claude || "";
 }
 
 function pintarOpciones(o) {
@@ -223,6 +237,8 @@ function pintarOpciones(o) {
   $("#atajos-dictado").innerHTML = (o.atajos_de_dictado || []).map(a =>
     `<button type="button" class="btn btn-claro" data-accion="${a.accion}">${a.nombre} <kbd>${a.accion}</kbd></button>`).join("");
   $$("#atajos-dictado button").forEach(b => b.addEventListener("click", () => guardarPieza(b.dataset.accion).catch(() => {})));
+  $("#programa").innerHTML = (o.programas || []).map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  if (estado.ajustes && estado.ajustes.programa) $("#programa").value = estado.ajustes.programa;
   $("#paleta").innerHTML = COLORES_RAPIDOS.map(col => `<button type="button" style="background:${col}" title="${col}" data-color="${col}"></button>`).join("");
   $("#host_panel").innerHTML = (o.direcciones || ["127.0.0.1"]).map(d =>
     `<option value="${d}">${d === "127.0.0.1" ? "Solo este equipo (127.0.0.1)" : d + (d.startsWith("100.") ? " (Tailscale)" : "")}</option>`).join("");
@@ -338,6 +354,21 @@ function conectar() {
     avisar($("#escribir_al_conectar").checked ? "Se grabará al conectar" : "Ya no se graba solo al conectar");
   });
   $("#btn-escuchar").addEventListener("click", escuchar);
+  $("#programa").addEventListener("change", async () => { await pedir("/api/ajustes", { programa: $("#programa").value }); avisar("Ahora le hablas a: " + $("#programa option:checked").textContent); await refrescar(); });
+  $("#btn-probar-dictado").addEventListener("click", async () => { const r = await pedir("/api/dictado/probar", {}); avisar("Dictado: " + (r.accion || "?")); });
+  $("#btn-ir-tecla").addEventListener("click", () => { irA("teclado"); if (estado.pieza === null) elegirPieza(0); elegirFamilia("dictado"); });
+  $("#btn-guardar-dictado").addEventListener("click", async () => {
+    await pedir("/api/ajustes", {
+      usar_microfono_propio: $("#usar_microfono_propio").checked, pinchar_cuadro: $("#pinchar_cuadro").checked,
+      enviar_al_cerrar: $("#enviar_al_cerrar").checked, pitido_al_abrir: $("#pitido_al_abrir").checked,
+      alto_cuadro: Number($("#alto_cuadro").value) || 0,
+    });
+    avisar("Guardado");
+  });
+  $("#btn-guardar-atajos").addEventListener("click", async () => {
+    await pedir("/api/ajustes", { atajos_dictado: { chatgpt: $("#atajo_chatgpt").value.trim(), claude: $("#atajo_claude").value.trim() } });
+    avisar("Atajos guardados; ya se usan");
+  });
   $("#btn-guardar-host").addEventListener("click", async () => {
     const host = $("#host_panel").value;
     const r = await pedir("/api/ajustes", { host_panel: host });
@@ -418,6 +449,10 @@ function escuchando() {
   const fuente = new EventSource("/api/sucesos");
   fuente.addEventListener("bienvenida", e => { $("#chip-vivo").hidden = false; pintar(JSON.parse(e.data)); });
   fuente.addEventListener("estado", e => pintar(JSON.parse(e.data)));
+  fuente.addEventListener("pulsacion", e => {
+    const d = JSON.parse(e.data);
+    avisar(`Tecla de dictado: ${d.accion} (${d.programa}, ${d.con_el_propio ? "micrófono propio" : "Win+H"})`);
+  });
   fuente.onerror = () => {
     $("#chip-vivo").hidden = true;
     if ($("#ind-conexion").textContent === "Esperando…") $("#ind-conexion").textContent = "sin canal en vivo; reintentando";

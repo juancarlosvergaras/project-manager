@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlparse
 from sikaimini.protocolo import CONSUMO
 
 from . import __version__, dispositivo, protocolo
-from .config import Ajustes, ruta_registro
+from .config import ATAJO_MICROFONO, ATAJOS_DE_FABRICA, PROGRAMAS, Ajustes, aplicar_atajos_de_dictado, ruta_registro
 from .servicio import Servicio
 
 registro = logging.getLogger("botonera.panel")
@@ -32,10 +32,16 @@ LATIDO_S = 20.0
 _FIN = "\r\n"
 
 #: Ajustes que se pueden cambiar desde la web, con su tipo.
-_CAMPOS_AJUSTES = {"clave_panel": str, "host_panel": str, "escribir_al_conectar": bool, "usar_portero": bool, "portero": str}
+_CAMPOS_AJUSTES = {
+    "clave_panel": str, "host_panel": str, "escribir_al_conectar": bool, "usar_portero": bool, "portero": str,
+    "programa": str, "alto_cuadro": int, "pinchar_cuadro": bool, "enviar_al_cerrar": bool,
+    "usar_microfono_propio": bool, "pitido_al_abrir": bool,
+}
 
-#: Combinaciones que abren el dictado de los otros servicios de la casa.
+#: Combinaciones que abren un dictado: la propia (según el programa activo) y
+#: las de los otros servicios de la casa.
 ATAJOS_DE_DICTADO = [
+    {"id": "botonera", "nombre": "Dictado de la Botonera (Claude o ChatGPT, según la ventana activa)", "accion": ATAJO_MICROFONO},
     {"id": "tecladoia", "nombre": "Dictado de TecladoIA (AhaKey)", "accion": "ctrl-mayus-alt-f13"},
     {"id": "minimic", "nombre": "Dictado de MiniMic", "accion": "ctrl-mayus-alt-f14"},
     {"id": "sikaimini", "nombre": "Dictado de SikaiMini", "accion": "ctrl-mayus-alt-f15"},
@@ -320,6 +326,8 @@ class PanelWeb:
                 "gestos": list(protocolo.GESTOS),
                 "modos_de_luz": [{"valor": v, "nombre": n} for v, n in protocolo.MODOS_DE_LUZ.items()],
                 "atajos_de_dictado": ATAJOS_DE_DICTADO,
+                "programas": [{"id": "activo", "nombre": "El programa que esté activo"}] + [{"id": p["id"], "nombre": p["nombre"]} for p in PROGRAMAS],
+                "atajo": s.resumen()["dictado"]["atajo"],
                 "max_pasos": protocolo.MAX_PASOS,
                 "direcciones": ["127.0.0.1", *direcciones_locales()],
                 "escuchando_en": self.ajustes.host_panel,
@@ -356,6 +364,8 @@ class PanelWeb:
         if ruta == "/api/restablecer" and metodo == "POST":
             perfil = self._entero(datos, "perfil", 0, ultimo_perfil, opcional=True)
             return self._json_ok(await en_hilo(s.restablecer, perfil))
+        if ruta == "/api/dictado/probar" and metodo == "POST":
+            return self._json_ok(await en_hilo(s.al_pulsar_microfono))
         if ruta == "/api/escuchar" and metodo == "POST":
             segundos = datos.get("segundos", 10)
             if not isinstance(segundos, (int, float)) or isinstance(segundos, bool):
@@ -365,6 +375,18 @@ class PanelWeb:
 
     def _guardar_ajustes(self, datos: dict[str, Any]) -> dict[str, Any]:
         cambiados: list[str] = []
+        if "atajos_dictado" in datos:
+            atajos = datos["atajos_dictado"]
+            if not isinstance(atajos, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in atajos.items()):
+                raise ValueError("«atajos_dictado» tiene que ser un objeto de textos")
+            for programa, atajo in atajos.items():
+                if programa not in ATAJOS_DE_FABRICA:
+                    raise ValueError(f"no conozco el programa «{programa}»")
+                if atajo and not all(parte.strip() for parte in atajo.split("+")):
+                    raise ValueError(f"atajo mal escrito: «{atajo}» (por ejemplo ctrl+shift+d)")
+                self.ajustes.atajos_dictado[programa] = atajo.strip().lower()
+            aplicar_atajos_de_dictado(self.ajustes.atajos_dictado)
+            cambiados.append("atajos_dictado")
         for campo, tipo in _CAMPOS_AJUSTES.items():
             if campo not in datos:
                 continue
@@ -373,6 +395,8 @@ class PanelWeb:
                 raise ValueError(f"«{campo}» tiene que ser verdadero o falso")
             if tipo is str and not isinstance(valor, str):
                 raise ValueError(f"«{campo}» tiene que ser texto")
+            if campo == "programa" and valor != "activo" and valor not in {p["id"] for p in PROGRAMAS}:
+                raise ValueError("programa desconocido")
             if campo == "clave_panel" and valor and len(valor) < 6:
                 raise ValueError("la clave necesita al menos seis caracteres")
             if campo == "host_panel":
@@ -387,6 +411,8 @@ class PanelWeb:
         self.ajustes.guardar()
         if any(c in cambiados for c in ("clave_panel", "portero", "usar_portero")):
             self.servicio.asegurar_tunel()
+        if "usar_microfono_propio" in cambiados and self.servicio._dictado is not None:
+            self.servicio._dictado.usar_el_propio = self.ajustes.usar_microfono_propio
         self.servicio.publicar("estado")
         if "host_panel" in cambiados:
             asyncio.get_running_loop().call_later(0.8, lambda: asyncio.ensure_future(self._reabrir()))

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pruebas.base import PruebaAislada
 from botonera import dispositivo, protocolo
-from botonera.config import COLORES_INICIALES, PERILLAS_INICIALES, TECLAS_INICIALES, Ajustes, Perfil
+from botonera.config import ATAJO_MICROFONO, COLORES_INICIALES, PERILLAS_INICIALES, TECLAS_INICIALES, Ajustes, Perfil
 from botonera.panel import PanelWeb
 from botonera.servicio import Servicio
 
@@ -57,7 +57,8 @@ class PruebaServicio(PruebaAislada):
         self.assertEqual(r["mensajes"], 3 * (21 * 2 + 1))
         self.assertEqual(len(self.canal.escritos), 129)
         # la primera orden es la tecla 1 del perfil 1 con F13; la última, las luces del perfil 3
-        self.assertEqual(self.canal.escritos[0][:10].hex(" "), "03 fd 01 01 01 00 01 00 00 68")
+        self.assertEqual(self.canal.escritos[0][:19].hex(" "), "03 fd 01 01 01 00 04 00 00 f1 00 00 f2 00 00 f3 00 00 6b")
+        self.assertEqual(self.canal.escritos[2][:10].hex(" "), "03 fd 02 01 01 00 01 00 00 69")  # tecla 2: F14
         self.assertEqual(self.canal.escritos[-1][:8].hex(" "), "03 fe b0 02 01 dc 26 26")
         guardados = Ajustes.cargar()
         self.assertTrue(guardados.ultima_escritura)
@@ -145,6 +146,14 @@ class PruebaServicio(PruebaAislada):
             self.assertIn("apagado", self.servicio.motivo_sin_tunel)
         asyncio.run(caso())
 
+    def test_dictado_sin_preparar_no_revienta(self):
+        self.assertEqual(TECLAS_INICIALES[0], ATAJO_MICROFONO)
+        self.assertEqual(self.servicio.al_pulsar_microfono(), {"accion": "sin dictado"})
+        d = self.servicio.resumen()["dictado"]
+        self.assertEqual((d["accion"], d["sigue_a_la_activa"], d["abierto"]), (ATAJO_MICROFONO, True, False))
+        self.servicio.ajustes.programa = "chatgpt"
+        self.assertEqual(self.servicio.resumen()["dictado"]["programa"], "ChatGPT")
+
     def test_resumen(self):
         r = self.servicio.resumen()
         self.assertEqual(len(r["perfiles"]), 3)
@@ -212,7 +221,15 @@ class PruebaPanel(PruebaAislada):
             estado, _, cuerpo = await self.pedir(panel.puerto, "GET", "/api/opciones")
             o = json.loads(cuerpo)
             self.assertIn("rueda-abajo", o["raton"])
-            self.assertEqual(o["atajos_de_dictado"][0]["accion"], "ctrl-mayus-alt-f13")
+            self.assertEqual(o["atajos_de_dictado"][0]["accion"], ATAJO_MICROFONO)
+            self.assertEqual(o["programas"][0]["id"], "activo")
+            estado, _, cuerpo = await self.pedir(panel.puerto, "POST", "/api/ajustes", {"programa": "claude", "atajos_dictado": {"chatgpt": "ctrl+shift+d"}})
+            self.assertTrue(estado.startswith("HTTP/1.1 200"), cuerpo)
+            self.assertEqual(Ajustes.cargar().programa, "claude")
+            estado, _, _ = await self.pedir(panel.puerto, "POST", "/api/ajustes", {"programa": "loquesea"})
+            self.assertTrue(estado.startswith("HTTP/1.1 400"))
+            estado, _, cuerpo = await self.pedir(panel.puerto, "POST", "/api/dictado/probar", {})
+            self.assertEqual(json.loads(cuerpo)["accion"], "sin dictado")
         self.correr(caso)
 
     def test_clave_por_cabecera_cookie_y_salud_libre(self):
