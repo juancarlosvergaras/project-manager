@@ -312,6 +312,69 @@ de una tarea. Y **`schtasks /Run` desde Git Bash no funciona**: convierte
 
 ---
 
+## Botonera — el cuarto teclado (misma carpeta, paquete `src/botonera`)
+
+Teclado macro de **12 teclas en tres filas de cuatro, 3 perillas y luces RGB**,
+con **tres perfiles** que se cambian con un botón del propio teclado. Sin
+programa del fabricante. Panel en <http://127.0.0.1:8773> (y en
+<http://100.79.52.120:8773> con clave `Unicartagena1`, cabecera
+`X-Botonera-Clave`). Tarea programada **Botonera**. Descifrado el 6/9/2026.
+
+```bash
+python -m botonera servicio --host 100.79.52.120   # arrancar
+python -m botonera estado                           # ¿está? ¿qué tiene grabado (según nosotros)?
+python -m botonera aplicar                          # grabar los tres perfiles
+python -m botonera luces 1 1 "#0000ff"              # perfil 1, modo fijo, azul (--probar para no guardar)
+python -m botonera escuchar 15                      # ver qué manda al pulsarlo
+python -m unittest pruebas.test_botonera_protocolo pruebas.test_botonera_servicio
+```
+
+**Mismo chip Jieli y mismo VID/PID que el MiniMic y el SiKai (514C:8850 por
+cable; por Bluetooth se llama MINI_KEYBOARD con VID/PID de Apple 05AC:022C),
+pero OTRO firmware.** Es el de los teclados macro «ch57x» que atiende el
+`ch57x-keyboard-tool` (módulo `k8850`, PR 175, incidencias 136 y 153). Tres
+cosas que costaron la tarde:
+
+- **Informes de 64 bytes de datos, no 63**: el paquete va en **65 bytes**
+  (`03` delante). Con 64 lo tira en silencio. Es lo que el servicio MiniMic
+  anotaba como «el teclado no aceptó el informe completo».
+- **No contesta nunca, ni se puede leer.** Ni acuse ni rechazo. Los otros dos
+  rechazaban con `03 07` lo que no entendían; este calla. El silencio no es
+  un fallo: es su forma de ser. Por eso la configuración es la verdad, se le
+  graba **entera** al conectar (`escribir_al_conectar`, ~130 mensajes) y la
+  única comprobación es escuchar sus pulsaciones (`botonera/escucha.py`, por
+  Raw Input, filtrando por VID/PID; también el botón «Escuchar» del panel).
+- **Sin suma de control**, y las órdenes LQ (`03 0c`, `03 04 ff`…) no le
+  dicen nada.
+
+El protocolo (comprobado con el aparato): tecla `03 FD <id> <perfil+1>
+<tipo> …` + cierre `03 FD FE FF`; tipo 1 teclado `00 <n> [00 00 <código>]×n`
+con los modificadores como pasos (`F1` Ctrl, `F2` Mayús, `F3` Alt, `F4` Win;
+hasta 18); tipo 2 multimedia; tipo 3 ratón (17 bytes). Luces `03 FE B0
+<perfil desde 0> <modo> R G B` + 16 ternas RGB; modos 0 apagado, 1 fijo, 2
+reactivo, 3 onda, 4/5 arcoíris. **Ojo: el perfil va desde 1 en las teclas y
+desde 0 en las luces.** Ids: teclas 1-12 por filas; perillas **desde el 16**
+(no 13 ni 17 como dicen las fuentes para otros modelos), tres por perilla:
+giro, pulsación, giro. Qué giro es izquierda o derecha se asumió como en la
+herramienta (antihorario, pulsar, horario) y **no está verificado**: si va al
+revés, se cambian los giros entre sí desde el panel.
+
+**Cómo se distingue de los otros dos Jieli**: por el descriptor HID de la
+interfaz de fabricante (`75 08 95 40` = 64 bytes es la Botonera; `95 3F` los
+otros), en `dispositivo.es_botonera`, sin mandar nada. MiniMic y SikaiMini no
+le escriben porque fallan al escribirle 64 bytes; la Botonera no les escribe
+porque mira el descriptor. Probado con los tres a la vista.
+
+**Lo que traía de fábrica no se sabe**: se le grabó un mapa de prueba antes de
+saberse que no se podía leer. Lo «inicial» de la Botonera es F13-F24 en las
+teclas (no hacen nada en casi ningún programa y los otros tres servicios ya
+entienden sus combinaciones), volumen / rueda / música en las perillas y un
+color por perfil (azul, verde, rojo).
+
+**La misma trampa de AppData**: la config real es
+`AppData\Roaming\Botonera\config.json` y desde Claude no se escribe; se creó
+con `ajustar_config.py --app Botonera` por una tarea de un solo uso.
+
 ## Que arranque con Windows
 
 Hay una tarea programada llamada **TecladoIA** que lo lanza al iniciar sesión,
@@ -679,4 +742,4 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-268, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+326, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.

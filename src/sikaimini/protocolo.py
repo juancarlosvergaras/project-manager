@@ -35,10 +35,10 @@ aparato y espiando ``LQ_Keyboard.exe`` con Frida. Lo que cambia:
 Este módulo no toca el hardware: arma y desarma bytes.
 """
 
+from __future__ import annotations
+
 #: Órdenes que cambian el teclado. La sonda del panel no las manda sin confirmar.
 ORDENES_QUE_ESCRIBEN = frozenset({0x01, 0x05, 0x09, 0x0E, 0x0F})
-
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 

@@ -12,6 +12,16 @@
         "despliegue/teclado"
       ],
       "port": 8790
+    },
+    {
+      "name": "botonera",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "botonera",
+        "servicio"
+      ],
+      "port": 8773
     }
   ]
 }

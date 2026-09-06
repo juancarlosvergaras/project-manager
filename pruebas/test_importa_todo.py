@@ -1,4 +1,4 @@
-"""Todos los módulos de las tres aplicaciones tienen que importarse sin error.
+"""Todos los módulos de las cuatro aplicaciones tienen que importarse sin error.
 
 Un error de sintaxis en un módulo que solo se importa al ejecutar el
 instalador (``asistente``) no lo veía ninguna prueba, y el ejecutable llegó
@@ -18,7 +18,7 @@ from pruebas.base import RAIZ  # noqa: F401  (fija sys.path)
 class PruebaImportaTodo(unittest.TestCase):
     def test_todos_los_modulos_importan(self):
         fallos = []
-        for paquete in ("tecladoia", "minimic", "sikaimini"):
+        for paquete in ("tecladoia", "minimic", "sikaimini", "botonera"):
             raiz = importlib.import_module(paquete)
             for info in pkgutil.walk_packages(raiz.__path__, paquete + "."):
                 if info.name.endswith(".__main__"):
