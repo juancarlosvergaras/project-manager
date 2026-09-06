@@ -27,16 +27,24 @@ from .protocolo import Accion, ErrorProtocolo, Luces
 
 NOMBRE = "Botonera"
 
-#: Combinación privada de la tecla de dictado. F16: el AhaKey tiene F13, el
-#: MiniMic F14 y el SiKai F15; Windows solo deja reservar cada combinación a un
-#: proceso. Al pulsarla, el servicio trae al frente el programa elegido (o el
-#: que esté activo) y abre su dictado.
-ATAJO_MICROFONO = "ctrl-mayus-alt-f16"
+#: Combinación privada de la tecla de dictado. Windows solo deja reservar cada
+#: combinación a un proceso: el AhaKey tiene F13, el MiniMic F14 y el SiKai
+#: F15. Aquí NO puede ser F16: por Bluetooth este teclado solo declara teclas
+#: hasta el código 0x65 y las F13-F24 no llegan (comprobado el 6/9/2026: la
+#: tecla llegaba por cable y por Bluetooth solo se veía el Alt). F12 con los
+#: tres modificadores está libre y pasa por los dos caminos.
+ATAJO_MICROFONO = "ctrl-mayus-alt-f12"
+_ATAJO_ANTERIOR = "ctrl-mayus-alt-f16"  # se migra solo al cargar
 
-#: Con lo que se estrena cada perfil: la tecla 1 abre el dictado del programa
-#: activo, las demás F14-F24 (no chocan con nada), volumen en la primera
-#: perilla, desplazamiento en la segunda y música en la tercera.
-TECLAS_INICIALES: tuple[str, ...] = (ATAJO_MICROFONO,) + tuple(f"f{14 + i}" for i in range(protocolo.NUMERO_DE_TECLAS - 1))
+#: Con lo que se estrena cada perfil, todo apto para cable y Bluetooth: la
+#: fila de arriba es la del agente (dictado, aceptar, cancelar, borrar, como
+#: el AhaKey), la segunda el portapapeles y la tercera ventanas y deshacer.
+#: Volumen en la primera perilla, desplazamiento en la segunda, música en la tercera.
+TECLAS_INICIALES: tuple[str, ...] = (
+    ATAJO_MICROFONO, "intro", "esc", "retroceso",
+    "ctrl-c", "ctrl-v", "ctrl-x", "ctrl-a",
+    "alt-tab", "win-d", "ctrl-z", "ctrl-y",
+)
 PERILLAS_INICIALES: tuple[tuple[str, str, str], ...] = (
     ("vol-", "silencio", "vol+"),
     ("rueda-abajo", "clic-central", "rueda-arriba"),
@@ -87,7 +95,7 @@ class Perfil:
             base.nombre = crudo["nombre"].strip()[:40]
         teclas = crudo.get("teclas")
         if isinstance(teclas, list) and len(teclas) == protocolo.NUMERO_DE_TECLAS and all(isinstance(t, str) for t in teclas):
-            base.teclas = list(teclas)
+            base.teclas = [ATAJO_MICROFONO if t == _ATAJO_ANTERIOR else t for t in teclas]
         perillas = crudo.get("perillas")
         if (isinstance(perillas, list) and len(perillas) == protocolo.NUMERO_DE_PERILLAS
                 and all(isinstance(p, list) and len(p) == len(protocolo.GESTOS) and all(isinstance(g, str) for g in p) for p in perillas)):
@@ -153,6 +161,14 @@ class Perfil:
     def como_dict(self) -> dict[str, Any]:
         datos = asdict(self)
         datos["luces_nombre"] = protocolo.MODOS_DE_LUZ.get(self.luces_modo, f"modo {self.luces_modo}")
+        solo_cable: list[int] = []
+        for i in range(protocolo.NUMERO_DE_PIEZAS):
+            try:
+                if not Accion.desde_texto(self.texto_de_pieza(i)).funciona_por_bluetooth:
+                    solo_cable.append(i)
+            except ErrorProtocolo:
+                pass
+        datos["solo_cable"] = solo_cable
         return datos
 
 

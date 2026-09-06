@@ -56,6 +56,11 @@ SUB_LUCES = 0xB0
 FIN_DE_TECLA = bytes([INFORME, ORDEN_TECLA, 0xFE, 0xFF])
 
 TIPO_TECLADO, TIPO_MULTIMEDIA, TIPO_RATON = 0x01, 0x02, 0x03
+
+#: Por Bluetooth el teclado declara teclas solo hasta este código (``29 65`` en
+#: su descriptor HID, leído del aparato el 6/9/2026) y Windows tira las demás:
+#: F13-F24 (``0x68``-``0x73``) y compañía llegan por cable y por Bluetooth no.
+CODIGO_MAXIMO_BLUETOOTH = 0x65
 MAX_PASOS = 18
 RETARDO_DEL_PASO = 0x00  # los dos primeros bytes de cada paso; la herramienta manda ceros
 
@@ -184,6 +189,17 @@ class Accion:
     @property
     def tipo(self) -> int:
         return {"teclado": TIPO_TECLADO, "multimedia": TIPO_MULTIMEDIA, "raton": TIPO_RATON}[self.familia]
+
+    @property
+    def funciona_por_bluetooth(self) -> bool:
+        """Falso si algún paso lleva una tecla que el lado Bluetooth no declara (F13-F24…)."""
+        if self.familia != "teclado":
+            return True
+        for paso in self.pasos:
+            for parte in paso:
+                if parte not in MODIFICADORES and CODIGOS.get(parte, 0) > CODIGO_MAXIMO_BLUETOOTH:
+                    return False
+        return True
 
     @classmethod
     def nada(cls) -> "Accion":

@@ -364,13 +364,23 @@ giro, pulsación, giro. Qué giro es izquierda o derecha se asumió como en la
 herramienta (antihorario, pulsar, horario) y **no está verificado**: si va al
 revés, se cambian los giros entre sí desde el panel.
 
-**Tecla de dictado propia: `ctrl-mayus-alt-f16`** (F13 AhaKey, F14 MiniMic,
+**Tecla de dictado propia: `ctrl-mayus-alt-f12`** (F13 AhaKey, F14 MiniMic,
 F15 SiKai). Cualquier pieza puesta a esa combinación abre el dictado del
 programa activo (o del elegido en la pestaña Dictado), con el mismo
 `tecladoia.dictado` y la misma ficha de programas de MiniMic. La tecla 1 viene
 así de inicio. El teclado no tiene micrófono: habla el del sistema. El panel
-la ofrece en la familia «Dictado» del editor junto a las combinaciones de los
-otros tres servicios.
+la ofrece en la familia «Dictado» del editor junto a Win+H (el dictado de
+Windows, para un equipo sin servicio) y las combinaciones de los otros tres.
+
+**Por Bluetooth no llegan las F13-F24.** El descriptor HID del lado Bluetooth
+(VID/PID de Apple 05AC:022C) declara teclas solo hasta el código `0x65`
+(`19 00 29 65 … 25 65`) y Windows tira las demás; por cable el descriptor
+llega a `0xFF`. Se vio el 6/9/2026: la tecla de dictado con F16 funcionaba
+por cable y por Bluetooth solo se veía el Alt. Por eso la combinación es con
+**F12** y no F16, el mapa inicial evita las F13-F24
+(`protocolo.CODIGO_MAXIMO_BLUETOOTH`, `Accion.funciona_por_bluetooth`) y el
+panel marca con ⚠ las piezas que solo funcionan por cable. Los códigos de
+`ctrl-mayus-alt-f16` guardados se migran solos al cargar la configuración.
 
 **Cómo se distingue de los otros dos Jieli**: por el descriptor HID de la
 interfaz de fabricante (`75 08 95 40` = 64 bytes es la Botonera; `95 3F` los

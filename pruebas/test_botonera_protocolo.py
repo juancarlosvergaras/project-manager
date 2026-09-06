@@ -106,6 +106,14 @@ class PruebaAcciones(unittest.TestCase):
             with self.assertRaises(ErrorProtocolo, msg=malo):
                 Accion.desde_texto(malo)
 
+    def test_lo_que_no_llega_por_bluetooth(self):
+        self.assertFalse(Accion.desde_texto("f13").funciona_por_bluetooth)
+        self.assertFalse(Accion.desde_texto("ctrl-mayus-alt-f16").funciona_por_bluetooth)
+        self.assertTrue(Accion.desde_texto("ctrl-mayus-alt-f12").funciona_por_bluetooth)
+        self.assertTrue(Accion.desde_texto("win-h").funciona_por_bluetooth)
+        self.assertTrue(Accion.desde_texto("vol+").funciona_por_bluetooth)
+        self.assertTrue(Accion.desde_texto("rueda-arriba").funciona_por_bluetooth)
+
     def test_codigo_crudo(self):
         a = Accion.desde_texto("<0x65>")
         self.assertEqual(a.a_carga()[-1], 0x65)

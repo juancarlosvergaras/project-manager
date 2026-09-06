@@ -237,7 +237,7 @@
     <div>
       <div class="tarjeta">
         <h2 class="editor-titulo">A quién le hablas</h2>
-        <p class="editor-sub">Cualquier tecla puesta como «Dictado de la Botonera» (<kbd id="atajo-texto">Ctrl+Mayús+Alt+F16</kbd>) trae este programa al frente, pincha su cuadro de escribir y abre el dictado. Al volver a pulsarla, lo cierra. Con «el programa que esté activo», mira qué ventana tienes delante: Claude, ChatGPT o Cursor.</p>
+        <p class="editor-sub">Cualquier tecla puesta como «Dictado de la Botonera» (<kbd id="atajo-texto">Ctrl+Mayús+Alt+F12</kbd>) trae este programa al frente, pincha su cuadro de escribir y abre el dictado. Al volver a pulsarla, lo cierra. Con «el programa que esté activo», mira qué ventana tienes delante: Claude, ChatGPT o Cursor.</p>
         <div class="campo"><label for="programa">Programa</label><select id="programa"></select></div>
         <div class="acciones">
           <button type="button" class="btn btn-naranja" id="btn-probar-dictado">Probar como si pulsara la tecla</button>
@@ -268,7 +268,7 @@
       </div>
       <div class="tarjeta">
         <h2 class="editor-titulo">Cómo funciona</h2>
-        <p class="editor-sub">La tecla manda una combinación que solo entiende este servicio (<kbd>Ctrl+Mayús+Alt+F16</kbd>; F13, F14 y F15 son de los otros tres teclados). El servicio la reserva en Windows al arrancar y hace el resto. Si la combinación no se pudo reservar, lo dice aquí arriba: suele ser otra copia del servicio viva.</p>
+        <p class="editor-sub">La tecla manda una combinación que solo entiende este servicio (<kbd>Ctrl+Mayús+Alt+F12</kbd>; F13, F14 y F15 son de los otros tres teclados, y F16 no vale porque por Bluetooth este teclado no manda las F13-F24). El servicio la reserva en Windows al arrancar y hace el resto. Si la combinación no se pudo reservar, lo dice aquí arriba: suele ser otra copia del servicio viva.</p>
       </div>
     </div>
   </div>
@@ -303,7 +303,7 @@
           <span class="cuenta" id="cuenta"></span>
         </div>
         <ul class="pulsaciones" id="pulsaciones"></ul>
-        <p class="nota">Lo que pulses llega también al programa que tenga el foco, como siempre. Las teclas F13 a F24 no hacen nada en casi ningún programa, por eso vienen de inicio.</p>
+        <p class="nota">Lo que pulses llega también al programa que tenga el foco, como siempre. <b>Por Bluetooth el teclado no manda las teclas F13 a F24</b> (su descriptor no las declara y Windows las tira): las piezas que las usan salen marcadas con ⚠ en el dibujo y solo funcionan por cable.</p>
       </div>
     </div>
   </div>
@@ -352,7 +352,8 @@
       <li><b>Conecta el teclado por cable.</b> Al verlo, la Botonera le graba los tres perfiles tal como están aquí. Por Bluetooth funciona igual, pero no se puede reconfigurar hasta volver al cable.</li>
       <li><b>Elige un perfil</b> arriba del dibujo y <b>pulsa una pieza</b>: una tecla, el disco de una perilla (pulsarla) o uno de sus giros.</li>
       <li><b>Dile qué hace</b>: una tecla o combinación (<kbd>ctrl-c</kbd>, <kbd>win-h</kbd>), una secuencia de pasos (<kbd>ctrl-c, ctrl-v</kbd>), algo del ratón (rueda, clic), una tecla multimedia (volumen, reproducir) o el dictado de otro servicio de la casa. «Grabar en el teclado» lo escribe al momento.</li>
-      <li><b>Para hablarle a Claude o ChatGPT</b>, pon una tecla como «Dictado de la Botonera» (la tecla 1 ya viene así): abre el dictado del programa que tengas delante, y al volver a pulsarla lo cierra. En «Dictado» se elige a quién le hablas y cómo.</li>
+      <li><b>Para hablarle a Claude o ChatGPT</b>, pon una tecla como «Dictado de la Botonera» (la tecla 1 ya viene así): abre el dictado del programa que tengas delante, y al volver a pulsarla lo cierra. En «Dictado» se elige a quién le hablas y cómo. Si el teclado va a otro equipo sin este servicio, ponle «Dictado de Windows» (Win+H), que funciona en cualquier sitio.</li>
+      <li><b>Por Bluetooth</b> el teclado no manda las teclas F13 a F24; todo lo demás sí. Las piezas afectadas salen con ⚠ en el dibujo.</li>
       <li><b>Ponle color a cada perfil</b> en «Luces»: así sabes en cuál está el teclado. El botón del propio teclado cambia de perfil.</li>
       <li><b>Comprueba</b> en «Comportamiento › Escuchar»: pulsa y mira qué llega.</li>
     </ol>

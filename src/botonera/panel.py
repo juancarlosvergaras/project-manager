@@ -42,6 +42,7 @@ _CAMPOS_AJUSTES = {
 #: las de los otros servicios de la casa.
 ATAJOS_DE_DICTADO = [
     {"id": "botonera", "nombre": "Dictado de la Botonera (Claude o ChatGPT, según la ventana activa)", "accion": ATAJO_MICROFONO},
+    {"id": "windows", "nombre": "Dictado de Windows (Win+H): funciona en cualquier equipo, sin ningún servicio", "accion": "win-h"},
     {"id": "tecladoia", "nombre": "Dictado de TecladoIA (AhaKey)", "accion": "ctrl-mayus-alt-f13"},
     {"id": "minimic", "nombre": "Dictado de MiniMic", "accion": "ctrl-mayus-alt-f14"},
     {"id": "sikaimini", "nombre": "Dictado de SikaiMini", "accion": "ctrl-mayus-alt-f15"},

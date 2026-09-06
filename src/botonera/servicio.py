@@ -8,7 +8,8 @@ tocadas en el momento, y guarda la configuración, que es la única copia de
 lo que el teclado tiene.
 
 La tecla de dictado funciona como en los otros tres teclados: cualquier pieza
-puesta a ``ctrl-mayus-alt-f16`` (combinación que solo reserva este servicio)
+puesta a ``ctrl-mayus-alt-f12`` (combinación que solo reserva este servicio;
+F12 y no F16 porque por Bluetooth las F13-F24 no llegan)
 trae al frente el programa elegido —o el que esté activo: Claude, ChatGPT,
 Cursor— y alterna su dictado con ``tecladoia.dictado``. El teclado no lleva
 micrófono, así que habla el del sistema. Las combinaciones de los otros
@@ -34,9 +35,9 @@ from .protocolo import ErrorProtocolo, Luces
 
 registro = logging.getLogger("botonera.servicio")
 
-VK_F16 = 0x7F
+VK_F12 = 0x7B
 IDENTIFICADOR_ATAJO = 0xA17D
-NOMBRE_ATAJO = "ctrl+alt+may+f16"
+NOMBRE_ATAJO = "ctrl+alt+may+f12"
 
 
 @dataclass
@@ -101,7 +102,7 @@ class Servicio:
         if not hay_soporte():
             self.estado.atajo_reservado = False
             return
-        self._escucha = EscuchaDictado(self.al_pulsar_microfono, IDENTIFICADOR_ATAJO, VK_F16, NOMBRE_ATAJO)
+        self._escucha = EscuchaDictado(self.al_pulsar_microfono, IDENTIFICADOR_ATAJO, VK_F12, NOMBRE_ATAJO)
         hilo = threading.Thread(target=self._correr_escucha, name="botonera-atajo", daemon=True)
         hilo.start()
         self._hilos.append(hilo)

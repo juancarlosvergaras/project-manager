@@ -57,7 +57,7 @@ const NOMBRES = {
   "vol+": "Volumen +", "vol-": "Volumen −", silencio: "Silencio", siguiente: "Pista siguiente", anterior: "Pista anterior",
   parar: "Parar", reproducir: "Reproducir / pausa", "brillo+": "Brillo +", "brillo-": "Brillo −", calculadora: "Calculadora",
   equipo: "Este equipo", navegador: "Navegador", correo: "Correo", reproductor: "Reproductor", actualizar: "Actualizar", adelante: "Adelante", atras: "Atrás",
-  "ctrl-mayus-alt-f16": "Dictado", "ctrl-mayus-alt-f13": "Dictado TecladoIA", "ctrl-mayus-alt-f14": "Dictado MiniMic", "ctrl-mayus-alt-f15": "Dictado SikaiMini",
+  "ctrl-mayus-alt-f12": "Dictado", "ctrl-mayus-alt-f13": "Dictado TecladoIA", "ctrl-mayus-alt-f14": "Dictado MiniMic", "ctrl-mayus-alt-f15": "Dictado SikaiMini",
 };
 
 function familiaDe(texto) {
@@ -189,9 +189,10 @@ function pintarDeVerdad(p) {
     $$("[data-pieza]").forEach(b => {
       const i = Number(b.dataset.pieza);
       const que = textoDePieza(perfil, i);
+      const soloCable = (perfil.solo_cable || []).includes(i);
       const etiqueta = $(".que", b);
-      if (etiqueta) etiqueta.textContent = nombreBonito(que);
-      b.title = `${p.piezas[i]}: ${nombreBonito(que)}`;
+      if (etiqueta) etiqueta.textContent = nombreBonito(que) + (soloCable ? " ⚠" : "");
+      b.title = `${p.piezas[i]}: ${nombreBonito(que)}${soloCable ? " (solo por cable: por Bluetooth no llega)" : ""}`;
       b.classList.toggle("elegida", estado.pieza === i);
     });
     // luces
@@ -264,9 +265,9 @@ function elegirPieza(i) {
   else if (estado.familia === "multimedia") $("#multimedia").value = actual;
   else if (estado.familia === "secuencia") $("#secuencia").value = actual;
   else if (estado.familia === "teclado") { $("#combo").value = actual === "nada" ? "" : actual; desmontarCombo(actual); }
-  $("#nota-pieza").textContent = i >= TECLAS
-    ? "Si el giro va al revés de lo que esperas, cambia entre sí lo de los dos giros."
-    : "";
+  const soloCable = perfil && (perfil.solo_cable || []).includes(i);
+  $("#nota-pieza").textContent = (soloCable ? "⚠ Lo que tiene ahora usa F13-F24 y por Bluetooth no llega; por cable sí. " : "")
+    + (i >= TECLAS ? "Si el giro va al revés de lo que esperas, cambia entre sí lo de los dos giros." : "");
   pintar(p);
 }
 

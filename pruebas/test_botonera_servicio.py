@@ -57,8 +57,8 @@ class PruebaServicio(PruebaAislada):
         self.assertEqual(r["mensajes"], 3 * (21 * 2 + 1))
         self.assertEqual(len(self.canal.escritos), 129)
         # la primera orden es la tecla 1 del perfil 1 con F13; la última, las luces del perfil 3
-        self.assertEqual(self.canal.escritos[0][:19].hex(" "), "03 fd 01 01 01 00 04 00 00 f1 00 00 f2 00 00 f3 00 00 6b")
-        self.assertEqual(self.canal.escritos[2][:10].hex(" "), "03 fd 02 01 01 00 01 00 00 69")  # tecla 2: F14
+        self.assertEqual(self.canal.escritos[0][:19].hex(" "), "03 fd 01 01 01 00 04 00 00 f1 00 00 f2 00 00 f3 00 00 45")
+        self.assertEqual(self.canal.escritos[2][:10].hex(" "), "03 fd 02 01 01 00 01 00 00 28")  # tecla 2: Intro
         self.assertEqual(self.canal.escritos[-1][:8].hex(" "), "03 fe b0 02 01 dc 26 26")
         guardados = Ajustes.cargar()
         self.assertTrue(guardados.ultima_escritura)
@@ -146,8 +146,18 @@ class PruebaServicio(PruebaAislada):
             self.assertIn("apagado", self.servicio.motivo_sin_tunel)
         asyncio.run(caso())
 
+    def test_lo_inicial_funciona_por_bluetooth_y_lo_viejo_se_migra(self):
+        p = Perfil.inicial(0)
+        self.assertEqual(p.como_dict()["solo_cable"], [])
+        p.teclas[3] = "f13"
+        p.teclas[4] = "ctrl-mayus-alt-f14"
+        self.assertEqual(p.como_dict()["solo_cable"], [3, 4])
+        viejo = Perfil.desde_dict({"teclas": ["ctrl-mayus-alt-f16"] + ["a"] * 11}, 0)
+        self.assertEqual(viejo.teclas[0], ATAJO_MICROFONO)
+
     def test_dictado_sin_preparar_no_revienta(self):
         self.assertEqual(TECLAS_INICIALES[0], ATAJO_MICROFONO)
+        self.assertEqual(ATAJO_MICROFONO, "ctrl-mayus-alt-f12")
         self.assertEqual(self.servicio.al_pulsar_microfono(), {"accion": "sin dictado"})
         d = self.servicio.resumen()["dictado"]
         self.assertEqual((d["accion"], d["sigue_a_la_activa"], d["abierto"]), (ATAJO_MICROFONO, True, False))
