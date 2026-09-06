@@ -20,6 +20,10 @@ La integración se hace sin reescribir las aplicaciones existentes. Cada una se 
 
 Los módulos nuevos se construyen directamente sobre la capa común de servicios, sin tablas de usuarios propias ni copias locales de la ficha de entidad. El diseño visual y los componentes de interfaz se comparten entre todos los módulos, lo que da al usuario la percepción de un solo sistema y reduce el esfuerzo de mantenimiento. Toda funcionalidad que produzca un documento institucional lo deposita en el Gestor Documental con control de versiones, en lugar de generar archivos dispersos.
 
+El portal debe crecer por módulos sin intervenir el código de los servicios ya desplegados. Para ello la capa común incluye un registro de módulos desde el cual la administración declara cada servicio con su nombre, su descripción, su grupo de navegación, su dirección, su tipo (interno o aplicación externa que recibe la sesión del portal) y los roles con acceso. Un módulo registrado aparece en la navegación y en el escritorio de los usuarios autorizados, recibe la identidad del usuario, la entidad activa y el rol vigente, y puede consumir los servicios comunes mediante los contratos de datos publicados. Este mecanismo es el que permitirá incorporar futuras herramientas del Observatorio, o aplicaciones de terceros, con un costo de integración acotado y previsible.
+
+La ayuda al usuario forma parte del producto y no de la capacitación posterior. Cada pantalla ofrece ayuda contextual con la guía paso a paso del servicio en uso, sus preguntas frecuentes y un acceso directo a soporte que registra desde qué pantalla se escribe. Un centro de ayuda reúne las guías de todos los servicios, un buscador por tarea, recorridos guiados que señalan los elementos de la interfaz en el orden en que se usan, atajos de teclado y el estado de la mesa de ayuda. El contenido de la ayuda se administra desde el mismo portal, de modo que un módulo nuevo incorpora su guía en el momento de registrarse y el equipo del Observatorio actualiza los textos sin desplegar código.
+
 ## 4. Arquitectura objetivo
 
 La arquitectura se organiza en cuatro capas. La capa de presentación contiene el portal unificado, con escritorio, navegación, buscador transversal, selector de entidad y notificaciones, junto con la biblioteca de componentes compartidos. La capa de módulos funcionales agrupa los tres módulos nuevos y las cuatro aplicaciones adaptadas. La capa común de servicios provee la identidad y el control de acceso, el registro maestro de entidades, la interfaz de programación que define los contratos de datos entre módulos y el servicio único de almacenamiento de archivos. La capa de datos reúne la base de datos del portal, las bases de datos heredadas durante la transición y un almacén analítico con vistas consolidadas para el cuadro de mando y los informes.
@@ -30,6 +34,8 @@ La Tabla 1 resume los componentes de la capa común y su función dentro del con
 |---|---|---|
 | Identidad y acceso | Cuenta única, inicio de sesión único, segundo factor, roles por aplicación y auditoría de accesos | Todos los módulos y aplicaciones |
 | Registro maestro de entidades | Ficha única por entidad con NIT, nivel de gobierno, región, sector y responsables | Todos los módulos y aplicaciones |
+| Registro de módulos | Declaración, activación y permisos de cada módulo, con generación de la navegación y del escritorio | Portal y administración |
+| Centro de ayuda | Guías por servicio, ayuda contextual, recorridos guiados, buscador por tarea y enlace con soporte | Todos los módulos y aplicaciones |
 | Interfaz de programación común | Contratos de datos, eventos entre módulos y notificaciones | Módulos nuevos y aplicaciones adaptadas |
 | Almacenamiento de archivos | Servicio único de archivos con versiones y trazabilidad | Gestor Documental, Cuestionarios, Costo-beneficio, Gestor de Proyectos |
 | Almacén analítico | Vistas consolidadas por entidad, región, sector y periodo | Cuadro de mando e informes del Observatorio |
@@ -62,7 +68,7 @@ Con esa base se elabora el diseño detallado de la arquitectura, el modelo de ro
 
 ### Fase 1. Cuenta única y portal base
 
-Se despliega el servicio de identidad con inicio de sesión único, segundo factor, recuperación de acceso, políticas de contraseña y auditoría. Se construye el escritorio del portal con la navegación por módulos, el selector de entidad, el buscador transversal y la biblioteca de componentes compartidos que usarán todos los módulos. El asistente de vinculación de cuentas heredadas permite que cada persona asocie una sola vez sus credenciales anteriores a la nueva cuenta, y se acompaña de una campaña de comunicación con las entidades para que la migración se complete antes de que las aplicaciones adaptadas entren en producción.
+Se despliega el servicio de identidad con inicio de sesión único, segundo factor, recuperación de acceso, políticas de contraseña y auditoría. Se construye el escritorio del portal con la navegación generada desde el registro de módulos, el selector de entidad, el buscador transversal, el centro de ayuda con su panel contextual y sus recorridos guiados, y la biblioteca de componentes compartidos que usarán todos los módulos. El asistente de vinculación de cuentas heredadas permite que cada persona asocie una sola vez sus credenciales anteriores a la nueva cuenta, y se acompaña de una campaña de comunicación con las entidades para que la migración se complete antes de que las aplicaciones adaptadas entren en producción.
 
 ### Fase 2. Adaptación de las aplicaciones existentes
 

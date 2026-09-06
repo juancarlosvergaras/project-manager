@@ -42,6 +42,8 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+svg.ic{width:18px;height:18px;flex:none}
+html,body{overflow-x:hidden}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.5}
 body{min-height:100vh}
 h1,h2,h3,h4{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.2}
@@ -177,7 +179,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 .launch .ic svg{width:18px;height:18px}
 .launch b{font-family:var(--font-display);font-size:14.5px;font-weight:600}
 .launch span{font-size:12.5px;color:var(--ink-2)}
-.launch .foot{margin-top:auto;font-size:11.5px;color:var(--ink-3);display:flex;justify-content:space-between}
+.launch .foot{margin-top:auto;font-size:11.5px;color:var(--ink-3);display:flex;justify-content:space-between;align-items:center;gap:8px}
 .timeline{display:grid;gap:0}
 .tl{display:grid;grid-template-columns:100px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--line-2)}
 .tl:last-child{border-bottom:0}
@@ -259,43 +261,90 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 @media (max-width:1100px){.g4,.launcher,.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.g21,.g12{grid-template-columns:1fr}}
 @media (max-width:820px){.shell{grid-template-columns:1fr}.sidebar{position:static;height:auto}.login{grid-template-columns:1fr}.login-side{padding:32px 24px}.g4,.g3,.g2,.launcher,.kanban{grid-template-columns:1fr}.search{display:none}.file{grid-template-columns:24px 1fr 90px}.file .hide{display:none}.role-grid{grid-template-columns:1.4fr repeat(5,1fr);font-size:11px}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* help drawer */
+.drawer-bg{position:fixed;inset:0;background:rgba(21,32,41,.35);z-index:70;display:none}
+.drawer-bg.on{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:var(--panel);border-left:1px solid var(--line);z-index:71;transform:translateX(100%);visibility:hidden;transition:transform .25s,visibility 0s .25s;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.drawer.on{transform:none;visibility:visible;transition:transform .25s,visibility 0s}
+.drawer-head{display:flex;gap:10px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.drawer-head h3{flex:1}
+.drawer-body{padding:18px;overflow:auto;flex:1;display:grid;gap:16px;align-content:start}
+.drawer-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.help-steps{margin:0;padding-left:22px;display:grid;gap:8px;font-size:13px}
+.help-steps li::marker{color:var(--brand);font-weight:600}
+.faq details{border:1px solid var(--line-2);border-radius:var(--r);padding:8px 12px;background:var(--panel-2)}
+.faq details+details{margin-top:6px}
+.faq summary{cursor:pointer;font-weight:500;font-size:13px}
+.faq p{margin-top:6px;font-size:12.5px;color:var(--ink-2)}
+.help-hit{padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r);cursor:pointer;background:var(--panel)}
+.help-hit:hover{border-color:var(--brand)}
+.help-hit b{font-size:13px}.help-hit span{display:block;font-size:12px;color:var(--ink-2)}
+.help-hit .eyebrow{font-size:10.5px}
+.kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--panel-2)}
+.help-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.help-cat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:left;display:grid;gap:6px}
+.help-cat:hover{border-color:var(--brand)}
+.help-cat b{font-family:var(--font-display);font-size:14px}
+.help-cat span{font-size:12.5px;color:var(--ink-2)}
+.help-cat .n{font-size:11.5px;color:var(--ink-3)}
+.bigsearch{position:relative;max-width:640px}
+.bigsearch input{padding:13px 14px 13px 42px;font-size:15px;border-radius:8px}
+.bigsearch svg{position:absolute;left:14px;top:15px;width:18px;height:18px;color:var(--ink-3)}
+.results{display:grid;gap:8px;max-width:640px;margin-top:10px}
+/* tour */
+.tour-bg{position:fixed;inset:0;z-index:80;display:none;pointer-events:none}
+.tour-bg.on{display:block}
+.tour-hole{position:absolute;border-radius:8px;box-shadow:0 0 0 9999px rgba(21,32,41,.55);transition:all .25s;pointer-events:none}
+.tour-card{position:absolute;width:320px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;box-shadow:var(--shadow);pointer-events:auto}
+.tour-card .eyebrow{margin-bottom:6px}
+.tour-card h3{margin-bottom:6px}
+.tour-card p{font-size:13px;color:var(--ink-2)}
+.tour-card .row{margin-top:14px;justify-content:space-between}
+.mod-form{display:grid;gap:10px}
+.mod-form label{font-size:12.5px;color:var(--ink-2);display:block;margin-bottom:3px}
+.switch{width:36px;height:20px;border-radius:10px;background:var(--line);position:relative;border:0;padding:0;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.switch.on{background:var(--brand)} .switch.on::after{left:18px}
+@media (max-width:1100px){.help-cats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){.help-cats{grid-template-columns:1fr}}
 </style>
 
-<div class="demo-banner"><span class="tag">Prototipo</span><span><b>Demostración navegable del portal unificado.</b> Los datos, entidades, cifras y usuarios son ficticios. Ninguna acción escribe en servidores ni en bases de datos del proyecto.</span></div>
+<div class="demo-banner"><span class="tag">Demostración</span><span>Los datos, entidades, cifras y usuarios que se muestran son ficticios.</span></div>
 
 <!-- ============ ACCESO UNIFICADO ============ -->
 <section id="login" class="login">
   <div class="login-side">
     <div>
-      <div class="eyebrow" style="color:rgba(255,255,255,.65)">Observatorio Nacional de Inteligencia Artificial</div>
-      <h1 style="margin-top:10px">Una sola cuenta para todo el ecosistema del proyecto IA para el Estado</h1>
-      <p class="lede">El portal reúne bajo una identidad única las aplicaciones que hoy operan por separado y agrega tres módulos nuevos orientados a la vigilancia tecnológica de las entidades públicas.</p>
+      <div class="eyebrow" style="color:rgba(255,255,255,.65)">Proyecto IA para el Estado · Universidad de Cartagena</div>
+      <h1 style="margin-top:10px">Observatorio Nacional de Inteligencia Artificial</h1>
+      <p class="lede">Sistema de información para el diagnóstico, el seguimiento y el acompañamiento de las entidades públicas en la adopción de inteligencia artificial.</p>
     </div>
     <div>
-      <div class="eyebrow" style="color:rgba(255,255,255,.65);margin-bottom:10px">Aplicaciones que se integran</div>
+      <div class="eyebrow" style="color:rgba(255,255,255,.65);margin-bottom:10px">Servicios del portal</div>
       <div class="apps">
-        <div>Solución Automatizada<span>Recomendación de soluciones de IA</span></div>
-        <div>Catálogo de IA<span>Inventario de herramientas y casos</span></div>
+        <div>Cuadro de mando<span>Indicadores de las entidades</span></div>
+        <div>Cuestionarios<span>Instrumentos de vigilancia tecnológica</span></div>
+        <div>Costo-beneficio<span>Evaluación de iniciativas de IA</span></div>
+        <div>Solución Automatizada<span>Recomendación de soluciones</span></div>
+        <div>Catálogo de IA<span>Herramientas y casos de uso</span></div>
         <div>Gestor de Proyectos<span>Seguimiento de iniciativas</span></div>
         <div>Gestor Documental<span>Entregables y evidencias</span></div>
-        <div style="border-style:dashed">Cuestionarios<span>Nuevo. Editor y aplicador</span></div>
-        <div style="border-style:dashed">Cuadro de mando<span>Nuevo. Indicadores de entidades</span></div>
-        <div style="border-style:dashed">Costo-beneficio<span>Nuevo. Evaluación de iniciativas</span></div>
-        <div style="border-style:dashed;opacity:.55">Teclados<span>Excluido del alcance</span></div>
+        <div>Centro de ayuda<span>Guías, recorridos y soporte</span></div>
       </div>
     </div>
     <canvas id="bgnet" width="520" height="420" aria-hidden="true"></canvas>
   </div>
   <div class="login-form">
     <form class="login-card" id="loginForm" autocomplete="off">
-      <div class="logo" style="padding:0;margin-bottom:18px"><div class="mark">ONIA</div><div><b>Portal del Observatorio</b><span>Cuenta única del ecosistema</span></div></div>
+      <div class="logo" style="padding:0;margin-bottom:18px"><div class="mark">ONIA</div><div><b>Portal del Observatorio</b><span>Acceso a los servicios</span></div></div>
       <h2>Ingresar</h2>
-      <p class="muted small" style="margin-top:4px">Use la misma cuenta en todas las aplicaciones integradas. En esta demostración cualquier valor es aceptado.</p>
+      <p class="muted small" style="margin-top:4px">Su cuenta del Observatorio da acceso a todos los servicios del portal.</p>
       <div class="field"><label for="u">Correo institucional</label><input id="u" value="analista@entidad.gov.co"></div>
       <div class="field"><label for="p">Contraseña</label><input id="p" type="password" value="demo-observatorio"></div>
-      <div class="field"><label for="rol">Ingresar como (solo demostración)</label>
+      <div class="field"><label for="rol">Explorar la demostración como</label>
         <select id="rol">
-          <option value="obs">Equipo del Observatorio (Universidad de Cartagena)</option>
+          <option value="obs">Analista del Observatorio</option>
           <option value="ent">Funcionario de entidad pública</option>
           <option value="adm">Administrador de la plataforma</option>
         </select></div>
@@ -305,7 +354,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
         <button class="btn block" type="button" data-sso="Autenticación Digital (Carpeta Ciudadana)">Autenticación Digital del Estado</button>
         <button class="btn block" type="button" data-sso="cuenta institucional Google Workspace">Cuenta institucional (Google Workspace)</button>
       </div>
-      <p class="small muted" style="margin-top:16px">Las cuentas existentes de la Solución Automatizada, el Catálogo, el Gestor de Proyectos y el Gestor Documental se vinculan una única vez a la cuenta del Observatorio y no vuelven a solicitar credenciales.</p>
+      <p class="small muted" style="margin-top:16px">Si ya tenía usuario en la Solución Automatizada, el Catálogo de IA, el Gestor de Proyectos o el Gestor Documental, podrá vincularlo a su cuenta del Observatorio la primera vez que ingrese. <a href="#" data-help-open="cuenta">Cómo vincular mis cuentas</a></p>
     </form>
   </div>
 </section>
@@ -314,28 +363,8 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <div id="app" class="shell" hidden>
   <aside class="sidebar">
     <div class="logo"><div class="mark">ONIA</div><div><b>Portal del Observatorio</b><span>Inteligencia Artificial</span></div></div>
-    <nav class="nav">
-      <div class="nav-group">
-        <a href="#inicio" data-view="inicio" class="active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</a>
-      </div>
-      <div class="nav-group"><div class="eyebrow">Observatorio</div>
-        <a href="#mando" data-view="mando"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Cuadro de mando<span class="pill">Nuevo</span></a>
-        <a href="#cuestionarios" data-view="cuestionarios"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5h6M9 12h6M9 19h6M5 5h.01M5 12h.01M5 19h.01"/></svg>Cuestionarios<span class="pill">Nuevo</span></a>
-        <a href="#costo" data-view="costo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Costo-beneficio<span class="pill">Nuevo</span></a>
-      </div>
-      <div class="nav-group"><div class="eyebrow">Aplicaciones integradas</div>
-        <a href="#solucion" data-view="solucion"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 10l-4.5 4 1.2 6L12 17l-4.7 3 1.2-6L4 10l5.5-1.5z"/></svg>Solución Automatizada</a>
-        <a href="#catalogo" data-view="catalogo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Catálogo de IA</a>
-        <a href="#proyectos" data-view="proyectos"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4zM4 10h16M9 10v9"/></svg>Gestor de Proyectos</a>
-        <a href="#documental" data-view="documental"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>Gestor Documental</a>
-      </div>
-      <div class="nav-group"><div class="eyebrow">Plataforma</div>
-        <a href="#cuenta" data-view="cuenta"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Cuenta única y roles</a>
-        <a href="#arquitectura" data-view="arquitectura"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h6v6H4zM14 4h6v6h-6zM9 14h6v6H9zM7 10v2h10v-2M12 12v2"/></svg>Arquitectura</a>
-        <a href="#ruta" data-view="ruta"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M4 12h16M4 18h7"/></svg>Hoja de ruta</a>
-      </div>
-    </nav>
-    <div class="sidebar-foot">Universidad de Cartagena · Proyecto IA para el Estado<br>Prototipo v0.1 · Sin conexión a servidores</div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot"><button class="btn sm block" data-help-open="" style="margin-bottom:10px">Ayuda y recorridos guiados</button>Universidad de Cartagena<br>Proyecto IA para el Estado</div>
   </aside>
 
   <div>
@@ -343,6 +372,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
       <div class="crumb">Portal <span style="margin:0 6px">/</span> <b id="crumb">Inicio</b></div>
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input placeholder="Buscar entidades, proyectos, documentos, soluciones" aria-label="Buscar"></div>
       <div class="entity-sel"><select id="entitySel" aria-label="Entidad activa"><option>Todas las entidades</option><option>Alcaldía Distrital de Cartagena</option><option>Gobernación de Bolívar</option><option>Ministerio de Salud y Protección Social</option><option>Alcaldía de Montería</option><option>Superintendencia de Servicios Públicos</option></select></div>
+      <button class="btn sm" id="helpBtn" data-help-open="" title="Ayuda contextual (F1)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>Ayuda</button>
       <div class="user"><div class="avatar" id="avatar">AN</div><div><b id="userName">Analista de entidad</b><span id="userRole">Equipo del Observatorio</span></div></div>
     </header>
     <main id="views"></main>
@@ -355,7 +385,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- INICIO -->
 <section class="view active" data-view="inicio">
   <div class="view-head">
-    <div><div class="eyebrow">Escritorio</div><h1 id="greet">Buenos días</h1><p>Desde este punto se accede a todas las aplicaciones del ecosistema con la misma sesión. Las tarjetas muestran el estado real de cada módulo para la entidad seleccionada.</p></div>
+    <div><div class="eyebrow">Escritorio</div><h1 id="greet">Buenos días</h1><p>Acceda a los servicios del portal y revise el estado de la entidad seleccionada.</p></div>
     <div class="actions"><button class="btn" data-go="cuestionarios">Responder cuestionario pendiente</button><button class="btn primary" data-go="costo">Nueva evaluación costo-beneficio</button></div>
   </div>
   <div class="grid g4" style="margin-bottom:18px">
@@ -364,19 +394,11 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
     <div class="tile"><div class="lbl">Índice promedio de madurez en IA</div><div class="val num">2,4 <span class="muted" style="font-size:14px;font-weight:500">/ 5</span></div><div class="delta up">+0,3 frente a la línea base</div><svg class="spark" data-spark="2.1,2.1,2.2,2.2,2.2,2.3,2.3,2.3,2.4,2.4,2.4,2.4"></svg></div>
     <div class="tile"><div class="lbl">Evaluaciones costo-beneficio</div><div class="val num">41</div><div class="delta">23 con relación B/C mayor que 1</div><svg class="spark" data-spark="2,4,7,9,12,15,19,24,28,33,37,41"></svg></div>
   </div>
-  <div class="eyebrow" style="margin-bottom:10px">Aplicaciones</div>
-  <div class="launcher" style="margin-bottom:22px">
-    <button class="launch" data-go="mando"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div><b>Cuadro de mando</b><span>Indicadores consolidados de los diagnósticos aplicados a las entidades.</span><div class="foot"><span>Actualizado hoy</span><span class="chip ok plain">En línea</span></div></button>
-    <button class="launch" data-go="cuestionarios"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5h6M9 12h6M9 19h6M5 5h.01M5 12h.01M5 19h.01"/></svg></div><b>Cuestionarios</b><span>Editor y aplicación de instrumentos de vigilancia tecnológica.</span><div class="foot"><span>3 instrumentos activos</span><span class="chip warn plain">1 pendiente</span></div></button>
-    <button class="launch" data-go="costo"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><b>Costo-beneficio</b><span>Evaluación financiera guiada de iniciativas de IA por entidad.</span><div class="foot"><span>Sesión propia por entidad</span><span class="chip ok plain">En línea</span></div></button>
-    <button class="launch" data-go="solucion"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 10l-4.5 4 1.2 6L12 17l-4.7 3 1.2-6L4 10l5.5-1.5z"/></svg></div><b>Solución Automatizada</b><span>Recomendación de soluciones de IA a partir del diagnóstico de la entidad.</span><div class="foot"><span>App existente</span><span class="chip info plain">Integrada</span></div></button>
-    <button class="launch" data-go="catalogo"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg></div><b>Catálogo de IA</b><span>Inventario de herramientas, casos de uso y proveedores clasificados.</span><div class="foot"><span>App existente</span><span class="chip info plain">Integrada</span></div></button>
-    <button class="launch" data-go="proyectos"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4zM4 10h16M9 10v9"/></svg></div><b>Gestor de Proyectos</b><span>Planeación y seguimiento de las iniciativas de IA de cada entidad.</span><div class="foot"><span>App existente</span><span class="chip info plain">Integrada</span></div></button>
-    <button class="launch" data-go="documental"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></div><b>Gestor Documental</b><span>Entregables, evidencias y versiones del proyecto IA para el Estado.</span><div class="foot"><span>App existente</span><span class="chip info plain">Integrada</span></div></button>
-    <button class="launch" data-go="cuenta"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div><b>Cuenta única</b><span>Perfil, roles por aplicación y vinculación de cuentas heredadas.</span><div class="foot"><span>4 aplicaciones vinculadas</span><span class="chip ok plain">Verificada</span></div></button>
+  <div class="eyebrow" style="margin-bottom:10px">Servicios</div>
+  <div class="launcher" id="launcher" style="margin-bottom:22px">
   </div>
   <div class="grid g21">
-    <div class="panel"><div class="panel-head"><h3>Actividad reciente en el ecosistema</h3><span class="small">Eventos consolidados de todas las aplicaciones</span></div>
+    <div class="panel"><div class="panel-head"><h3>Actividad reciente</h3><span class="small">Todos los servicios · entidad seleccionada</span></div>
       <div class="timeline">
         <div class="tl"><time>Hoy 08:42</time><div><b>Gobernación de Bolívar</b> completó el cuestionario de vigilancia tecnológica 2026-II.<p>Cuestionarios · 48 preguntas · índice preliminar 2,9</p></div></div>
         <div class="tl"><time>Hoy 08:10</time><div><b>Alcaldía de Montería</b> guardó la evaluación "Chatbot de atención al ciudadano".<p>Costo-beneficio · VPN 312 millones · relación B/C 1,8</p></div></div>
@@ -393,7 +415,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
           <div class="item"><div><b>Validar recomendaciones automáticas</b><span>4 soluciones sugeridas sin revisar</span></div><span class="chip neutral">Nuevo</span></div>
         </div>
       </div>
-      <div class="notice"><b>Cuenta unificada activa.</b> La sesión actual sirve para las siete aplicaciones. Las credenciales anteriores de cada aplicación quedaron vinculadas el 12 de agosto de 2026.</div>
+      <div class="notice"><b>Primera vez en el portal.</b> El recorrido guiado de cinco minutos muestra dónde está cada servicio. <a href="#" data-tour="inicio">Iniciar recorrido</a></div>
     </div>
   </div>
 </section>
@@ -401,15 +423,15 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- CUADRO DE MANDO -->
 <section class="view" data-view="mando">
   <div class="view-head">
-    <div><div class="eyebrow">Observatorio · Módulo nuevo</div><h1>Cuadro de mando de entidades</h1><p>Consolida los resultados de los diagnósticos aplicados a las entidades participantes. Cada indicador se alimenta de los cuestionarios y de los entregables registrados en el Gestor Documental.</p></div>
-    <div class="actions"><button class="btn" data-toast="Exportación a Excel simulada. En producción se descargaría el consolidado filtrado.">Exportar a Excel</button><button class="btn" data-toast="Generación de informe simulada. En producción se produce el informe Word con la plantilla institucional.">Generar informe</button></div>
+    <div><div class="eyebrow">Observatorio</div><h1>Cuadro de mando de entidades</h1><p>Resultados consolidados de los diagnósticos aplicados a las entidades participantes, con filtros por región, nivel y periodo.</p></div>
+    <div class="actions"><button class="btn" data-toast="Se prepara el consolidado filtrado en Excel. Recibirá el enlace de descarga en unos segundos.">Exportar a Excel</button><button class="btn" data-toast="Se genera el informe en Word con la plantilla institucional y se guarda en el Gestor Documental.">Generar informe</button><button class="btn ghost" data-help-open="mando" aria-label="Ayuda de este módulo">?</button></div>
   </div>
   <div class="filters">
     <select id="fRegion"><option value="">Todas las regiones</option><option>Caribe</option><option>Andina</option><option>Pacífica</option><option>Orinoquía</option><option>Amazonía</option></select>
     <select id="fNivel"><option value="">Todos los niveles</option><option>Nacional</option><option>Departamental</option><option>Municipal</option></select>
     <select id="fPeriodo"><option>Corte 2026-II</option><option>Corte 2026-I</option><option>Corte 2025-II</option></select>
     <div class="seg" id="segMetric"><button class="on" data-m="indice">Índice de madurez</button><button data-m="avance">Avance del diagnóstico</button></div>
-    <span class="small muted" style="margin-left:auto">Datos de demostración · 184 entidades</span>
+    <span class="small muted" style="margin-left:auto">184 entidades registradas</span>
   </div>
   <div class="grid g4" style="margin-bottom:16px">
     <div class="tile"><div class="lbl">Entidades con diagnóstico</div><div class="val num">97 <span class="muted" style="font-size:14px;font-weight:500">de 184</span></div><div class="delta up">+9 este corte</div></div>
@@ -433,15 +455,15 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- CUESTIONARIOS -->
 <section class="view" data-view="cuestionarios">
   <div class="view-head">
-    <div><div class="eyebrow">Observatorio · Módulo nuevo</div><h1>Editor y aplicador de cuestionarios</h1><p>Permite construir los instrumentos de vigilancia tecnológica, asignarlos a entidades, aplicarlos con seguimiento de avance y volcar los resultados directamente al cuadro de mando.</p></div>
-    <div class="actions"><button class="btn" data-tab="q-apl">Vista de la entidad</button><button class="btn primary" data-toast="En producción se crea un instrumento vacío con la plantilla institucional.">Nuevo instrumento</button></div>
+    <div><div class="eyebrow">Observatorio</div><h1>Cuestionarios</h1><p>Construya los instrumentos de vigilancia tecnológica, asígnelos a las entidades y consulte los resultados a medida que llegan.</p></div>
+    <div class="actions"><button class="btn" data-tab="q-apl">Vista de la entidad</button><button class="btn primary" data-toast="Se crea un instrumento vacío a partir de la plantilla institucional.">Nuevo instrumento</button><button class="btn ghost" data-help-open="cuestionarios" aria-label="Ayuda de este módulo">?</button></div>
   </div>
   <div class="tabs" id="qtabs"><button class="on" data-tab="q-list">Instrumentos</button><button data-tab="q-edit">Editor</button><button data-tab="q-apl">Aplicación</button><button data-tab="q-res">Resultados</button></div>
   <div class="tabpane on" id="q-list">
     <div class="tbl-wrap panel" style="padding:0"><table><thead><tr><th>Instrumento</th><th>Versión</th><th>Preguntas</th><th>Entidades asignadas</th><th>Respuestas</th><th>Estado</th><th></th></tr></thead><tbody>
       <tr><td><b>Vigilancia tecnológica en IA 2026-II</b><div class="small muted">Instrumento principal del Observatorio</div></td><td class="mono">3.1</td><td class="num">48</td><td class="num">184</td><td><div class="row"><div class="meter" style="width:110px"><i style="width:53%"></i></div><span class="small num">97 / 184</span></div></td><td><span class="chip ok">Abierto</span></td><td><button class="btn sm" data-tab="q-edit">Editar</button></td></tr>
-      <tr><td><b>Caracterización de infraestructura de datos</b><div class="small muted">Complementario · aplica a nivel departamental</div></td><td class="mono">1.4</td><td class="num">22</td><td class="num">32</td><td><div class="row"><div class="meter" style="width:110px"><i style="width:81%"></i></div><span class="small num">26 / 32</span></div></td><td><span class="chip ok">Abierto</span></td><td><button class="btn sm" data-toast="Edición simulada.">Editar</button></td></tr>
-      <tr><td><b>Percepción ciudadana sobre IA en servicios públicos</b><div class="small muted">Encuesta abierta con enlace público</div></td><td class="mono">2.0</td><td class="num">15</td><td class="num">—</td><td><span class="small num">1.204 respuestas</span></td><td><span class="chip warn">Cierra en 6 días</span></td><td><button class="btn sm" data-toast="Edición simulada.">Editar</button></td></tr>
+      <tr><td><b>Caracterización de infraestructura de datos</b><div class="small muted">Complementario · aplica a nivel departamental</div></td><td class="mono">1.4</td><td class="num">22</td><td class="num">32</td><td><div class="row"><div class="meter" style="width:110px"><i style="width:81%"></i></div><span class="small num">26 / 32</span></div></td><td><span class="chip ok">Abierto</span></td><td><button class="btn sm" data-toast="Se abre el instrumento en el editor.">Editar</button></td></tr>
+      <tr><td><b>Percepción ciudadana sobre IA en servicios públicos</b><div class="small muted">Encuesta abierta con enlace público</div></td><td class="mono">2.0</td><td class="num">15</td><td class="num">—</td><td><span class="small num">1.204 respuestas</span></td><td><span class="chip warn">Cierra en 6 días</span></td><td><button class="btn sm" data-toast="Se abre el instrumento en el editor.">Editar</button></td></tr>
       <tr><td><b>Vigilancia tecnológica en IA 2026-I</b><div class="small muted">Versión anterior · solo consulta</div></td><td class="mono">2.7</td><td class="num">44</td><td class="num">172</td><td><div class="row"><div class="meter" style="width:110px"><i style="width:100%"></i></div><span class="small num">88 / 172</span></div></td><td><span class="chip neutral">Cerrado</span></td><td><button class="btn sm" data-tab="q-res">Resultados</button></td></tr>
     </tbody></table></div>
   </div>
@@ -450,13 +472,13 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
       <div class="stack">
         <div class="panel"><div class="panel-head"><h3>Estructura del instrumento</h3></div>
           <div class="card-list" id="qSections"></div>
-          <button class="btn sm block" style="margin-top:10px" data-toast="Sección añadida en memoria (demostración).">Añadir sección</button></div>
+          <button class="btn sm block" style="margin-top:10px" data-toast="Sección añadida al instrumento.">Añadir sección</button></div>
         <div class="panel"><div class="panel-head"><h3>Agregar pregunta</h3></div>
           <div class="stack">
             <div><label class="small muted">Enunciado</label><input id="nqText" placeholder="Escriba la pregunta"></div>
             <div class="grid g2"><div><label class="small muted">Tipo</label><select id="nqType"><option value="likert">Escala 1 a 5</option><option value="single">Opción única</option><option value="multi">Opción múltiple</option><option value="num">Numérica</option><option value="open">Abierta</option></select></div><div><label class="small muted">Peso en el índice</label><input id="nqW" type="number" value="1" min="0" step="0.5"></div></div>
             <button class="btn primary" id="addQ">Agregar a la sección 3</button></div></div>
-        <div class="notice small">Cada pregunta declara su dimensión y su peso. Con eso el módulo calcula el índice de madurez sin intervención manual y el cuadro de mando se actualiza en cuanto la entidad envía sus respuestas.</div>
+        <div class="notice small">Cada pregunta declara su dimensión y su peso. El índice de madurez se calcula con esos pesos en cuanto la entidad envía sus respuestas. <a href="#" data-help-open="cuestionarios">Ver guía del editor</a></div>
       </div>
       <div class="panel"><div class="panel-head"><h3>Sección 3 · Datos y gobernanza de la información</h3><span class="small" id="qCount"></span></div><div class="stack" id="qList"></div></div>
     </div>
@@ -478,7 +500,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
           </div></div>
       </div>
       <div class="panel"><div class="panel-head"><h3>Sección 3 · Datos y gobernanza de la información</h3><span class="small">Responda y continúe. El avance se guarda al instante.</span></div><div class="stack" id="aplList"></div>
-        <div class="row" style="justify-content:space-between;margin-top:16px"><button class="btn">Sección anterior</button><button class="btn primary" data-toast="Respuestas guardadas en memoria. Se abre la sección 4 (demostración).">Guardar y continuar</button></div></div>
+        <div class="row" style="justify-content:space-between;margin-top:16px"><button class="btn">Sección anterior</button><button class="btn primary" data-toast="Respuestas guardadas. Se abre la sección 4.">Guardar y continuar</button></div></div>
     </div>
   </div>
   <div class="tabpane" id="q-res">
@@ -488,7 +510,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
       <div class="stack">
         <div class="panel"><div class="panel-head"><h3>Índice resultante</h3></div><div class="val num" style="font-size:44px;font-weight:600">2,7</div><p class="small muted">Nivel "En desarrollo". Calculado con los pesos declarados en el instrumento.</p>
           <dl class="kv" style="margin-top:12px"><dt>Fortaleza</dt><dd>Infraestructura y seguridad (3,6)</dd><dt>Brecha mayor</dt><dd>Talento y cultura (1,9)</dd><dt>Enviado a</dt><dd>Cuadro de mando y Solución Automatizada</dd></dl></div>
-        <div class="notice small">Al cerrar el cuestionario, el resultado alimenta la Solución Automatizada, que genera recomendaciones a partir de las brechas detectadas.</div>
+        <div class="notice small">Con el cuestionario cerrado, la Solución Automatizada genera recomendaciones a partir de las brechas detectadas. <a href="#" data-go="solucion">Ver recomendaciones</a></div>
       </div>
     </div>
   </div>
@@ -497,8 +519,8 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- COSTO BENEFICIO -->
 <section class="view" data-view="costo">
   <div class="view-head">
-    <div><div class="eyebrow">Observatorio · Módulo nuevo</div><h1>Herramienta de costo-beneficio</h1><p>Cada entidad evalúa sus iniciativas de IA en una sesión propia. El formulario guía la captura de costos y beneficios y calcula los indicadores financieros con los que el Observatorio compara las iniciativas del país.</p></div>
-    <div class="actions"><button class="btn" id="cbNew">Nueva evaluación</button><button class="btn primary" id="cbSave">Guardar en mi sesión</button></div>
+    <div><div class="eyebrow">Observatorio</div><h1>Costo-beneficio</h1><p>Evalúe la viabilidad financiera de una iniciativa de IA. Los indicadores se recalculan con cada dato que ingrese y las evaluaciones quedan guardadas en la sesión de su entidad.</p></div>
+    <div class="actions"><button class="btn" id="cbNew">Nueva evaluación</button><button class="btn primary" id="cbSave">Guardar evaluación</button><button class="btn ghost" data-help-open="costo" aria-label="Ayuda de este módulo">?</button></div>
   </div>
   <div class="grid g12">
     <div class="stack">
@@ -531,7 +553,7 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
       <div class="panel"><div class="panel-head"><h3>Flujo neto acumulado</h3><span class="small">Millones de pesos · valores nominales</span></div><div id="chartCB"></div>
         <div class="legend"><span><i style="background:var(--s1)"></i>Flujo acumulado</span><span><i style="background:var(--line)"></i>Punto de equilibrio</span></div></div>
       <div class="panel"><div class="panel-head"><h3>Detalle por año</h3></div><div class="tbl-wrap"><table id="cbTable"><thead><tr><th>Año</th><th class="num">Costos</th><th class="num">Beneficios</th><th class="num">Flujo neto</th><th class="num">Acumulado</th><th class="num">Valor presente</th></tr></thead><tbody></tbody></table></div></div>
-      <div class="panel"><div class="panel-head"><h3>Mi sesión · evaluaciones guardadas</h3><span class="small">Visibles solo para la entidad</span></div><div class="card-list" id="cbSaved"></div></div>
+      <div class="panel"><div class="panel-head"><h3>Evaluaciones guardadas</h3><span class="small">Sesión de la entidad · visibles solo para sus usuarios</span></div><div class="card-list" id="cbSaved"></div></div>
     </div>
   </div>
 </section>
@@ -539,20 +561,20 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- SOLUCION AUTOMATIZADA -->
 <section class="view" data-view="solucion">
   <div class="view-head">
-    <div><div class="eyebrow">Aplicación integrada</div><h1>Solución Automatizada</h1><p>La aplicación existente se abre dentro del portal con la sesión del usuario. Al integrarse, deja de pedir el diagnóstico a mano y lo toma directamente del cuestionario cerrado más reciente de la entidad.</p></div>
-    <div class="actions"><button class="btn" data-toast="Recalculo simulado a partir del diagnóstico 2026-II.">Recalcular recomendaciones</button></div>
+    <div><div class="eyebrow">Acompañamiento</div><h1>Solución Automatizada</h1><p>Recomendaciones de soluciones de IA para la entidad, generadas a partir de su diagnóstico más reciente.</p></div>
+    <div class="actions"><button class="btn" data-toast="Recomendaciones recalculadas con el diagnóstico 2026-II.">Recalcular recomendaciones</button><button class="btn ghost" data-help-open="solucion" aria-label="Ayuda de este módulo">?</button></div>
   </div>
   <div class="grid g12">
     <div class="panel"><div class="panel-head"><h3>Entrada del diagnóstico</h3></div>
       <dl class="kv"><dt>Entidad</dt><dd>Alcaldía Distrital de Cartagena</dd><dt>Fuente</dt><dd>Cuestionario 2026-II (cerrado)</dd><dt>Índice</dt><dd>2,7 · En desarrollo</dd><dt>Brechas</dt><dd>Talento (1,9), Gobernanza de datos (2,3)</dd><dt>Presupuesto declarado</dt><dd>600 millones</dd></dl>
-      <div class="notice small" style="margin-top:14px">Antes de la integración, el funcionario debía transcribir estos datos en un formulario independiente con su propia contraseña.</div></div>
+</div>
     <div class="stack">
       <div class="panel"><div class="panel-head"><h3>Recomendaciones generadas</h3><span class="small">4 soluciones · ordenadas por ajuste a las brechas</span></div>
         <div class="card-list">
           <div class="item"><div><b>Programa de formación en gobernanza de datos para servidores públicos</b><span>Cierra la brecha de talento · 3 meses · referencia en el Catálogo</span></div><div class="row"><span class="chip ok plain">Ajuste 92 %</span><button class="btn sm" data-go="catalogo">Ver en catálogo</button></div></div>
           <div class="item"><div><b>Catálogo institucional de datos con roles de custodia</b><span>Gobernanza · 5 meses · requiere inventario previo</span></div><div class="row"><span class="chip ok plain">Ajuste 85 %</span><button class="btn sm" data-go="proyectos">Crear proyecto</button></div></div>
           <div class="item"><div><b>Asistente conversacional para trámites de alto volumen</b><span>Caso de uso · 6 meses · evaluación costo-beneficio existente</span></div><div class="row"><span class="chip warn plain">Ajuste 71 %</span><button class="btn sm" data-go="costo">Ver evaluación</button></div></div>
-          <div class="item"><div><b>Analítica predictiva para priorización de inspecciones</b><span>Caso de uso · 8 meses · requiere madurez de datos 3,0</span></div><div class="row"><span class="chip neutral plain">Ajuste 54 %</span><button class="btn sm" data-toast="Detalle simulado.">Detalle</button></div></div>
+          <div class="item"><div><b>Analítica predictiva para priorización de inspecciones</b><span>Caso de uso · 8 meses · requiere madurez de datos 3,0</span></div><div class="row"><span class="chip neutral plain">Ajuste 54 %</span><button class="btn sm" data-toast="Se abre el detalle de la recomendación.">Detalle</button></div></div>
         </div></div>
     </div>
   </div>
@@ -561,8 +583,8 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- CATALOGO -->
 <section class="view" data-view="catalogo">
   <div class="view-head">
-    <div><div class="eyebrow">Aplicación integrada</div><h1>Catálogo de IA</h1><p>Inventario de herramientas, casos de uso y proveedores. Dentro del portal, cada ficha se enlaza con las recomendaciones de la Solución Automatizada y con los proyectos que la usan.</p></div>
-    <div class="actions"><button class="btn primary" data-toast="Alta de herramienta simulada.">Proponer herramienta</button></div>
+    <div><div class="eyebrow">Acompañamiento</div><h1>Catálogo de IA</h1><p>Herramientas, casos de uso, proveedores y marcos normativos revisados por el Observatorio, con los proyectos que los utilizan.</p></div>
+    <div class="actions"><button class="btn primary" data-toast="Se abre el formulario de propuesta. La ficha pasa a revisión editorial del Observatorio.">Proponer herramienta</button><button class="btn ghost" data-help-open="catalogo" aria-label="Ayuda de este módulo">?</button></div>
   </div>
   <div class="filters"><input placeholder="Buscar en el catálogo" style="width:260px"><select><option>Todas las categorías</option><option>Procesamiento de lenguaje</option><option>Visión por computador</option><option>Analítica predictiva</option><option>Automatización de procesos</option><option>Gobernanza y ética</option></select><select><option>Todos los tipos</option><option>Herramienta</option><option>Caso de uso</option><option>Proveedor</option><option>Marco normativo</option></select><span class="small muted" style="margin-left:auto">312 fichas · 6 pendientes de revisión</span></div>
   <div class="grid g3" id="catGrid"></div>
@@ -571,10 +593,10 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- PROYECTOS -->
 <section class="view" data-view="proyectos">
   <div class="view-head">
-    <div><div class="eyebrow">Aplicación integrada</div><h1>Gestor de Proyectos</h1><p>Seguimiento de las iniciativas de IA por entidad. Con la integración, un proyecto nace desde una recomendación o desde una evaluación costo-beneficio, y sus evidencias se guardan en el Gestor Documental sin volver a cargarlas.</p></div>
-    <div class="actions"><button class="btn primary" data-toast="Creación de proyecto simulada.">Nuevo proyecto</button></div>
+    <div><div class="eyebrow">Acompañamiento</div><h1>Gestor de Proyectos</h1><p>Planeación y seguimiento de las iniciativas de IA de la entidad. Un proyecto puede crearse desde una recomendación o desde una evaluación de costo-beneficio.</p></div>
+    <div class="actions"><button class="btn primary" data-toast="Se abre el formulario de nuevo proyecto.">Nuevo proyecto</button><button class="btn ghost" data-help-open="proyectos" aria-label="Ayuda de este módulo">?</button></div>
   </div>
-  <div class="filters"><span class="small muted">Alcaldía Distrital de Cartagena · 7 proyectos</span><div class="seg" style="margin-left:auto"><button class="on">Tablero</button><button data-toast="Vista de cronograma simulada.">Cronograma</button><button data-toast="Vista de lista simulada.">Lista</button></div></div>
+  <div class="filters"><span class="small muted">Alcaldía Distrital de Cartagena · 7 proyectos</span><div class="seg" style="margin-left:auto"><button class="on">Tablero</button><button data-toast="Vista de cronograma.">Cronograma</button><button data-toast="Vista de lista.">Lista</button></div></div>
   <div class="kanban">
     <div class="col"><h4>Formulación <span>2</span></h4>
       <div class="card"><b>Catálogo institucional de datos</b><span class="small muted">Origen · Solución Automatizada</span><div class="meta"><span>Sin fecha</span><span class="chip neutral plain">B/C pendiente</span></div></div>
@@ -593,8 +615,8 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- DOCUMENTAL -->
 <section class="view" data-view="documental">
   <div class="view-head">
-    <div><div class="eyebrow">Aplicación integrada</div><h1>Gestor Documental</h1><p>Repositorio de entregables y evidencias del proyecto. La integración permite que cuestionarios, evaluaciones y proyectos depositen sus archivos aquí de forma automática y con trazabilidad de versiones.</p></div>
-    <div class="actions"><button class="btn" data-toast="Carga simulada.">Cargar documento</button><button class="btn primary" data-toast="Carpeta creada en memoria (demostración).">Nueva carpeta</button></div>
+    <div><div class="eyebrow">Acompañamiento</div><h1>Gestor Documental</h1><p>Entregables, evidencias e informes con control de versiones. Los informes de cuestionarios y evaluaciones se guardan aquí de forma automática.</p></div>
+    <div class="actions"><button class="btn" data-toast="Se abre el selector de archivos.">Cargar documento</button><button class="btn ghost" data-help-open="documental" aria-label="Ayuda de este módulo">?</button><button class="btn primary" data-toast="Carpeta creada.">Nueva carpeta</button></div>
   </div>
   <div class="grid g12">
     <div class="panel"><div class="panel-head"><h3>Carpetas</h3></div>
@@ -621,14 +643,14 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- CUENTA -->
 <section class="view" data-view="cuenta">
   <div class="view-head">
-    <div><div class="eyebrow">Plataforma</div><h1>Cuenta única y roles</h1><p>Una identidad por persona, vinculada a una o varias entidades, con permisos declarados por aplicación. La unificación de cuentas es la primera fase del plan y la condición para que el resto de módulos comparta información.</p></div>
-    <div class="actions"><button class="btn" data-toast="Cierre de sesiones simulado.">Cerrar otras sesiones</button></div>
+    <div><div class="eyebrow">Mi cuenta</div><h1>Cuenta y permisos</h1><p>Sus datos, las entidades a las que pertenece, los permisos por servicio y las sesiones abiertas.</p></div>
+    <div class="actions"><button class="btn" data-toast="Las demás sesiones fueron cerradas.">Cerrar otras sesiones</button><button class="btn ghost" data-help-open="cuenta" aria-label="Ayuda de este módulo">?</button></div>
   </div>
   <div class="grid g12">
     <div class="stack">
       <div class="panel"><div class="row" style="gap:14px"><div class="avatar" style="width:52px;height:52px;font-size:18px" id="avatar2">AN</div><div><h3 id="userName2">Analista de entidad</h3><p class="small muted" id="userMail">analista@entidad.gov.co</p></div></div>
         <dl class="kv" style="margin-top:16px"><dt>Entidad principal</dt><dd>Alcaldía Distrital de Cartagena</dd><dt>Otras entidades</dt><dd>Ninguna</dd><dt>Identidad verificada</dt><dd><span class="chip ok">Correo institucional</span></dd><dt>Segundo factor</dt><dd>Aplicación de autenticación</dd><dt>Última sesión</dt><dd>Hoy, 08:02 · Cartagena</dd></dl></div>
-      <div class="panel"><div class="panel-head"><h3>Cuentas heredadas vinculadas</h3></div>
+      <div class="panel"><div class="panel-head"><h3>Cuentas vinculadas</h3><span class="small"><a href="#" data-help-open="cuenta">Cómo vincular otra</a></span></div>
         <div class="card-list">
           <div class="item"><div><b>Solución Automatizada</b><span>usuario: alc.cartagena.ti · vinculada 12 ago 2026</span></div><span class="chip ok">Vinculada</span></div>
           <div class="item"><div><b>Catálogo de IA</b><span>usuario: analista@entidad.gov.co · vinculada 12 ago 2026</span></div><span class="chip ok">Vinculada</span></div>
@@ -637,9 +659,9 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
         </div></div>
     </div>
     <div class="stack">
-      <div class="panel"><div class="panel-head"><h3>Permisos por aplicación</h3><span class="small">Modelo de roles unificado</span></div>
+      <div class="panel"><div class="panel-head"><h3>Permisos por servicio</h3><span class="small">Según el rol asignado</span></div>
         <div class="role-grid">
-          <div class="h">Aplicación</div><div class="h c">Funcionario de entidad</div><div class="h c">Directivo de entidad</div><div class="h c">Analista del Observatorio</div><div class="h c">Editor de instrumentos</div><div class="h c">Administrador</div>
+          <div class="h">Servicio</div><div class="h c">Funcionario de entidad</div><div class="h c">Directivo de entidad</div><div class="h c">Analista del Observatorio</div><div class="h c">Editor de instrumentos</div><div class="h c">Administrador</div>
           <div>Cuadro de mando</div><div class="c" title="Solo su entidad"><span class="dot on"></span></div><div class="c"><span class="dot on"></span></div><div class="c"><span class="dot rw"></span></div><div class="c"><span class="dot on"></span></div><div class="c"><span class="dot rw"></span></div>
           <div>Cuestionarios</div><div class="c"><span class="dot rw"></span></div><div class="c"><span class="dot on"></span></div><div class="c"><span class="dot on"></span></div><div class="c"><span class="dot rw"></span></div><div class="c"><span class="dot rw"></span></div>
           <div>Costo-beneficio</div><div class="c"><span class="dot rw"></span></div><div class="c"><span class="dot rw"></span></div><div class="c"><span class="dot on"></span></div><div class="c"><span class="dot"></span></div><div class="c"><span class="dot rw"></span></div>
@@ -651,8 +673,8 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
         <div class="legend"><span><span class="dot on"></span>Consulta</span><span><span class="dot rw"></span>Consulta y edición</span><span><span class="dot"></span>Sin acceso</span></div></div>
       <div class="panel"><div class="panel-head"><h3>Sesiones activas</h3></div>
         <div class="card-list">
-          <div class="item"><div><b>Este equipo · Chrome en Windows</b><span>Cartagena · iniciada hoy 08:02 · sesión compartida por las 7 aplicaciones</span></div><span class="chip ok">Actual</span></div>
-          <div class="item"><div><b>Teléfono · Safari en iOS</b><span>Cartagena · iniciada ayer 19:40</span></div><button class="btn sm" data-toast="Sesión cerrada (demostración).">Cerrar</button></div>
+          <div class="item"><div><b>Este equipo · Chrome en Windows</b><span>Cartagena · iniciada hoy 08:02</span></div><span class="chip ok">Actual</span></div>
+          <div class="item"><div><b>Teléfono · Safari en iOS</b><span>Cartagena · iniciada ayer 19:40</span></div><button class="btn sm" data-toast="Sesión cerrada.">Cerrar</button></div>
         </div></div>
     </div>
   </div>
@@ -661,56 +683,88 @@ svg.chart .lbl{fill:var(--ink);font-weight:600;font-variant-numeric:tabular-nums
 <!-- ARQUITECTURA -->
 <section class="view" data-view="arquitectura">
   <div class="view-head">
-    <div><div class="eyebrow">Plataforma</div><h1>Arquitectura de integración propuesta</h1><p>Las aplicaciones existentes se conservan y se conectan a través de una capa común de identidad, datos y navegación. Los módulos nuevos se construyen directamente sobre esa capa.</p></div>
+    <div><div class="eyebrow">Administración</div><h1>Arquitectura del portal</h1><p>Cómo se organizan los servicios del portal y qué comparten entre sí.</p></div>
   </div>
   <div class="arch">
     <div class="layer"><div class="eyebrow">Capa de presentación</div><div class="boxes"><div class="box core"><b>Portal unificado</b>Navegación, escritorio, buscador transversal, notificaciones y diseño común</div><div class="box"><b>Componentes compartidos</b>Cabecera, selector de entidad, tablas, gráficos y formularios reutilizables</div></div></div>
-    <div class="layer"><div class="eyebrow">Módulos funcionales</div><div class="boxes">
-      <div class="box new"><b>Cuestionarios</b>Editor, aplicador, versionado y cálculo del índice</div>
-      <div class="box new"><b>Cuadro de mando</b>Indicadores, filtros, exportación e informes</div>
-      <div class="box new"><b>Costo-beneficio</b>Sesiones por entidad, cálculo financiero e informe</div>
-      <div class="box"><b>Solución Automatizada</b>Aplicación existente adaptada a la sesión única</div>
-      <div class="box"><b>Catálogo de IA</b>Aplicación existente adaptada a la sesión única</div>
-      <div class="box"><b>Gestor de Proyectos</b>Aplicación existente adaptada a la sesión única</div>
-      <div class="box"><b>Gestor Documental</b>Aplicación existente adaptada a la sesión única</div></div></div>
+    <div class="layer"><div class="eyebrow">Servicios</div><div class="boxes">
+      <div class="box"><b>Cuestionarios</b>Editor, aplicador, versionado y cálculo del índice</div>
+      <div class="box"><b>Cuadro de mando</b>Indicadores, filtros, exportación e informes</div>
+      <div class="box"><b>Costo-beneficio</b>Sesiones por entidad, cálculo financiero e informe</div>
+      <div class="box"><b>Solución Automatizada</b>Recomendaciones a partir del diagnóstico</div>
+      <div class="box"><b>Catálogo de IA</b>Herramientas, casos de uso y proveedores</div>
+      <div class="box"><b>Gestor de Proyectos</b>Planeación y seguimiento de iniciativas</div>
+      <div class="box"><b>Gestor Documental</b>Archivos, versiones y evidencias</div></div></div>
     <div class="layer"><div class="eyebrow">Capa común de servicios</div><div class="boxes"><div class="box core"><b>Identidad y acceso</b>Cuenta única, inicio de sesión único, roles por aplicación, segundo factor y auditoría</div><div class="box core"><b>Registro maestro de entidades</b>Una sola ficha por entidad con NIT, nivel, región y responsables</div><div class="box"><b>Interfaz de programación común</b>Contratos de datos entre módulos, eventos y notificaciones</div><div class="box"><b>Almacenamiento de archivos</b>Servicio único usado por el Gestor Documental y el resto de módulos</div></div></div>
-    <div class="layer"><div class="eyebrow">Datos</div><div class="boxes"><div class="box"><b>Base de datos del portal</b>Usuarios, entidades, roles, cuestionarios, respuestas y evaluaciones</div><div class="box"><b>Bases de datos heredadas</b>Se mantienen durante la transición y se sincronizan por identificador de entidad</div><div class="box"><b>Almacén analítico</b>Vistas consolidadas para el cuadro de mando y los informes del Observatorio</div></div></div>
+    <div class="layer"><div class="eyebrow">Datos</div><div class="boxes"><div class="box"><b>Base de datos del portal</b>Usuarios, entidades, roles, cuestionarios, respuestas y evaluaciones</div><div class="box"><b>Bases de datos de los servicios</b>Cada servicio conserva sus datos y comparte el identificador de entidad</div><div class="box"><b>Almacén analítico</b>Vistas consolidadas para el cuadro de mando y los informes del Observatorio</div></div></div>
   </div>
   <div class="grid g3" style="margin-top:16px">
-    <div class="panel"><h3>Principio 1 · Integrar sin reescribir</h3><p class="small muted" style="margin-top:8px">Las cuatro aplicaciones existentes se adaptan para aceptar la sesión del portal y consumir el registro de entidades. No se migran de una vez ni se sustituyen.</p></div>
-    <div class="panel"><h3>Principio 2 · Una entidad, un identificador</h3><p class="small muted" style="margin-top:8px">El NIT actúa como llave común. Todo dato de cuestionarios, proyectos, documentos y evaluaciones cuelga de esa ficha, lo que hace posible el cuadro de mando.</p></div>
-    <div class="panel"><h3>Principio 3 · Los módulos se hablan por eventos</h3><p class="small muted" style="margin-top:8px">Cerrar un cuestionario dispara el recálculo del índice, la actualización del cuadro de mando, la generación del informe en el Documental y la recomendación automática.</p></div>
+    <div class="panel"><h3>Una entidad, un identificador</h3><p class="small muted" style="margin-top:8px">El NIT es la llave común. Cuestionarios, proyectos, documentos y evaluaciones se asocian a la misma ficha de entidad.</p></div>
+    <div class="panel"><h3>Los servicios se comunican por eventos</h3><p class="small muted" style="margin-top:8px">Cerrar un cuestionario actualiza el cuadro de mando, guarda el informe en el Gestor Documental y genera las recomendaciones.</p></div>
+    <div class="panel"><h3>El portal crece por módulos</h3><p class="small muted" style="margin-top:8px">Un módulo nuevo se registra desde Administración, declara sus roles y aparece en la navegación sin cambios en los demás servicios. <a href="#" data-go="modulos">Administrar módulos</a></p></div>
   </div>
 </section>
 
-<!-- HOJA DE RUTA -->
-<section class="view" data-view="ruta">
+
+<!-- MODULOS -->
+<section class="view" data-view="modulos">
   <div class="view-head">
-    <div><div class="eyebrow">Plataforma</div><h1>Hoja de ruta de implementación</h1><p>Secuencia propuesta en seis fases. La duración total estimada es de doce meses, con la cuenta única como primer entregable porque todo lo demás depende de ella.</p></div>
-    <div class="actions"><span class="chip info">Propuesta para discusión</span></div>
+    <div><div class="eyebrow">Administración</div><h1>Módulos del portal</h1><p>Active, desactive o registre módulos. Un módulo nuevo aparece en la navegación y en el escritorio de los usuarios con los roles que usted indique.</p></div>
+    <div class="actions"><button class="btn ghost" data-help-open="modulos" aria-label="Ayuda de este módulo">?</button></div>
   </div>
-  <div class="panel" style="margin-bottom:16px"><div class="panel-head"><h3>Cronograma general</h3><span class="small">Meses desde el inicio</span></div>
-    <div class="gantt">
-      <div></div><div class="head"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span></div>
-      <div>Fase 0 · Levantamiento y diseño</div><div class="bar"><i style="left:0;width:12.5%"></i></div>
-      <div>Fase 1 · Cuenta única y portal base</div><div class="bar"><i style="left:8.3%;width:25%"></i></div>
-      <div>Fase 2 · Adaptación de aplicaciones existentes</div><div class="bar"><i style="left:25%;width:33.3%"></i></div>
-      <div>Fase 3 · Cuestionarios</div><div class="bar"><i style="left:33.3%;width:25%"></i></div>
-      <div>Fase 4 · Cuadro de mando</div><div class="bar"><i style="left:50%;width:25%"></i></div>
-      <div>Fase 5 · Costo-beneficio</div><div class="bar"><i style="left:58.3%;width:25%"></i></div>
-      <div>Fase 6 · Estabilización y transferencia</div><div class="bar"><i style="left:83.3%;width:16.7%"></i></div>
-    </div></div>
-  <div class="panel">
-    <div class="phase"><div class="no">Fase 0<small>Semanas 1 a 6</small></div><div><b>Levantamiento y diseño de la integración</b><ul><li>Inventario técnico de las cuatro aplicaciones (tecnologías, bases de datos, esquemas de usuarios, volúmenes).</li><li>Depuración y cruce de las cuentas existentes para construir el registro maestro de personas y entidades.</li><li>Diseño detallado de la arquitectura, del modelo de roles y de los contratos de datos entre módulos.</li><li>Prototipo navegable validado con el equipo del Observatorio y con dos entidades piloto.</li></ul></div></div>
-    <div class="phase"><div class="no">Fase 1<small>Meses 2 a 4</small></div><div><b>Cuenta única y portal base</b><ul><li>Servicio de identidad con inicio de sesión único, segundo factor, recuperación de acceso y auditoría.</li><li>Escritorio del portal, navegación, selector de entidad y componentes compartidos.</li><li>Asistente de vinculación de cuentas heredadas y campaña de migración con las entidades.</li></ul></div></div>
-    <div class="phase"><div class="no">Fase 2<small>Meses 4 a 7</small></div><div><b>Adaptación de las aplicaciones existentes</b><ul><li>Solución Automatizada, Catálogo, Gestor de Proyectos y Gestor Documental aceptan la sesión del portal.</li><li>Sustitución de las tablas de usuarios locales por el registro maestro y homologación del identificador de entidad.</li><li>Apertura de los enlaces entre aplicaciones (recomendación a proyecto, proyecto a documento).</li></ul></div></div>
-    <div class="phase"><div class="no">Fase 3<small>Meses 5 a 7</small></div><div><b>Editor y aplicador de cuestionarios</b><ul><li>Editor con secciones, tipos de pregunta, pesos y versionado de instrumentos.</li><li>Aplicación por entidad con guardado automático, asignación, recordatorios y cierre.</li><li>Motor de cálculo del índice de madurez y generación automática del informe por entidad.</li></ul></div></div>
-    <div class="phase"><div class="no">Fase 4<small>Meses 7 a 9</small></div><div><b>Cuadro de mando</b><ul><li>Almacén analítico alimentado por cuestionarios, proyectos y evaluaciones.</li><li>Indicadores, filtros por región, nivel y periodo, ficha por entidad y exportaciones.</li><li>Informes institucionales generados desde el portal con la plantilla del proyecto.</li></ul></div></div>
-    <div class="phase"><div class="no">Fase 5<small>Meses 8 a 10</small></div><div><b>Herramienta de costo-beneficio</b><ul><li>Formulario guiado, sesiones por entidad, cálculo de indicadores financieros y comparación entre iniciativas.</li><li>Informe automático hacia el Gestor Documental y vínculo con el Gestor de Proyectos.</li></ul></div></div>
-    <div class="phase"><div class="no">Fase 6<small>Meses 11 y 12</small></div><div><b>Estabilización y transferencia</b><ul><li>Pruebas de carga y de seguridad, corrección de incidencias y apagado gradual de los accesos antiguos.</li><li>Manuales, capacitación a entidades y al equipo del Observatorio, y entrega de la documentación técnica.</li></ul></div></div>
+  <div class="grid g21">
+    <div class="panel"><div class="panel-head"><h3>Módulos registrados</h3><span class="small" id="modCount"></span></div><div class="tbl-wrap"><table id="modTable"><thead><tr><th>Módulo</th><th>Grupo</th><th>Tipo</th><th>Roles con acceso</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table></div></div>
+    <div class="stack">
+      <div class="panel"><div class="panel-head"><h3>Registrar módulo</h3></div>
+        <form class="mod-form" id="modForm">
+          <div><label for="mName">Nombre</label><input id="mName" placeholder="Por ejemplo, Mapa de casos de uso"></div>
+          <div><label for="mDesc">Descripción corta</label><input id="mDesc" placeholder="Qué permite hacer"></div>
+          <div class="grid g2"><div><label for="mGroup">Grupo de navegación</label><select id="mGroup"><option value="obs">Observatorio</option><option value="aco">Acompañamiento</option><option value="adm">Administración</option></select></div><div><label for="mType">Tipo</label><select id="mType"><option value="ext">Aplicación externa con sesión del portal</option><option value="int">Módulo interno</option></select></div></div>
+          <div><label for="mUrl">Dirección de la aplicación</label><input id="mUrl" placeholder="https://"></div>
+          <div><label>Roles con acceso</label><div class="row" style="gap:6px"><label class="chip neutral plain" style="cursor:pointer"><input type="checkbox" value="Funcionario" checked style="width:auto;margin:0 4px 0 0">Funcionario</label><label class="chip neutral plain" style="cursor:pointer"><input type="checkbox" value="Directivo" checked style="width:auto;margin:0 4px 0 0">Directivo</label><label class="chip neutral plain" style="cursor:pointer"><input type="checkbox" value="Analista" checked style="width:auto;margin:0 4px 0 0">Analista</label><label class="chip neutral plain" style="cursor:pointer"><input type="checkbox" value="Administrador" checked style="width:auto;margin:0 4px 0 0">Administrador</label></div></div>
+          <button class="btn primary" type="submit">Registrar y activar</button>
+        </form></div>
+      <div class="notice small">Un módulo registrado recibe la sesión del usuario, el identificador de la entidad activa y el rol vigente. Con eso puede leer y escribir en los servicios comunes sin volver a pedir credenciales.</div>
+    </div>
+  </div>
+</section>
+
+<!-- AYUDA -->
+<section class="view" data-view="ayuda">
+  <div class="view-head">
+    <div><div class="eyebrow">Soporte</div><h1>Centro de ayuda</h1><p>Guías paso a paso, recorridos guiados, preguntas frecuentes y soporte para todos los servicios del portal.</p></div>
+    <div class="actions"><button class="btn" data-tour="inicio">Recorrido general del portal</button><button class="btn primary" data-toast="Se abre el formulario de soporte. El equipo responde en un día hábil.">Contactar soporte</button></div>
+  </div>
+  <div class="bigsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="helpSearch" placeholder="Busque por tarea, por ejemplo: cerrar un cuestionario, vincular cuenta, exportar indicadores" aria-label="Buscar en la ayuda"></div>
+  <div class="results" id="helpResults"></div>
+  <div class="eyebrow" style="margin:22px 0 10px">Guías por servicio</div>
+  <div class="help-cats" id="helpCats"></div>
+  <div class="grid g21" style="margin-top:22px">
+    <div class="panel"><div class="panel-head"><h3>Recorridos guiados</h3><span class="small">Entre tres y cinco minutos cada uno</span></div>
+      <div class="card-list">
+        <div class="item"><div><b>Primeros pasos en el portal</b><span>Navegación, entidad activa, escritorio y dónde pedir ayuda</span></div><button class="btn sm" data-tour="inicio">Iniciar</button></div>
+        <div class="item"><div><b>Responder un cuestionario</b><span>Secciones, guardado automático, cierre y resultado</span></div><button class="btn sm" data-tour="cuestionarios">Iniciar</button></div>
+        <div class="item"><div><b>Evaluar una iniciativa con costo-beneficio</b><span>Datos de entrada, indicadores, guardado e informe</span></div><button class="btn sm" data-tour="costo">Iniciar</button></div>
+        <div class="item"><div><b>Leer el cuadro de mando</b><span>Filtros, indicadores, mapa de calor y expediente por entidad</span></div><button class="btn sm" data-tour="mando">Iniciar</button></div>
+      </div></div>
+    <div class="stack">
+      <div class="panel"><div class="panel-head"><h3>Atajos de teclado</h3></div>
+        <dl class="kv" style="grid-template-columns:90px 1fr"><dt><span class="kbd">F1</span></dt><dd>Abrir la ayuda del servicio en pantalla</dd><dt><span class="kbd">/</span></dt><dd>Ir al buscador</dd><dt><span class="kbd">g</span> <span class="kbd">i</span></dt><dd>Ir al inicio</dd><dt><span class="kbd">Esc</span></dt><dd>Cerrar paneles y recorridos</dd></dl></div>
+      <div class="panel"><div class="panel-head"><h3>Soporte</h3></div>
+        <p class="small muted">Mesa de ayuda del Observatorio, de lunes a viernes de 8:00 a 17:00.</p>
+        <dl class="kv" style="margin-top:10px"><dt>Correo</dt><dd>soporte.observatorio@unicartagena.edu.co</dd><dt>Tiempo de respuesta</dt><dd>Un día hábil</dd><dt>Estado del servicio</dt><dd><span class="chip ok">Todos los servicios operan</span></dd></dl></div>
+    </div>
   </div>
 </section>
 </template>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-label="Ayuda contextual" aria-hidden="true">
+  <div class="drawer-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><h3 id="drawerTitle">Ayuda</h3><button class="btn sm ghost" id="drawerClose" aria-label="Cerrar">Cerrar</button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-foot"><button class="btn sm" data-go="ayuda">Centro de ayuda</button><button class="btn sm" id="drawerTour">Recorrido guiado</button><span class="muted" style="margin-left:auto">Atajo <span class="kbd">F1</span></span></div>
+</aside>
+<div class="tour-bg" id="tour"><div class="tour-hole" id="tourHole"></div><div class="tour-card" id="tourCard"></div></div>
 
 <script>
 (function(){
@@ -723,9 +777,10 @@ function showTip(e,html){tip.innerHTML=html;tip.style.display='block';moveTip(e)
 function bindTips(root){$$('[data-tip]',root).forEach(el=>{el.addEventListener('mouseenter',e=>showTip(e,el.dataset.tip));el.addEventListener('mousemove',moveTip);el.addEventListener('mouseleave',hideTip);});}
 
 /* ---------- login ---------- */
-const roles={obs:{name:'Ana Núñez',role:'Analista del Observatorio',ini:'AN',mail:'anunez@unicartagena.edu.co'},ent:{name:'Julián Martínez',role:'Funcionario · Alcaldía de Cartagena',ini:'JM',mail:'jmartinez@cartagena.gov.co'},adm:{name:'Carolina Ruiz',role:'Administradora de la plataforma',ini:'CR',mail:'cruiz@unicartagena.edu.co'}};
+const roles={obs:{name:'Ana Núñez',role:'Analista del Observatorio',ini:'AN',mail:'anunez@unicartagena.edu.co',r:'Analista'},ent:{name:'Julián Martínez',role:'Funcionario · Alcaldía de Cartagena',ini:'JM',mail:'jmartinez@cartagena.gov.co',r:'Funcionario'},adm:{name:'Carolina Ruiz',role:'Administradora de la plataforma',ini:'CR',mail:'cruiz@unicartagena.edu.co',r:'Administrador'}};
+let currentRole='Analista';
 function enter(){
-  const r=roles[$('#rol').value]||roles.obs;
+  const r=roles[$('#rol').value]||roles.obs;currentRole=r.r;
   $('#userName').textContent=r.name;$('#userRole').textContent=r.role;$('#avatar').textContent=r.ini;
   $('#login').hidden=true;$('#app').hidden=false;
   if(!$('#views').children.length){$('#views').appendChild($('#tpl-views').content.cloneNode(true));init();}
@@ -734,17 +789,130 @@ function enter(){
   go(location.hash.replace('#','')||'inicio');
 }
 $('#loginForm').addEventListener('submit',e=>{e.preventDefault();enter();});
-$$('[data-sso]').forEach(b=>b.addEventListener('click',()=>{toast('Redirección simulada a '+b.dataset.sso+'. En producción se delega la autenticación al proveedor.');setTimeout(enter,600);}));
+$$('[data-sso]').forEach(b=>b.addEventListener('click',()=>{toast('Redirigiendo a '+b.dataset.sso+' para validar su identidad.');setTimeout(enter,600);}));
 
 /* background network on login */
 (function(){const c=$('#bgnet');if(!c)return;const x=c.getContext('2d');const pts=[];for(let i=0;i<34;i++)pts.push({x:Math.random()*520,y:Math.random()*420});x.strokeStyle='rgba(255,255,255,.6)';x.lineWidth=1;pts.forEach((p,i)=>pts.slice(i+1).forEach(q=>{const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<110){x.globalAlpha=1-d/110;x.beginPath();x.moveTo(p.x,p.y);x.lineTo(q.x,q.y);x.stroke();}}));x.globalAlpha=1;x.fillStyle='#fff';pts.forEach(p=>{x.beginPath();x.arc(p.x,p.y,2.2,0,7);x.fill();});})();
 
+/* ---------- registro de módulos ---------- */
+const ICONS={home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',bars:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',list:'<path d="M9 5h6M9 12h6M9 19h6M5 5h.01M5 12h.01M5 19h.01"/>',money:'<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',star:'<path d="M12 3l2.5 5.5L20 10l-4.5 4 1.2 6L12 17l-4.7 3 1.2-6L4 10l5.5-1.5z"/>',grid:'<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>',board:'<path d="M4 5h16v14H4zM4 10h16M9 10v9"/>',folder:'<path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',arch:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM9 14h6v6H9zM7 10v2h10v-2M12 12v2"/>',puzzle:'<path d="M10 3h4v3a2 2 0 1 0 4 0h3v4h-3a2 2 0 1 0 0 4h3v4h-4v-3a2 2 0 1 0-4 0v3H6v-4H3v-4h3a2 2 0 1 0 0-4H3V6h3a2 2 0 1 0 4 0z"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>'};
+const ico=k=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICONS[k]||ICONS.ext}</svg>`;
+const GROUPS={top:'',obs:'Observatorio',aco:'Acompañamiento',adm:'Administración',me:'Mi cuenta y soporte'};
+const ALL=['Funcionario','Directivo','Analista','Administrador'];
+let modules=[
+ {id:'inicio',name:'Inicio',group:'top',icon:'home',type:'int',roles:ALL,on:true,core:true,launcher:false},
+ {id:'mando',name:'Cuadro de mando',desc:'Indicadores consolidados de los diagnósticos aplicados a las entidades.',group:'obs',icon:'bars',type:'int',roles:ALL,on:true,core:true,foot:['Actualizado hoy','ok','En línea']},
+ {id:'cuestionarios',name:'Cuestionarios',desc:'Editor y aplicación de instrumentos de vigilancia tecnológica.',group:'obs',icon:'list',type:'int',roles:ALL,on:true,core:true,foot:['3 instrumentos activos','warn','1 pendiente']},
+ {id:'costo',name:'Costo-beneficio',desc:'Evaluación financiera guiada de iniciativas de IA por entidad.',group:'obs',icon:'money',type:'int',roles:ALL,on:true,core:true,foot:['Sesión propia por entidad','ok','En línea']},
+ {id:'solucion',name:'Solución Automatizada',desc:'Recomendación de soluciones de IA a partir del diagnóstico de la entidad.',group:'aco',icon:'star',type:'int',roles:ALL,on:true,core:true,foot:['4 recomendaciones sin revisar','warn','Pendiente']},
+ {id:'catalogo',name:'Catálogo de IA',desc:'Herramientas, casos de uso y proveedores revisados por el Observatorio.',group:'aco',icon:'grid',type:'int',roles:ALL,on:true,core:true,foot:['312 fichas','ok','En línea']},
+ {id:'proyectos',name:'Gestor de Proyectos',desc:'Planeación y seguimiento de las iniciativas de IA de cada entidad.',group:'aco',icon:'board',type:'int',roles:ALL,on:true,core:true,foot:['7 proyectos','crit','Evidencias vencidas']},
+ {id:'documental',name:'Gestor Documental',desc:'Entregables, evidencias e informes con control de versiones.',group:'aco',icon:'folder',type:'int',roles:ALL,on:true,core:true,foot:['Actualizado hoy','ok','En línea']},
+ {id:'modulos',name:'Módulos',desc:'Registro y activación de los módulos del portal.',group:'adm',icon:'puzzle',type:'int',roles:['Administrador'],on:true,core:true,launcher:false},
+ {id:'arquitectura',name:'Arquitectura',group:'adm',icon:'arch',type:'int',roles:['Administrador','Analista'],on:true,core:true,launcher:false},
+ {id:'cuenta',name:'Cuenta y permisos',desc:'Perfil, entidades, permisos por servicio y sesiones.',group:'me',icon:'user',type:'int',roles:ALL,on:true,core:true,foot:['4 cuentas vinculadas','ok','Verificada']},
+ {id:'ayuda',name:'Centro de ayuda',desc:'Guías, recorridos guiados, preguntas frecuentes y soporte.',group:'me',icon:'help',type:'int',roles:ALL,on:true,core:true,foot:['Soporte en un día hábil','ok','Disponible']}
+];
+const titles=()=>Object.fromEntries(modules.map(m=>[m.id,m.name]));
+function renderNav(){
+  const nav=$('#nav');nav.innerHTML='';
+  Object.keys(GROUPS).forEach(g=>{const ms=modules.filter(m=>m.group===g&&m.on&&m.roles.includes(currentRole));if(!ms.length)return;const d=document.createElement('div');d.className='nav-group';d.innerHTML=(GROUPS[g]?`<div class="eyebrow">${GROUPS[g]}</div>`:'')+ms.map(m=>`<a href="#${m.id}" data-view="${m.id}">${ico(m.icon)}${m.name}${m.type==='ext'?'<span class="pill">Externo</span>':''}</a>`).join('');nav.appendChild(d);});
+  $$('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();go(a.dataset.view);}));
+}
+function renderLauncher(){
+  const L=$('#launcher');if(!L)return;
+  L.innerHTML=modules.filter(m=>m.on&&m.launcher!==false&&m.roles.includes(currentRole)).map(m=>`<button class="launch" data-go="${m.id}"><div class="ic">${ico(m.icon)}</div><b>${m.name}</b><span>${m.desc||''}</span><div class="foot"><span>${m.foot?m.foot[0]:(m.type==='ext'?'Aplicación externa':'')}</span>${m.foot?`<span class="chip ${m.foot[1]} plain">${m.foot[2]}</span>`:'<span class="chip info plain">Activo</span>'}</div></button>`).join('');
+}
+function ensureExtView(m){
+  if($(`.view[data-view="${m.id}"]`))return;
+  const sec=document.createElement('section');sec.className='view';sec.dataset.view=m.id;
+  sec.innerHTML=`<div class="view-head"><div><div class="eyebrow">${GROUPS[m.group]||'Servicio'}</div><h1>${m.name}</h1><p>${m.desc||''}</p></div><div class="actions"><button class="btn" data-toast="Se abre ${m.name} en una pestaña nueva con su sesión del portal.">Abrir en pestaña nueva</button><button class="btn ghost" data-help-open="${m.id}" aria-label="Ayuda de este módulo">?</button></div></div>
+  <div class="panel" style="min-height:360px;display:grid;place-items:center;text-align:center"><div style="max-width:46ch"><div class="ic" style="width:44px;height:44px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;margin:0 auto 12px">${ico(m.icon)}</div><h3>${m.name}</h3><p class="small muted" style="margin-top:6px">La aplicación se muestra aquí integrada con su sesión, la entidad activa y su rol. Dirección registrada. <span class="mono">${m.url||'sin dirección'}</span></p></div></div>`;
+  $('#views').appendChild(sec);
+}
+function renderModules(){
+  const tb=$('#modTable tbody');if(!tb)return;$('#modCount').textContent=modules.filter(m=>m.on).length+' activos de '+modules.length;
+  tb.innerHTML=modules.filter(m=>m.group!=='top').map(m=>`<tr><td><b>${m.name}</b>${m.desc?`<div class="small muted">${m.desc}</div>`:''}</td><td>${GROUPS[m.group]}</td><td>${m.type==='ext'?'Externo':'Interno'}</td><td class="small">${m.roles.length===4?'Todos':m.roles.join(', ')}</td><td><span class="chip ${m.on?'ok':'neutral'}">${m.on?'Activo':'Inactivo'}</span></td><td><div class="row" style="justify-content:flex-end"><button class="switch ${m.on?'on':''}" data-mod-toggle="${m.id}" aria-label="Activar o desactivar" ${m.core&&['inicio','modulos','cuenta','ayuda'].includes(m.id)?'disabled':''}></button>${m.core?'':`<button class="btn sm ghost" data-mod-del="${m.id}">Quitar</button>`}</div></td></tr>`).join('');
+  $$('[data-mod-toggle]',tb).forEach(b=>b.addEventListener('click',()=>{const m=modules.find(x=>x.id===b.dataset.modToggle);m.on=!m.on;refreshModules();toast(m.name+(m.on?' activado.':' desactivado. Ya no aparece en la navegación.'));}));
+  $$('[data-mod-del]',tb).forEach(b=>b.addEventListener('click',()=>{const i=modules.findIndex(x=>x.id===b.dataset.modDel);const n=modules[i].name;modules.splice(i,1);refreshModules();toast(n+' retirado del portal.');}));
+}
+function refreshModules(){renderNav();renderLauncher();renderModules();renderHelpCats();const cur=location.hash.replace('#','');if(cur&&!modules.some(m=>m.id===cur&&m.on))go('inicio');else $$('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===cur));}
+function bindModForm(){
+  $('#modForm').addEventListener('submit',e=>{e.preventDefault();const name=$('#mName').value.trim();if(!name){toast('Indique el nombre del módulo.');return;}
+    const id='mod-'+name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now().toString(36).slice(-3);
+    const roles=$$('#modForm input[type=checkbox]:checked').map(c=>c.value);
+    const m={id,name,desc:$('#mDesc').value.trim(),group:$('#mGroup').value,type:$('#mType').value,url:$('#mUrl').value.trim(),icon:'ext',roles:roles.length?roles:ALL,on:true,core:false};
+    modules.push(m);ensureExtView(m);HELP[id]={title:name,summary:m.desc||'Módulo registrado por la administración del portal.',steps:['Abra el módulo desde la navegación o desde el escritorio.','Trabaje con la entidad activa seleccionada en la barra superior.','Use el botón de ayuda del módulo o escriba a soporte si algo no funciona.'],faq:[['Quién puede ver este módulo','Los roles indicados al registrarlo. La administración puede cambiarlos en cualquier momento.']]};
+    refreshModules();$('#modForm').reset();toast(name+' quedó registrado y visible en la navegación.');go(id);});
+}
+
+/* ---------- ayuda ---------- */
+const HELP={
+ inicio:{title:'Inicio',summary:'El escritorio reúne los indicadores de la entidad seleccionada, el acceso a todos los servicios, la actividad reciente y los pendientes.',steps:['Elija la entidad con la que va a trabajar en el selector de la barra superior. Todos los servicios se filtran por esa entidad.','Revise los pendientes de la columna derecha. Cada uno abre el servicio donde se resuelve.','Abra un servicio desde las tarjetas o desde la navegación de la izquierda.','Pulse Ayuda, o la tecla F1, en cualquier pantalla para ver la guía de ese servicio.'],faq:[['Por qué no veo algún servicio','La navegación muestra los servicios activos para su rol. Si necesita acceso a otro, solicítelo a la administración de su entidad.'],['Puedo trabajar con varias entidades','Sí. Si su cuenta está vinculada a más de una entidad, aparecen en el selector de la barra superior.'],['Cómo cambio mi contraseña o mi segundo factor','En Cuenta y permisos, dentro del grupo Mi cuenta y soporte.']]},
+ mando:{title:'Cuadro de mando',summary:'Presenta los resultados consolidados de los diagnósticos. Cada indicador se calcula con los cuestionarios cerrados del corte seleccionado.',steps:['Use los filtros de región, nivel y corte para acotar la muestra. Los indicadores y las gráficas se recalculan al instante.','Cambie entre índice de madurez y avance del diagnóstico con el selector de la derecha.','Pase el cursor sobre una barra, un punto o una celda del mapa de calor para ver el valor exacto.','Haga clic en una entidad de la tabla para abrir su expediente completo.','Exporte el consolidado a Excel o genere el informe institucional con los botones superiores.'],faq:[['Con qué frecuencia se actualiza','Cada vez que una entidad cierra un cuestionario. La fecha de la última actualización aparece en la tarjeta del servicio.'],['Qué significa cada nivel de madurez','Inicial (1,0 a 1,9), En desarrollo (2,0 a 2,9), Definido (3,0 a 3,9) y Avanzado (4,0 a 5,0), según el índice ponderado del instrumento.'],['Puedo ver los datos de otra entidad','Los funcionarios de entidad ven su propia entidad y los agregados nacionales. El equipo del Observatorio ve todas.']]},
+ cuestionarios:{title:'Cuestionarios',summary:'Aquí se construyen los instrumentos de vigilancia tecnológica y aquí los responden las entidades. El índice de madurez se calcula con los pesos declarados en cada pregunta.',steps:['Si va a responder, abra la pestaña Aplicación. El avance se guarda con cada respuesta y puede continuar en otro momento.','Complete las secciones en orden. Las preguntas con escala usan cinco niveles, de Inexistente a Optimizado.','Al terminar la última sección, el responsable de la entidad cierra el cuestionario. Después del cierre no se editan respuestas.','Si va a diseñar un instrumento, use el Editor. Agregue secciones, preguntas, tipo y peso. Publicar crea una versión nueva.','Consulte Resultados para ver el puntaje por dimensión frente al promedio nacional.'],faq:[['Puedo corregir una respuesta después de cerrar','No. Solicite la reapertura a la mesa de ayuda indicando la entidad y la sección.'],['Qué pasa si cambio el peso de una pregunta','Se crea una versión nueva del instrumento. Las respuestas ya cerradas conservan la versión con la que se calcularon.'],['Puedo delegar secciones a otras dependencias','Sí. Desde la vista de aplicación, el responsable asigna cada sección a otro usuario de la misma entidad.']]},
+ costo:{title:'Costo-beneficio',summary:'Evalúa la viabilidad financiera de una iniciativa de IA con valor presente neto, relación beneficio costo, tasa interna de retorno y periodo de recuperación.',steps:['Nombre la iniciativa y defina el horizonte en años y la tasa de descuento anual.','Registre la inversión inicial, la operación anual y la capacitación del primer año, en millones de pesos.','Estime los beneficios. Las horas liberadas se multiplican por el costo hora. Agregue ahorros por errores y otros beneficios cuantificados.','Lea los indicadores. Un valor presente neto positivo y una relación beneficio costo mayor que 1 indican viabilidad.','Guarde la evaluación. El informe queda en el Gestor Documental y puede convertirse en proyecto.'],faq:[['Qué tasa de descuento debo usar','Use la tasa social de descuento vigente del Departamento Nacional de Planeación, salvo que su entidad tenga una política propia.'],['Los valores son nominales o constantes','Ingrese valores constantes del año base. El crecimiento anual de beneficios aplica sobre esa base.'],['Quién ve mis evaluaciones','Los usuarios de su entidad. El Observatorio ve agregados nacionales sin el detalle por entidad.']]},
+ solucion:{title:'Solución Automatizada',summary:'Genera recomendaciones de soluciones de IA ordenadas por su ajuste a las brechas del diagnóstico más reciente de la entidad.',steps:['Verifique la entrada del diagnóstico. Si hay un cuestionario más reciente, pulse Recalcular recomendaciones.','Revise cada recomendación. El porcentaje de ajuste indica qué tanto responde a las brechas detectadas.','Abra la ficha en el Catálogo para conocer la herramienta o el caso de uso.','Cree un proyecto desde la recomendación o revise la evaluación de costo-beneficio asociada.'],faq:[['Por qué no hay recomendaciones','La entidad no tiene un cuestionario cerrado. Complete el diagnóstico en Cuestionarios.'],['Puedo descartar una recomendación','Sí. Marque Descartar en la ficha e indique el motivo. El Observatorio usa esa información para mejorar el modelo.']]},
+ catalogo:{title:'Catálogo de IA',summary:'Inventario revisado de herramientas, casos de uso, proveedores y marcos normativos, con los proyectos que los utilizan.',steps:['Busque por nombre o filtre por categoría y tipo.','Abra la ficha para ver la descripción, la evaluación del Observatorio y las entidades que la usan.','Proponga una herramienta o caso de uso nuevo. Pasa a revisión editorial antes de publicarse.'],faq:[['Qué significa el estado Validada','El Observatorio revisó la ficha y confirmó su información con al menos una entidad usuaria.'],['Cuánto tarda la revisión de una propuesta','Hasta diez días hábiles. Recibirá una notificación con el resultado.']]},
+ proyectos:{title:'Gestor de Proyectos',summary:'Planeación y seguimiento de las iniciativas de IA de la entidad, desde la formulación hasta el cierre.',steps:['Cree el proyecto desde cero, desde una recomendación o desde una evaluación de costo-beneficio.','Mueva la tarjeta entre columnas a medida que avanza. Cada cambio queda registrado.','Cargue las evidencias solicitadas. Se guardan en el Gestor Documental vinculadas al proyecto.','Cierre el proyecto con el acta y el beneficio verificado.'],faq:[['Qué es una evidencia vencida','Un documento que el Observatorio solicitó y cuyo plazo pasó. Aparece en rojo en la tarjeta y en los pendientes del inicio.'],['Puedo ver los proyectos de otras entidades','Solo los publicados como caso de uso en el Catálogo.']]},
+ documental:{title:'Gestor Documental',summary:'Repositorio de entregables, evidencias e informes con control de versiones y trazabilidad de origen.',steps:['Navegue por carpetas o busque por nombre, origen o fecha.','Abra un documento para ver sus versiones y quién las cargó.','Cargue documentos en la carpeta que corresponda. Los informes de cuestionarios y evaluaciones se guardan solos.'],faq:[['Qué formatos se aceptan','PDF, Word, Excel, imágenes y comprimidos, hasta 50 MB por archivo.'],['Cómo comparto un documento con otra entidad','Use Compartir en la ficha del documento e indique la entidad. El Observatorio recibe copia de la autorización.']]},
+ cuenta:{title:'Cuenta y permisos',summary:'Sus datos, las entidades a las que pertenece, los permisos por servicio y las sesiones abiertas.',steps:['Para vincular una cuenta anterior, pulse Vincular junto al servicio e inicie sesión una vez con las credenciales antiguas. No se le volverán a pedir.','Revise la matriz de permisos. Si necesita un permiso adicional, solicítelo al directivo de su entidad.','Active el segundo factor con una aplicación de autenticación. Es obligatorio para directivos y administradores.','Cierre las sesiones que no reconozca desde la lista de sesiones activas.'],faq:[['Olvidé mi contraseña','Use Recuperar acceso en la pantalla de ingreso. Recibirá un enlace en su correo institucional.'],['Cambié de entidad','Solicite al administrador de la nueva entidad que lo vincule. Su historial en la entidad anterior se conserva para ella.'],['Puedo tener dos cuentas','No. Una persona tiene una sola cuenta, vinculada a las entidades que corresponda.']]},
+ modulos:{title:'Módulos',summary:'La administración registra, activa y desactiva los módulos del portal. Un módulo registrado aparece en la navegación de los roles indicados.',steps:['Complete nombre, descripción, grupo de navegación y tipo. Un módulo externo es una aplicación que recibe la sesión del portal.','Indique la dirección de la aplicación y los roles con acceso.','Pulse Registrar y activar. El módulo aparece de inmediato en la navegación y en el escritorio.','Desactive un módulo para ocultarlo sin perder su configuración. Quitar lo elimina del registro.'],faq:[['Qué necesita una aplicación para integrarse','Aceptar la sesión del portal mediante el proveedor de identidad y leer el identificador de la entidad activa. La guía técnica está en la documentación para desarrolladores.'],['Puedo ordenar los módulos','Sí. Arrastre las filas de la tabla para cambiar el orden en la navegación.']]},
+ arquitectura:{title:'Arquitectura',summary:'Descripción de las capas del portal y de los servicios comunes que comparten los módulos.',steps:['Revise las capas de arriba hacia abajo. La capa común de servicios es la que usan todos los módulos.','Consulte Módulos para registrar un servicio nuevo sobre esa capa.'],faq:[['Dónde está la documentación técnica','En la carpeta Documentación para desarrolladores del Gestor Documental.']]},
+ ayuda:{title:'Centro de ayuda',summary:'Busque por tarea, siga un recorrido guiado o escriba a la mesa de ayuda.',steps:['Escriba lo que quiere hacer en el buscador. Los resultados abren la guía del servicio correspondiente.','Inicie un recorrido guiado para ver el portal paso a paso.','Si no encuentra respuesta, contacte a soporte. Responde en un día hábil.'],faq:[['En qué horario atiende soporte','Lunes a viernes de 8:00 a 17:00, hora de Colombia.']]}
+};
+let drawerCtx='inicio';
+function currentView(){const v=$('.view.active');return v?v.dataset.view:'inicio';}
+function openHelp(id){
+  id=(id&&HELP[id])?id:currentView();if(!HELP[id])id='inicio';drawerCtx=id;const h=HELP[id];
+  $('#drawerTitle').textContent='Ayuda · '+h.title;
+  $('#drawerBody').innerHTML=`<p style="font-size:13.5px">${h.summary}</p>
+    <div><div class="eyebrow" style="margin-bottom:8px">Paso a paso</div><ol class="help-steps">${h.steps.map(t=>`<li>${t}</li>`).join('')}</ol></div>
+    <div class="faq"><div class="eyebrow" style="margin-bottom:8px">Preguntas frecuentes</div>${h.faq.map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}</div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Buscar en toda la ayuda</div><input id="drawerSearch" placeholder="Escriba una tarea o una palabra"><div class="results" id="drawerResults"></div></div>
+    <div class="small muted">Esta guía no resolvió su duda. <a href="#" data-toast="Se abre el formulario de soporte con el servicio y la pantalla actual ya indicados.">Escribir a soporte desde esta pantalla</a></div>`;
+  $('#drawerTour').hidden=!TOURS[id];
+  $('#drawer').classList.add('on');$('#drawerBg').classList.add('on');$('#drawer').setAttribute('aria-hidden','false');
+  $('#drawerSearch').addEventListener('input',e=>renderSearch(e.target.value,$('#drawerResults')));
+}
+function closeHelp(){$('#drawer').classList.remove('on');$('#drawerBg').classList.remove('on');$('#drawer').setAttribute('aria-hidden','true');}
+function searchHelp(q){q=q.trim().toLowerCase();if(q.length<2)return[];const out=[];const norm=t=>t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');const nq=norm(q);
+  for(const id in HELP){const h=HELP[id];if(!modules.some(m=>m.id===id&&m.on))continue;
+    if(norm(h.title+' '+h.summary).includes(nq))out.push({id,kind:'Guía',title:h.title,text:h.summary});
+    h.steps.forEach(st=>{if(norm(st).includes(nq))out.push({id,kind:'Paso · '+h.title,title:st,text:''});});
+    h.faq.forEach(([fq,a])=>{if(norm(fq+' '+a).includes(nq))out.push({id,kind:'Pregunta · '+h.title,title:fq,text:a});});}
+  return out.slice(0,8);}
+function renderSearch(q,box){const r=searchHelp(q);box.innerHTML=q.trim().length<2?'':(r.length?r.map(x=>`<div class="help-hit" data-help-open="${x.id}"><div class="eyebrow">${x.kind}</div><b>${x.title}</b>${x.text?`<span>${x.text}</span>`:''}</div>`).join(''):'<div class="small muted">Sin resultados. Pruebe con otra palabra o escriba a soporte.</div>');}
+function renderHelpCats(){const c=$('#helpCats');if(!c)return;c.innerHTML=modules.filter(m=>m.on&&HELP[m.id]&&m.id!=='ayuda'&&m.roles.includes(currentRole)).map(m=>`<button class="help-cat" data-help-open="${m.id}"><div class="row" style="gap:8px;color:var(--brand)">${ico(m.icon)}<b>${m.name}</b></div><span>${HELP[m.id].summary}</span><span class="n">${HELP[m.id].steps.length} pasos · ${HELP[m.id].faq.length} preguntas</span></button>`).join('');}
+
+/* ---------- recorridos guiados ---------- */
+const TOURS={
+ inicio:[{sel:'#nav',t:'Navegación',p:'Todos los servicios del portal están aquí, agrupados por propósito. Los que ve dependen de su rol.'},{sel:'#entitySel',t:'Entidad activa',p:'Elija la entidad con la que va a trabajar. Cuadro de mando, cuestionarios, proyectos y documentos se filtran por ella.'},{sel:'#launcher',t:'Escritorio',p:'Cada tarjeta abre un servicio y muestra su estado. Los pendientes están a la derecha.',view:'inicio'},{sel:'#helpBtn',t:'Ayuda siempre a la mano',p:'Este botón, o la tecla F1, abre la guía del servicio que tenga en pantalla, con pasos y preguntas frecuentes.'},{sel:'.sidebar-foot',t:'Centro de ayuda',p:'Desde aquí llega a todas las guías, los recorridos y la mesa de soporte.'}],
+ cuestionarios:[{sel:'#qtabs',t:'Pestañas del servicio',p:'Instrumentos lista lo disponible. Editor construye. Aplicación responde. Resultados muestra el puntaje.',view:'cuestionarios',tab:'q-apl'},{sel:'#aplBar',t:'Avance guardado',p:'Cada respuesta se guarda al instante. Puede salir y continuar después.'},{sel:'#aplList',t:'Preguntas de la sección',p:'Responda en orden. Las escalas van de Inexistente a Optimizado.'},{sel:'#q-apl .btn.primary',t:'Guardar y continuar',p:'Pasa a la siguiente sección. En la última, el responsable cierra el cuestionario y se calcula el índice.'}],
+ costo:[{sel:'#cbName',t:'Datos de la iniciativa',p:'Nombre, horizonte en años y tasa de descuento.',view:'costo'},{sel:'#cbInv',t:'Costos',p:'Inversión inicial, operación anual y capacitación, en millones de pesos.'},{sel:'#cbHours',t:'Beneficios',p:'Horas liberadas por costo hora, ahorros por errores y otros beneficios cuantificados.'},{sel:'#cbResults',t:'Indicadores',p:'Se recalculan con cada dato. Verde indica viabilidad. Pase el cursor por la gráfica para ver el flujo acumulado por año.'},{sel:'#cbSave',t:'Guardar',p:'La evaluación queda en la sesión de la entidad y el informe en el Gestor Documental.'}],
+ mando:[{sel:'.view[data-view=mando] .filters',t:'Filtros',p:'Región, nivel, corte y tipo de indicador. Todo se recalcula al cambiar un filtro.',view:'mando'},{sel:'#chartRegion',t:'Gráficas interactivas',p:'Pase el cursor sobre una barra o un punto para ver el valor exacto y la muestra.'},{sel:'#heat',t:'Mapa de calor',p:'Puntaje por dimensión y sector. Cuanto más oscuro, mayor madurez.'},{sel:'#tblEnt',t:'Entidades',p:'Haga clic en una fila para abrir el expediente completo de la entidad.'}]
+};
+let tour=null;
+function startTour(id){const steps=TOURS[id];if(!steps)return;closeHelp();tour={steps,i:0};showStep();}
+function showStep(){
+  const st=tour.steps[tour.i];if(st.view)go(st.view);if(st.tab){const b=$(`#qtabs button[data-tab="${st.tab}"]`);if(b)b.click();}
+  const el=$(st.sel);const bg=$('#tour');bg.classList.add('on');
+  requestAnimationFrame(()=>{if(el)el.scrollIntoView({block:'center',behavior:'instant'});
+    const r=el?el.getBoundingClientRect():{left:innerWidth/2-100,top:innerHeight/2-40,width:200,height:80};const pad=8;
+    Object.assign($('#tourHole').style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});
+    const card=$('#tourCard');card.innerHTML=`<div class="eyebrow">Paso ${tour.i+1} de ${tour.steps.length}</div><h3>${st.t}</h3><p>${st.p}</p><div class="row"><button class="btn sm ghost" id="tourEnd">Salir</button><div class="row" style="gap:6px">${tour.i?'<button class="btn sm" id="tourPrev">Anterior</button>':''}<button class="btn sm primary" id="tourNext">${tour.i===tour.steps.length-1?'Terminar':'Siguiente'}</button></div></div>`;
+    let cx=r.left+r.width+16,cy=r.top;if(cx+330>innerWidth)cx=Math.max(12,r.left-336);if(cx<0||r.width>innerWidth*.6){cx=Math.max(12,Math.min(innerWidth-332,r.left));cy=r.top+r.height+16;}if(cy+card.offsetHeight>innerHeight-12)cy=Math.max(12,innerHeight-card.offsetHeight-12);
+    card.style.left=cx+'px';card.style.top=cy+'px';
+    $('#tourEnd').onclick=endTour;$('#tourNext').onclick=()=>{if(tour.i===tour.steps.length-1){endTour();toast('Recorrido terminado. Puede repetirlo desde el Centro de ayuda.');}else{tour.i++;showStep();}};const pv=$('#tourPrev');if(pv)pv.onclick=()=>{tour.i--;showStep();};});
+}
+function endTour(){tour=null;$('#tour').classList.remove('on');}
+
 /* ---------- router ---------- */
-const titles={inicio:'Inicio',mando:'Cuadro de mando',cuestionarios:'Cuestionarios',costo:'Costo-beneficio',solucion:'Solución Automatizada',catalogo:'Catálogo de IA',proyectos:'Gestor de Proyectos',documental:'Gestor Documental',cuenta:'Cuenta única y roles',arquitectura:'Arquitectura',ruta:'Hoja de ruta'};
-function go(v){if(!titles[v])v='inicio';$$('.view').forEach(s=>s.classList.toggle('active',s.dataset.view===v));$$('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));$('#crumb').textContent=titles[v];history.replaceState(null,'','#'+v);window.scrollTo({top:0});}
-$$('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();go(a.dataset.view);}));
+function go(v){const T=titles();const m=modules.find(x=>x.id===v);if(!m||!m.on||!m.roles.includes(currentRole))v='inicio';$$('.view').forEach(s=>s.classList.toggle('active',s.dataset.view===v));$$('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));$('#crumb').textContent=T[v];history.replaceState(null,'','#'+v);window.scrollTo({top:0});}
 document.addEventListener('click',e=>{
-  const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return;}
+  const ho=e.target.closest('[data-help-open]');if(ho){e.preventDefault();openHelp(ho.dataset.helpOpen);return;}
+  const tr=e.target.closest('[data-tour]');if(tr){e.preventDefault();startTour(tr.dataset.tour);return;}
+  const g=e.target.closest('[data-go]');if(g){e.preventDefault();closeHelp();go(g.dataset.go);return;}
   const t=e.target.closest('[data-toast]');if(t){toast(t.dataset.toast);return;}
   const tb=e.target.closest('[data-tab]');if(tb){const id=tb.dataset.tab;const pane=$('#'+id);if(!pane)return;const wrap=pane.parentElement;$$('.tabpane',wrap).forEach(p=>p.classList.toggle('on',p.id===id));$$('#qtabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===id));if(!pane.closest('.view').classList.contains('active'))go(pane.closest('.view').dataset.view);}
 });
@@ -820,7 +988,7 @@ function renderMando(){
   const tb=$('#tblEnt tbody');tb.innerHTML='';
   entidades.filter(e=>(!reg||e[2]===reg)&&(!niv||e[1]===niv)).forEach(e=>{const tr=document.createElement('tr');const chip=e[3]==='Completo'?'ok':e[3]==='En curso'?'warn':'neutral';
     tr.innerHTML=`<td><b>${e[0]}</b></td><td>${e[1]}</td><td>${e[2]}</td><td><span class="chip ${chip}">${e[3]}</span></td><td>${e[4]==null?'<span class="muted">—</span>':`<div class="row"><div class="meter" style="width:70px"><i style="width:${e[4]/5*100}%"></i></div><span class="num">${fmt(e[4],1)}</span></div>`}</td><td class="num">${e[5]}</td><td class="small">${e[6]}</td>`;
-    tr.style.cursor='pointer';tr.addEventListener('click',()=>toast('Expediente de '+e[0]+' (simulado). Reuniría diagnóstico, proyectos, documentos y evaluaciones.'));tb.appendChild(tr);});
+    tr.style.cursor='pointer';tr.addEventListener('click',()=>toast('Abriendo el expediente de '+e[0]+' con su diagnóstico, proyectos, documentos y evaluaciones.'));tb.appendChild(tr);});
   if(!tb.children.length)tb.innerHTML='<tr><td colspan="7" class="muted">Ninguna entidad de la muestra cumple el filtro.</td></tr>';
 }
 
@@ -845,7 +1013,7 @@ function qBody(q,interactive){
   return `<textarea rows="2" placeholder="Respuesta libre" ${interactive?'':'disabled'}></textarea>`;
 }
 function renderEditor(){$('#qCount').textContent=questions.length+' preguntas · peso total '+fmt(questions.reduce((a,q)=>a+q.w,0),1);
-  $('#qList').innerHTML=questions.map((q,i)=>`<div class="q"><div class="qh"><div><div class="qtype">${typeName[q.type]} · peso ${fmt(q.w,1)}</div><b>3.${i+1} ${q.t}</b></div><div class="row"><button class="btn sm ghost" data-toast="Edición de pregunta simulada.">Editar</button><button class="btn sm ghost" data-del="${i}">Quitar</button></div></div>${qBody(q,false)}</div>`).join('');
+  $('#qList').innerHTML=questions.map((q,i)=>`<div class="q"><div class="qh"><div><div class="qtype">${typeName[q.type]} · peso ${fmt(q.w,1)}</div><b>3.${i+1} ${q.t}</b></div><div class="row"><button class="btn sm ghost" data-toast="Se abre el editor de la pregunta.">Editar</button><button class="btn sm ghost" data-del="${i}">Quitar</button></div></div>${qBody(q,false)}</div>`).join('');
   $$('[data-del]',$('#qList')).forEach(b=>b.addEventListener('click',()=>{questions.splice(+b.dataset.del,1);renderEditor();renderApl();renderSections();toast('Pregunta retirada de la versión en edición.');}));}
 function renderApl(){$('#aplList').innerHTML=questions.map((q,i)=>`<div class="q"><div class="qh"><div><div class="qtype">${typeName[q.type]}</div><b>3.${i+1} ${q.t}</b></div></div>${qBody(q,true)}</div>`).join('');
   $$('[data-pick],[data-pick-m]',$('#aplList')).forEach(o=>o.addEventListener('click',()=>{if(o.hasAttribute('data-pick'))$$('.opt',o.parentElement).forEach(x=>x.classList.remove('sel'));o.classList.toggle('sel');updAvance();}));
@@ -875,12 +1043,12 @@ let cbMem=null;
 function loadSaved(){if(cbMem)return cbMem;try{return JSON.parse(localStorage.getItem(LS)||'null')||cbDefaults;}catch(e){return cbDefaults;}}
 function renderSaved(){const list=loadSaved();$('#cbSaved').innerHTML=list.map(s=>`<div class="item"><div><b>${s.name}</b><span>VPN ${fmt(s.vpn,0)} millones · B/C ${fmt(s.bc,2)} · recuperación ${s.pay===null?'no recupera':fmt(s.pay,1)+' años'} · ${s.date}</span></div><span class="chip ${s.bc>=1?'ok':'crit'}">${s.bc>=1?'Viable':'No viable'}</span></div>`).join('')||'<p class="small muted">Sin evaluaciones guardadas.</p>';}
 function bindCB(){$$('#cbName,#cbYears,#cbRate,#cbInv,#cbOpex,#cbTrain,#cbHours,#cbHourCost,#cbErr,#cbOther,#cbGrowth').forEach(i=>i.addEventListener('input',cbCalc));cbCalc();renderSaved();
-  $('#cbSave').addEventListener('click',()=>{const r=cbCalc();const list=loadSaved();list.unshift({name:r.name,vpn:r.vpn,bc:r.bc,pay:r.pay,date:'Ahora'});cbMem=list.slice(0,8);try{localStorage.setItem(LS,JSON.stringify(cbMem));}catch(e){}renderSaved();toast('Evaluación guardada en la sesión de la entidad (solo en este navegador). En producción se genera también el informe en el Gestor Documental.');});
+  $('#cbSave').addEventListener('click',()=>{const r=cbCalc();const list=loadSaved();list.unshift({name:r.name,vpn:r.vpn,bc:r.bc,pay:r.pay,date:'Ahora'});cbMem=list.slice(0,8);try{localStorage.setItem(LS,JSON.stringify(cbMem));}catch(e){}renderSaved();toast('Evaluación guardada en la sesión de la entidad. El informe quedó disponible en el Gestor Documental.');});
   $('#cbNew').addEventListener('click',()=>{$('#cbName').value='Nueva iniciativa';['cbInv','cbOpex','cbTrain','cbHours','cbHourCost','cbErr','cbOther'].forEach(id=>$('#'+id).value=0);cbCalc();toast('Formulario reiniciado.');});}
 
 /* ---------- catálogo ---------- */
 const cat=[['Herramienta','Procesamiento de lenguaje','Plataforma de asistentes conversacionales para trámites','Usada en 14 entidades · evaluada por el Observatorio','ok','Validada'],['Caso de uso','Analítica predictiva','Priorización de inspecciones sanitarias con modelos de riesgo','Ministerio de Salud · en producción desde 2025','ok','En producción'],['Herramienta','Visión por computador','Reconocimiento óptico de caracteres para expedientes','Usada en 22 entidades · licencia abierta','ok','Validada'],['Marco normativo','Gobernanza y ética','Lineamientos de ética para IA en el sector público','Referencia obligatoria en los diagnósticos','info','Referencia'],['Proveedor','Automatización de procesos','Integrador regional de automatización de procesos','3 contratos registrados · sin evaluar','warn','Pendiente de revisión'],['Caso de uso','Procesamiento de lenguaje','Clasificación automática de peticiones, quejas y reclamos','Alcaldía de Cartagena · piloto finalizado','warn','Piloto'],['Herramienta','Analítica predictiva','Entorno de ciencia de datos de código abierto','Usada en 31 entidades · comunidad activa','ok','Validada'],['Caso de uso','Gobernanza y ética','Programa de formación en gobernanza de datos','Recomendado por la Solución Automatizada a 19 entidades','ok','Validada'],['Herramienta','Automatización de procesos','Motor de flujos de trabajo con conectores a sistemas misionales','Usada en 9 entidades','info','En evaluación']];
-function renderCat(){$('#catGrid').innerHTML=cat.map(c=>`<div class="panel" style="display:grid;gap:8px"><div class="row" style="justify-content:space-between"><span class="eyebrow">${c[0]} · ${c[1]}</span><span class="chip ${c[4]} plain">${c[5]}</span></div><h3>${c[2]}</h3><p class="small muted">${c[3]}</p><div class="row" style="margin-top:auto"><button class="btn sm" data-toast="Ficha completa simulada.">Ver ficha</button><button class="btn sm ghost" data-go="proyectos">Proyectos que la usan</button></div></div>`).join('');}
+function renderCat(){$('#catGrid').innerHTML=cat.map(c=>`<div class="panel" style="display:grid;gap:8px"><div class="row" style="justify-content:space-between"><span class="eyebrow">${c[0]} · ${c[1]}</span><span class="chip ${c[4]} plain">${c[5]}</span></div><h3>${c[2]}</h3><p class="small muted">${c[3]}</p><div class="row" style="margin-top:auto"><button class="btn sm" data-toast="Se abre la ficha completa.">Ver ficha</button><button class="btn sm ghost" data-go="proyectos">Proyectos que la usan</button></div></div>`).join('');}
 
 /* ---------- init ---------- */
 function init(){
@@ -894,7 +1062,12 @@ function init(){
   renderSections();renderEditor();renderApl();
   $('#addQ').addEventListener('click',()=>{const t=$('#nqText').value.trim();if(!t){toast('Escriba el enunciado de la pregunta.');return;}const type=$('#nqType').value;const q={t,type,w:+$('#nqW').value||0};if(type==='single'||type==='multi')q.opts=['Opción A','Opción B','Opción C'];questions.push(q);$('#nqText').value='';renderEditor();renderApl();renderSections();toast('Pregunta agregada a la sección 3. La versión del instrumento pasará a 3.2 al publicar.');});
   bindCB();renderCat();
-  $('#entitySel').addEventListener('change',e=>toast('Contexto cambiado a '+e.target.value+'. Todos los módulos filtran por la entidad activa.'));
+  renderNav();renderLauncher();renderModules();renderHelpCats();bindModForm();
+  $('#helpSearch').addEventListener('input',e=>renderSearch(e.target.value,$('#helpResults')));
+  $('#drawerClose').addEventListener('click',closeHelp);$('#drawerBg').addEventListener('click',closeHelp);$('#drawerTour').addEventListener('click',()=>startTour(drawerCtx));
+  let gKey=false;document.addEventListener('keydown',e=>{const typing=/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);if(e.key==='F1'){e.preventDefault();openHelp();return;}if(e.key==='Escape'){closeHelp();endTour();return;}if(typing)return;if(e.key==='/'){e.preventDefault();$('.search input').focus();return;}if(e.key==='g'){gKey=true;setTimeout(()=>gKey=false,800);return;}if(gKey&&e.key==='i'){go('inicio');gKey=false;}});
+  addEventListener('resize',()=>{if(tour)showStep();});
+  $('#entitySel').addEventListener('change',e=>toast('Entidad activa: '+e.target.value+'. Todos los servicios muestran su información.'));
 }
 })();
 </script>
