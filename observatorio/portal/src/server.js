@@ -5,7 +5,21 @@ import { config } from './config.js';
 import { db, auditar } from './db.js';
 import { ingresar, firmarCookie, leerCookieFirmada, usuarioDeSesion, cerrarSesion, identidades } from './auth.js';
 import { appPorClave, crearTokenSso, urlSso, verificarCredenciales, estadoConector } from './conector.js';
-import { recolectarTodo, programarRecoleccion, resumenTablero } from './recolector.js';
+import { recolectarTodo, programarRecoleccion, resumenTablero, datosCompletos } from './recolector.js';
+import { calcularIndicadores } from './indicadores.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const RAIZ_ESTATICA = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'static');
+const TIPOS = { '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+function servirEstatico(ruta, res) {
+  const rel = path.normalize(decodeURIComponent(ruta.replace(/^\/static\//, ''))).replace(/^(\.\.[\/\\])+/, '');
+  const archivo = path.join(RAIZ_ESTATICA, rel);
+  if (!archivo.startsWith(RAIZ_ESTATICA) || !fs.existsSync(archivo) || fs.statSync(archivo).isDirectory()) { res.writeHead(404); return res.end(); }
+  res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+  fs.createReadStream(archivo).pipe(res);
+}
 import * as V from './vistas.js';
 
 const COOKIE = 'onia_sesion';
@@ -25,7 +39,7 @@ function setCookie(res, nombre, valor, { maxAge = null, httpOnly = true } = {}) 
 }
 function html(res, cuerpo, estado = 200) {
   const cab = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin',
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",
+    'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; frame-ancestors 'none'; form-action 'self'",
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()' };
   if (config.urlPublica.startsWith('https://')) cab['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
   res.writeHead(estado, cab);
@@ -54,12 +68,14 @@ const servidor = http.createServer(async (req, res) => {
   const render = (h, estado) => html(res, conCsrf(h, usuario), estado);
 
   try {
+    if (ruta.startsWith('/static/')) return servirEstatico(ruta, res);
     if (ruta === '/salud') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, apps: config.apps.map((a) => a.clave) })); }
 
-    if (ruta === '/' ) return redirigir(res, usuario ? '/escritorio' : '/ingresar');
+    if (ruta === '/') return render(V.vistaInicio({ usuario, apps: config.apps, indicadores: calcularIndicadores(datosCompletos()), ids: usuario ? identidades(usuario.id) : [] }));
+    if (ruta === '/acerca') return render(V.vistaAcerca({ usuario, apps: config.apps, ids: usuario ? identidades(usuario.id) : [] }));
 
     if (ruta === '/ingresar' && req.method === 'GET') {
-      if (usuario) return redirigir(res, '/escritorio');
+      if (usuario) return redirigir(res, '/aplicativos');
       return render(V.vistaIngreso({ apps: config.apps }));
     }
     if (ruta === '/ingresar' && req.method === 'POST') {
@@ -69,11 +85,11 @@ const servidor = http.createServer(async (req, res) => {
       setCookie(res, COOKIE, firmarCookie(r.sesion.id), { maxAge: config.horasSesion * 3600 });
       const destino = url.searchParams.get('siguiente');
       const seguro = destino && destino.startsWith('/') && !destino.startsWith('//') && !destino.includes('\\');
-      return redirigir(res, seguro ? destino : '/escritorio');
+      return redirigir(res, seguro ? destino : '/aplicativos');
     }
     if (ruta === '/salir' && req.method === 'POST') {
       const c = await leerCuerpo(req);
-      if (usuario && !csrfValido(usuario, c)) return redirigir(res, '/escritorio');
+      if (usuario && !csrfValido(usuario, c)) return redirigir(res, '/aplicativos');
       if (usuario) { cerrarSesion(usuario.sesionId); auditar('salida', { usuarioId: usuario.id, ip }); }
       setCookie(res, COOKIE, '', { maxAge: 0 });
       return redirigir(res, '/ingresar');
@@ -81,8 +97,9 @@ const servidor = http.createServer(async (req, res) => {
 
     if (!usuario) return redirigir(res, '/ingresar?siguiente=' + encodeURIComponent(ruta));
 
-    if (ruta === '/escritorio') return render(V.vistaEscritorio({ usuario, apps: config.apps, ids: identidades(usuario.id), resumen: resumenTablero() }));
-    if (ruta === '/tablero') return render(V.vistaTablero({ usuario, resumen: resumenTablero() }));
+    if (ruta === '/escritorio') return redirigir(res, '/aplicativos');
+    if (ruta === '/aplicativos') return render(V.vistaAplicativos({ usuario, apps: config.apps, ids: identidades(usuario.id), resumen: resumenTablero() }));
+    if (ruta === '/tablero') return render(V.vistaTablero({ usuario, apps: config.apps, ids: identidades(usuario.id), resumen: resumenTablero(), indicadores: calcularIndicadores(datosCompletos()) }));
     if (ruta === '/cuenta') {
       const sesiones = db.prepare('SELECT * FROM sesiones WHERE usuario_id = ? ORDER BY creada_en DESC').all(usuario.id);
       return render(V.vistaCuenta({ usuario, ids: identidades(usuario.id), apps: config.apps, sesiones }));
@@ -92,7 +109,7 @@ const servidor = http.createServer(async (req, res) => {
     let m = /^\/abrir\/([a-z0-9_-]+)$/.exec(ruta);
     if (m) {
       const app = appPorClave(m[1]);
-      if (!app) return render(V.vistaMensaje({ usuario, titulo: 'Aplicación no encontrada', texto: 'La aplicación solicitada no está configurada en el portal.' }), 404);
+      if (!app) return render(V.vistaMensaje({ usuario, apps: config.apps, titulo: 'Aplicación no encontrada', texto: 'La aplicación solicitada no está configurada en el portal.' }), 404);
       const id = identidades(usuario.id).find((i) => i.app === app.clave);
       if (!id) return redirigir(res, `/vincular/${app.clave}`);
       const jti = crypto.randomBytes(16).toString('hex');
@@ -107,12 +124,12 @@ const servidor = http.createServer(async (req, res) => {
     if (m) {
       const app = appPorClave(m[1]);
       if (!app) return redirigir(res, '/cuenta');
-      if (req.method === 'GET') return render(V.vistaVincular({ usuario, app }));
+      if (req.method === 'GET') return render(V.vistaVincular({ usuario, app, apps: config.apps, ids: identidades(usuario.id) }));
       const c = await leerCuerpo(req);
-      if (!csrfValido(usuario, c)) return render(V.vistaVincular({ usuario, app, error: 'La sesión cambió. Intente de nuevo.' }), 403);
+      if (!csrfValido(usuario, c)) return render(V.vistaVincular({ usuario, app, apps: config.apps, ids: identidades(usuario.id), error: 'La sesión cambió. Intente de nuevo.' }), 403);
       let r;
-      try { r = await verificarCredenciales(app, String(c.usuario || '').trim(), c.clave || ''); } catch (e) { return render(V.vistaVincular({ usuario, app, error: 'No fue posible contactar la aplicación. ' + e.message }), 502); }
-      if (!r.ok) { auditar('vinculo_fallido', { usuarioId: usuario.id, app: app.clave, ip }); return render(V.vistaVincular({ usuario, app, error: 'Usuario o clave no válidos en ' + app.nombre + '.' }), 401); }
+      try { r = await verificarCredenciales(app, String(c.usuario || '').trim(), c.clave || ''); } catch (e) { return render(V.vistaVincular({ usuario, app, apps: config.apps, ids: identidades(usuario.id), error: 'No fue posible contactar la aplicación. ' + e.message }), 502); }
+      if (!r.ok) { auditar('vinculo_fallido', { usuarioId: usuario.id, app: app.clave, ip }); return render(V.vistaVincular({ usuario, app, apps: config.apps, ids: identidades(usuario.id), error: 'Usuario o clave no válidos en ' + app.nombre + '.' }), 401); }
       db.prepare(`INSERT INTO identidades (usuario_id, app, id_externo, usuario_externo, rol_externo) VALUES (?, ?, ?, ?, ?)
                   ON CONFLICT(app, id_externo) DO UPDATE SET usuario_id = excluded.usuario_id, usuario_externo = excluded.usuario_externo, rol_externo = excluded.rol_externo, verificado_en = datetime('now')`)
         .run(usuario.id, app.clave, String(r.id), r.usuario || c.usuario, r.rol || null);
@@ -122,7 +139,7 @@ const servidor = http.createServer(async (req, res) => {
 
     // Administracion.
     if (ruta.startsWith('/admin')) {
-      if (usuario.rol !== 'administrador') return render(V.vistaMensaje({ usuario, titulo: 'Sin permiso', texto: 'Esta sección es solo para administradores del portal.' }), 403);
+      if (usuario.rol !== 'administrador') return render(V.vistaMensaje({ usuario, apps: config.apps, titulo: 'Sin permiso', texto: 'Esta sección es solo para administradores del portal.' }), 403);
       let mensaje = '';
       if (ruta === '/admin/recolectar' && req.method === 'POST') {
         const c = await leerCuerpo(req);
@@ -134,14 +151,14 @@ const servidor = http.createServer(async (req, res) => {
       const estados = await Promise.all(config.apps.map(async (app) => { try { const e = await estadoConector(app); return { app, ok: true, ...e }; } catch (e) { return { app, ok: false, error: e.message }; } }));
       const usuarios = db.prepare('SELECT u.*, (SELECT COUNT(*) FROM identidades i WHERE i.usuario_id = u.id) AS vinculos FROM usuarios u ORDER BY ultimo_ingreso DESC LIMIT 50').all();
       const auditoria = db.prepare('SELECT * FROM auditoria ORDER BY id DESC LIMIT 40').all();
-      return render(V.vistaAdmin({ usuario, apps: config.apps, estados, usuarios, auditoria, mensaje }));
+      return render(V.vistaAdmin({ usuario, apps: config.apps, ids: identidades(usuario.id), estados, usuarios, auditoria, mensaje }));
     }
 
-    return render(V.vistaMensaje({ usuario, titulo: 'Página no encontrada', texto: 'La dirección solicitada no existe en el portal.' }), 404);
+    return render(V.vistaMensaje({ usuario, apps: config.apps, titulo: 'Página no encontrada', texto: 'La dirección solicitada no existe en el portal.' }), 404);
   } catch (e) {
     console.error(e);
     auditar('error', { detalle: e.message, ip });
-    return html(res, V.vistaMensaje({ usuario, titulo: 'Ocurrió un error', texto: 'El portal no pudo completar la acción. Intente de nuevo o escriba a soporte.' }), 500);
+    return html(res, V.vistaMensaje({ usuario, apps: config.apps, titulo: 'Ocurrió un error', texto: 'El portal no pudo completar la acción. Intente de nuevo o escriba a soporte.' }), 500);
   }
 });
 

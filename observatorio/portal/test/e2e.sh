@@ -34,8 +34,22 @@ OBS_CONECTOR_ACTIVO=1 $N test/app-simulada.js 8102 "Catálogo de IA" secreto-cat
 curl -s -o /dev/null -w '%{http_code}' -d 'usuario=jmartinez&clave=incorrecta' http://127.0.0.1:8100/ingresar | grep -q 401 || fallo "clave incorrecta aceptada"
 echo "clave incorrecta rechazada"
 curl -s -o /dev/null -w '%{http_code}' -c "$T/p.txt" -d 'usuario=jmartinez&clave=Clave.2026' http://127.0.0.1:8100/ingresar | grep -q 303 || fallo "ingreso al portal con la clave de la aplicación"
-curl -s -b "$T/p.txt" http://127.0.0.1:8100/escritorio | grep -q "Julián" || fallo "escritorio del portal"
+curl -s -b "$T/p.txt" http://127.0.0.1:8100/aplicativos | grep -q "Julián" || fallo "escritorio del portal"
 echo "ingreso al portal con el usuario y la clave de la Solución Automatizada"
+
+paso "Páginas públicas, diseño y menú Aplicativos"
+[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/)" = 200 ] || fallo "la portada pública debería responder 200 sin sesión"
+[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/acerca)" = 200 ] || fallo "la página El Observatorio debería ser pública"
+curl -s http://127.0.0.1:8100/acerca | grep -q "Observatorio" || fallo "contenido de El Observatorio"
+[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/static/css/main.css)" = 200 ] || fallo "hoja de estilos"
+[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8100/static/vendor/bootstrap.bundle.min.js)" = 200 ] || fallo "bootstrap"
+[ "$(curl --path-as-is -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8100/static/..%2fpackage.json')" = 404 ] || fallo "recorrido de directorios en /static"
+curl -s -o /dev/null -w '%{redirect_url}\n' -b "$T/p.txt" http://127.0.0.1:8100/escritorio | grep -q '/aplicativos' || fallo "/escritorio debería redirigir a /aplicativos"
+curl -s -b "$T/p.txt" http://127.0.0.1:8100/aplicativos | grep -q 'aria-expanded="false">Aplicativos</a>' || fallo "menú desplegable Aplicativos"
+curl -s -b "$T/p.txt" http://127.0.0.1:8100/aplicativos | grep -q 'Sin vincular' || fallo "el catálogo debería aparecer sin vincular"
+curl -s -b "$T/p.txt" http://127.0.0.1:8100/tablero | grep -q 'Cuadro de mando' || fallo "cuadro de mando"
+for r in / /acerca /aplicativos /tablero /cuenta; do curl -s -b "$T/p.txt" "http://127.0.0.1:8100$r" | grep -q '\bF1\b\|\bF10\b' && fallo "la interfaz no debe mencionar códigos de documentos ($r)"; done
+echo "portada y El Observatorio son públicas, los estilos se sirven, el menú Aplicativos existe y la interfaz no menciona documentos"
 
 paso "Abrir la aplicación desde el portal con la sesión ya iniciada"
 DEST=$(curl -s -o /dev/null -w '%{redirect_url}' -b "$T/p.txt" http://127.0.0.1:8100/abrir/solucion)
@@ -50,7 +64,8 @@ echo "el token de un solo uso no puede reutilizarse"
 
 paso "Vincular la segunda aplicación y abrirla"
 curl -s -o /dev/null -w '%{redirect_url}\n' -b "$T/p.txt" http://127.0.0.1:8100/abrir/catalogo | grep -q '/vincular/catalogo' || fallo "sin vínculo debería pedir vinculación"
-CSRF=$(curl -s -b "$T/p.txt" http://127.0.0.1:8100/vincular/catalogo | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+CSRF=$(curl -s -b "$T/p.txt" http://127.0.0.1:8100/vincular/catalogo | tr -d '\n' | grep -o 'action="/vincular/catalogo"[^>]*>.\{0,400\}' | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+[ -n "$CSRF" ] || fallo "el formulario de vinculación no trae el token CSRF"
 curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" -d "usuario=jmartinez&clave=Clave.2026&_csrf=$CSRF" http://127.0.0.1:8100/vincular/catalogo | grep -q 303 || fallo "vinculación del catálogo"
 DEST2=$(curl -s -o /dev/null -w '%{redirect_url}' -b "$T/p.txt" http://127.0.0.1:8100/abrir/catalogo)
 curl -s -c "$T/app2.txt" -o /dev/null "$DEST2"; curl -s -b "$T/app2.txt" http://127.0.0.1:8102/ | grep -q "Sesión de: Julián" || fallo "sesión en el catálogo"
@@ -66,7 +81,7 @@ echo "cuatro conjuntos recolectados en solo lectura y visibles en el cuadro de m
 paso "Administración"
 curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" http://127.0.0.1:8100/admin | grep -q 403 || fallo "un usuario común no debe ver administración"
 curl -s -o /dev/null -c "$T/adm.txt" -d 'usuario=jvergaras@unicartagena.edu.co&clave=Admin.2026' http://127.0.0.1:8100/ingresar
-curl -s -b "$T/adm.txt" http://127.0.0.1:8100/admin | grep -q 'chip ok">Activo' || fallo "el administrador debería ver los conectores activos"
+curl -s -b "$T/adm.txt" http://127.0.0.1:8100/admin | grep -q 'badge bg-success">Activo' || fallo "el administrador debería ver los conectores activos"
 echo "el administrador ve el estado de los conectores y la auditoría"
 
 echo; echo "TODAS LAS PRUEBAS PASARON"

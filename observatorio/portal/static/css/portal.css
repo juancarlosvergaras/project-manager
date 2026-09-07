@@ -1,0 +1,17 @@
+/* Complementos del portal sobre la hoja de estilos institucional compartida con la Solucion Automatizada. */
+.badge.nivel-1 { background: #ce1126; }
+.badge.nivel-2 { background: #e8a046; color: #4b4b4b; }
+.badge.nivel-3 { background: #2763d7; }
+.badge.nivel-4 { background: #0943b5; }
+.badge.nivel-5 { background: #2f9e63; }
+svg.grafico { display: block; width: 100%; height: auto; font-family: inherit; }
+svg.grafico text { fill: #4b4b4b; font-size: 11px; }
+svg.grafico .g { stroke: #e3e3e3; stroke-width: 1; }
+svg.grafico .barra { fill: var(--mintic-blue); }
+.mintic-tabs .nav-link .badge { font-size: 0.7rem; }
+.dropdown-item .badge { font-size: 0.68rem; }
+.progress { height: 18px; }
+.progress-bar { background: var(--mintic-blue); font-size: 0.72rem; }
+.accordion-button:not(.collapsed) { color: var(--mintic-blue); background: var(--mintic-blue-soft); }
+.accordion-item { border-radius: var(--mintic-radius); overflow: hidden; }
+body.high-contrast .mintic-page-intro, body.high-contrast .accordion-item, body.high-contrast .tab-content { background: #1a1a1a !important; color: #ffff00 !important; }

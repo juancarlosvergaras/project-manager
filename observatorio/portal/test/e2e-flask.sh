@@ -55,7 +55,7 @@ echo "la aplicación Flask funciona sola con su propio ingreso"
 [ "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8101/observatorio-conector?accion=sso&token=x.y')" = 404 ] || fallo "sso apagado debería dar 404"
 echo "el conector apagado es invisible (404) en verificación y en apertura de sesión"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -c "$T/q.txt" -d 'usuario=jmartinez@cartagena.gov.co&clave=Clave.2026' http://127.0.0.1:8100/ingresar)" = 303 ] || fallo "el portal debería verificar contra el Catálogo"
-curl -s -b "$T/q.txt" http://127.0.0.1:8100/escritorio | grep -q "Sin vincular" || fallo "la Solución debería quedar sin vincular"
+curl -s -b "$T/q.txt" http://127.0.0.1:8100/aplicativos | grep -q "Sin vincular" || fallo "la Solución debería quedar sin vincular"
 echo "con la Solución apagada el portal verifica contra el Catálogo y la Solución queda sin vincular"
 kill -9 "$SOL_PID" 2>/dev/null; wait "$SOL_PID" 2>/dev/null; sleep 0.5
 
@@ -64,7 +64,7 @@ arranca_solucion 1
 espera http://127.0.0.1:8101/admin/login || fallo "la Solución (Flask) no reinició"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -d 'usuario=jmartinez@cartagena.gov.co&clave=mala' http://127.0.0.1:8100/ingresar)" = 401 ] || fallo "clave incorrecta aceptada"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -c "$T/p.txt" -d 'usuario=jmartinez@cartagena.gov.co&clave=Clave.2026' http://127.0.0.1:8100/ingresar)" = 303 ] || fallo "ingreso al portal con la clave bcrypt de la Solución"
-curl -s -b "$T/p.txt" http://127.0.0.1:8100/escritorio | grep -q "Julián" || fallo "escritorio"
+curl -s -b "$T/p.txt" http://127.0.0.1:8100/aplicativos | grep -q "Julián" || fallo "escritorio"
 echo "ingreso al portal con el correo y la clave bcrypt de la Solución Automatizada"
 
 paso "Abrir la Solución desde el portal con la sesión Flask-Login ya iniciada"

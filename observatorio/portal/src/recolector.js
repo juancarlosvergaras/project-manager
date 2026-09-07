@@ -65,6 +65,20 @@ export function resumenTablero() {
   return apps;
 }
 
+// Filas completas de la ultima recoleccion exitosa de cada conjunto, por aplicacion: {app: {conjunto: [filas]}}.
+export function datosCompletos() {
+  const salida = {};
+  for (const app of config.apps) {
+    salida[app.clave] = {};
+    const conjuntos = db.prepare(`SELECT DISTINCT conjunto FROM recolecciones WHERE app = ? AND estado = 'ok' AND conjunto != '_estado'`).all(app.clave);
+    for (const c of conjuntos) {
+      const r = db.prepare('SELECT datos FROM recolecciones WHERE app = ? AND conjunto = ? AND estado = ? ORDER BY recolectado_en DESC LIMIT 1').get(app.clave, c.conjunto, 'ok');
+      try { salida[app.clave][c.conjunto] = JSON.parse(r.datos); } catch { salida[app.clave][c.conjunto] = []; }
+    }
+  }
+  return salida;
+}
+
 // Si las filas traen una columna de fecha (fecha, creado_en, created_at), agrupa por mes para el grafico.
 function serieMensual(filas) {
   if (!filas.length) return null;

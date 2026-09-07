@@ -4,7 +4,7 @@ Aplicación web del portal con ingreso unificado y recolección de datos de las 
 
 ## Qué hace en esta primera etapa
 
-El usuario ingresa al portal con el usuario y la clave que ya tiene en la Solución Automatizada o en el Catálogo de IA. El portal verifica la clave en la aplicación correspondiente a través de su conector, crea la cuenta del portal vinculada a esa identidad y abre la sesión. Desde el escritorio, cada aplicación se abre en una pestaña con la sesión ya iniciada mediante un token firmado de un solo uso. La segunda aplicación se vincula la primera vez con sus propias credenciales y después se abre sin pedirlas. Un proceso programado pide a cada conector sus conjuntos de datos en solo lectura y los guarda en el portal para el cuadro de mando.
+El usuario ingresa al portal con el usuario y la clave que ya tiene en la Solución Automatizada o en el Catálogo de IA. El portal verifica la clave en la aplicación correspondiente a través de su conector, crea la cuenta del portal vinculada a esa identidad y abre la sesión. Desde el menú Aplicativos, cada aplicación se abre en una pestaña con la sesión ya iniciada mediante un token firmado de un solo uso. La segunda aplicación se vincula la primera vez con sus propias credenciales y después se abre sin pedirlas. Un proceso programado pide a cada conector sus conjuntos de datos en solo lectura y los guarda en el portal para el cuadro de mando.
 
 Las aplicaciones siguen funcionando de forma independiente, con su propio ingreso, con o sin el conector. El portal no escribe en sus bases de datos ni guarda claves.
 
@@ -46,10 +46,26 @@ Levanta dos aplicaciones simuladas con el conector de referencia, primero apagad
 | `src/conector.js` | Cliente firmado de los conectores y emisión de tokens de apertura de sesión |
 | `src/recolector.js` | Recolección programada de conjuntos de datos y resumen para el cuadro de mando |
 | `src/db.js` | Esquema SQLite del portal y auditoría |
-| `src/vistas.js` | Páginas HTML |
+| `src/vistas.js` | Páginas HTML con la misma plantilla visual de la Solución Automatizada (cinta GOV.CO, cabecera MinTIC, menú Aplicativos, pie institucional) |
+| `src/indicadores.js` | Marco de medición del Observatorio: diagnóstico por ámbitos, indicadores por dimensión, índice y niveles de madurez |
+| `static/` | Hojas de estilo, logos, Bootstrap 5.3.3 y barra de accesibilidad servidos por el propio portal |
 | `src/config.js` | Lectura de variables de entorno y del archivo .env |
 | `test/app-simulada.js` | Aplicación existente simulada con conector, para pruebas |
-| `test/e2e.sh` | Prueba de extremo a extremo |
+| `test/e2e.sh` | Prueba de extremo a extremo con aplicaciones simuladas |
+| `test/e2e-flask.sh` | Prueba de extremo a extremo con una Solución Automatizada real en Flask |
+
+## Rutas
+
+| Ruta | Acceso | Contenido |
+|---|---|---|
+| `/` | Pública | Portada del Observatorio con cifras generales |
+| `/acerca` | Pública | Qué es el Observatorio, dimensiones, índice, niveles y modelo de seguimiento |
+| `/ingresar` | Pública | Ingreso unificado con el usuario y la clave de cualquier aplicativo |
+| `/aplicativos` | Con sesión | Tarjetas de los aplicativos, vinculación y apertura con sesión iniciada |
+| `/tablero` | Con sesión | Cuadro de mando con los indicadores por dimensión y la evidencia recolectada |
+| `/cuenta` | Con sesión | Identidades vinculadas y sesiones abiertas |
+| `/admin` | Administradores | Estado de conectores, recolección manual, usuarios y auditoría |
+| `/static/...` | Pública | Recursos estáticos |
 
 ## Reversa
 

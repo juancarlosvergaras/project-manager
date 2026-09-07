@@ -11,6 +11,7 @@ RUN addgroup -S portal && adduser -S -G portal -u 10010 portal
 WORKDIR /app
 COPY --chown=portal:portal package.json ./
 COPY --chown=portal:portal src ./src
+COPY --chown=portal:portal static ./static
 RUN mkdir -p /app/datos && chown -R portal:portal /app/datos
 VOLUME ["/app/datos"]
 

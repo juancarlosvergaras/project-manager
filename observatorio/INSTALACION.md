@@ -109,7 +109,7 @@ El archivo de arranque reemplaza a `arranque.sh` y hace lo mismo que él: copia 
 
 ## 8. Comprobación completa
 
-En el portal, ingrese con el correo y la clave que ya usa en la Solución Automatizada. Debe llegar al escritorio con la Solución marcada como vinculada. Pulse la tarjeta de la Solución. Debe abrirse solucion.proyectoia.org con la sesión ya iniciada. Vuelva al portal, abra Administración y pulse Recolectar ahora. En el cuadro de mando deben aparecer entidades, evaluaciones, consolidados y usuarios.
+En el portal, ingrese con el correo y la clave que ya usa en la Solución Automatizada. Debe llegar a la página Aplicativos con la Solución marcada como vinculada. Pulse Abrir en la tarjeta de la Solución (o use el menú desplegable Aplicativos). Debe abrirse solucion.proyectoia.org con la sesión ya iniciada. Vuelva al portal, abra Administración y pulse Recolectar ahora. En el cuadro de mando deben aparecer entidades, evaluaciones, consolidados y usuarios.
 
 ## 9. Operación diaria
 
