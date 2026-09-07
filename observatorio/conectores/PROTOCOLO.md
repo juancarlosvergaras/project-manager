@@ -45,6 +45,8 @@ Cada aplicación decide qué conjuntos expone y con qué columnas. La regla es q
 
 Tabla 2. Conjuntos de datos iniciales propuestos. Fuente. Elaboración propia.
 
+Ya implementados en el Catálogo de IA, a partir de su esquema real, son cinco. Fichas del Catálogo Único de Oferta IA, herramientas publicadas, casos de éxito, usuarios del panel y consultas, estas últimas como visitas públicas agregadas por día y sección, sin direcciones IP ni agentes de navegador. Sus columnas exactas están en `catalogoia/servidor_observatorio.py`.
+
 ## 5. Implementación en cada aplicación
 
 La implementación depende del lenguaje de la aplicación. La carpeta referencia-node contiene una versión completa para aplicaciones en Node.js que se conecta con cinco funciones que la aplicación provee. Buscar un usuario por su nombre o correo, verificar una clave con la rutina propia, buscar un usuario por identificador o correo, iniciar la sesión local y las consultas de cada conjunto. Para aplicaciones en otros lenguajes se escribe el equivalente siguiendo este documento, con la misma cadena de firma y las mismas respuestas, lo que se decide cuando se conozca la tecnología de cada aplicación.

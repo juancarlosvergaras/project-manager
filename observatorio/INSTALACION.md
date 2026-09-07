@@ -40,11 +40,17 @@ Los valores de `.env` que hay que completar son `CLAVE_SESION`, `ADMINISTRADORES
 
 ## 4. Publicar el portal en el túnel
 
-Agregue una línea a `~/Servidor/rutas.conf` siguiendo el formato de las existentes, con el subdominio observatorioia.proyectoia.org apuntando a localhost:8100 y marcada como pública, y ejecute `scripts/tunel.sh` como hace con cualquier aplicación nueva. Cree el registro DNS del subdominio en Cloudflare si el script no lo hace. Verifique con el navegador que observatorioia.proyectoia.org muestra la pantalla de ingreso.
+El archivo `~/Servidor/rutas.conf` tiene un renglón por aplicación con tres campos separados por espacios: subdominio, puerto y protección. Agregue al final este renglón, que es el que corresponde al portal.
+
+```
+observatorioia 8100   publico
+```
+
+El puerto 8100 está libre (los ocupados llegan hasta 8080 y de 8020 a 8061). Después ejecute `scripts/tunel.sh` como hace con cualquier aplicación nueva. Cree el registro DNS del subdominio en Cloudflare si el script no lo hace. Verifique con el navegador que observatorioia.proyectoia.org muestra la pantalla de ingreso.
 
 ## 5. Botón en la página principal
 
-Ejecute `portal-app-boton/agregar-boton.sh` de este repositorio. Hace copia de seguridad de `~/Servidor/web/index.html`, inserta la tarjeta del Observatorio y no reinicia nada porque nginx sirve el archivo tal cual. Si el estilo no encaja con la página, edite el bloque en `boton-observatorio.html` antes de ejecutar el script, o restaure la copia.
+La página principal ya tiene una tarjeta "Observatorio IA", pero es un botón sin destino que solo muestra el aviso "próximamente". Ejecute `portal-app-boton/agregar-boton.sh` de este repositorio: hace copia de seguridad de `~/Servidor/web/index.html` y sustituye ese botón por la tarjeta enlazada de `boton-observatorio.html`, que usa las clases propias de la página (`boton`, `icono`, `titulo-boton`, `desc-boton`, `pie-boton`) y conserva el mismo icono, la misma posición y el mismo retardo de aparición, de modo que la rejilla no cambia de aspecto. Si esa tarjeta ya no existiera, el script agrega la nueva al final de la rejilla de botones. No reinicia nada porque nginx sirve el archivo tal cual. Para deshacer, restaure la copia `.bak` que el script indica al terminar.
 
 ## 6. Conector de la Solución Automatizada (mintic1519)
 
@@ -59,7 +65,29 @@ Si en cualquier momento algo falla, restaure `command: gunicorn wsgi:app ...` en
 
 ## 7. Conector del Catálogo de IA (catalogoia)
 
-El archivo `conectores/catalogoia/servidor_observatorio.py` sigue el mismo patrón, pero requiere completar cuatro funciones marcadas con AJUSTAR a partir del código real de la aplicación (nombre de la tabla de usuarios, columna de la clave y su algoritmo, forma de iniciar sesión y consultas de los conjuntos). El resto del procedimiento es idéntico al de la Solución. Hasta que esas funciones no se completen, el conector responde pero no reconoce usuarios, de modo que el portal seguirá verificando contra la Solución y el Catálogo aparecerá sin vincular.
+El archivo `conectores/catalogoia/servidor_observatorio.py` ya está ajustado al código real del Catálogo (`app.py`, revisado el 6 de septiembre de 2026): objeto Flask `app`, base SQLite en `DATA_DIR/catalogo.db`, tabla `usuarios(id, username, password_hash, nombre, creado)`, claves verificadas con `check_password_hash` de werkzeug y sesión abierta igual que su propio ingreso (`session.clear()`, token CSRF nuevo, `user_id` y `username`). Como el `username` del Catálogo es el correo institucional y todos sus usuarios entran al panel, el conector los reporta con rol de administrador. Expone cinco conjuntos de solo lectura: fichas, herramientas, casos, usuarios y consultas.
+
+Un detalle propio de esta aplicación: el Catálogo protege con un token de formulario todos los POST. El conector se exime únicamente en su propia ruta, envolviendo la comprobación ya registrada, sin modificar `app.py`. Las demás pantallas siguen protegidas igual que antes.
+
+Los pasos son los siguientes.
+
+1. Cree la carpeta `~/Servidor/apps/catalogoia/observatorio/` y copie ahí `conectores/python/observatorio_conector.py` y `conectores/catalogoia/servidor_observatorio.py`.
+2. En `docker-compose.servidor.yml` del Catálogo, agregue a la lista de volúmenes del servicio `web` los dos montajes de solo lectura, agregue las dos variables de entorno y agregue el comando de arranque. Deje `OBS_CONECTOR_ACTIVO` en 0.
+
+```yaml
+    volumes:
+      - ./observatorio/servidor_observatorio.py:/app/servidor_observatorio.py:ro
+      - ./observatorio/observatorio_conector.py:/app/observatorio_conector.py:ro
+    environment:
+      OBS_CONECTOR_ACTIVO: "0"          # 1 para encender
+      OBS_CONECTOR_SECRETO: ${OBS_CONECTOR_SECRETO_CATALOGO}
+    command: ["python", "servidor_observatorio.py"]
+```
+
+3. Levante solo ese servicio con `docker compose -f docker-compose.servidor.yml up -d web`. Compruebe que catalogoia.proyectoia.org responde igual que antes, que su panel `/admin` sigue pidiendo clave y que `curl -X POST http://127.0.0.1:8020/observatorio-conector` devuelve 404.
+4. Cuando decida encender, ponga `OBS_CONECTOR_ACTIVO` en 1, vuelva a levantar el servicio y compruebe desde la administración del portal que el conector aparece como activo.
+
+El archivo de arranque reemplaza a `arranque.sh` y hace lo mismo que él: copia la semilla inicial si falta y sirve la aplicación con waitress en el puerto interno 8080, con los mismos parámetros de `servidor.py`. Para revertir, borre el `command:` del compose (la imagen vuelve a su arranque propio) y levante el servicio.
 
 ## 8. Comprobación completa
 
@@ -79,4 +107,4 @@ El portal solo necesita Docker. Copie la carpeta, configure `.env` con las direc
 
 El código del portal son ocho archivos en `portal/src`, sin dependencias externas, cada uno con un propósito único descrito en `portal/README.md`. Las páginas HTML están en `vistas.js`. La lógica de ingreso está en `auth.js`. La comunicación con las aplicaciones está en `conector.js`. Agregar una tercera aplicación es declarar cinco variables `APP_<CLAVE>_` en `.env` e instalar su conector con el mismo archivo `observatorio_conector.py`. El protocolo completo del conector está en `conectores/PROTOCOLO.md`.
 
-Las pruebas se ejecutan con `npm test` (aplicaciones simuladas en Node) y `bash test/e2e-flask.sh` (Solución simulada en Flask con la estructura real). Ambas levantan todo en puertos locales, recorren el flujo completo y apagan lo que levantaron.
+Las pruebas se ejecutan con `npm test` (aplicaciones simuladas en Node) y `bash test/e2e-flask.sh` (Solución simulada en Flask con la estructura real; necesita un Python con Flask, Flask-Login, Flask-WTF, Flask-SQLAlchemy y bcrypt, que el propio script busca e indica cómo preparar). Ambas levantan todo en puertos locales, recorren el flujo completo y apagan lo que levantaron.

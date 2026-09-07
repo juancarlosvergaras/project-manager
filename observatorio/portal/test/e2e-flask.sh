@@ -4,7 +4,20 @@
 # Monta wsgi_observatorio.py SIN modificar la aplicacion. El Catalogo se simula en Node.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-PY=${PY:-/tmp/claude-0/venv-conector/bin/python}
+# Interprete de Python con Flask, Flask-Login, Flask-WTF, Flask-SQLAlchemy y bcrypt.
+# Se puede fijar con PY=/ruta/al/python. Si no, se busca uno que ya tenga esas librerias.
+if [ -z "${PY:-}" ]; then
+  for c in .venv/bin/python ../../.venv/bin/python python3; do
+    [ -x "$c" ] || command -v "$c" >/dev/null 2>&1 || continue
+    "$c" -c "import flask, flask_login, flask_wtf, flask_sqlalchemy, bcrypt" >/dev/null 2>&1 && { PY=$c; break; }
+  done
+fi
+if [ -z "${PY:-}" ]; then
+  echo "No se encontró un Python con las librerías de la prueba. Prepare uno así:"
+  echo "  python3 -m venv .venv && .venv/bin/pip install flask flask-login flask-wtf flask-sqlalchemy bcrypt"
+  echo "y vuelva a ejecutar esta prueba (o indique el suyo con PY=/ruta/al/python)."
+  exit 1
+fi
 APPDIR=../conectores/mintic1519/prueba
 T=$(mktemp -d)
 PIDS=()

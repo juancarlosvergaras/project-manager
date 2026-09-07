@@ -1,10 +1,20 @@
-<!-- Tarjeta del Observatorio para la página principal app.proyectoia.org.
-     Copie este bloque dentro de la sección de aplicaciones de Servidor/web/index.html.
-     Ajuste las clases al estilo de su página si usa otras. -->
-<a class="app-card" href="https://observatorioia.proyectoia.org" style="display:flex;gap:14px;align-items:center;text-decoration:none;color:inherit;border:1px solid #d5dbd8;border-radius:10px;padding:16px 18px;background:#fff">
-  <span style="width:44px;height:44px;border-radius:10px;background:#0e4f6e;color:#fff;display:grid;place-items:center;font-weight:700;font-family:system-ui,sans-serif;flex:none">ONIA</span>
-  <span>
-    <b style="display:block;font-size:15px;font-family:system-ui,sans-serif">Observatorio Nacional de IA</b>
-    <span style="display:block;font-size:13px;color:#4a5761">Ingreso unificado y cuadro de mando</span>
-  </span>
-</a>
+<!-- Tarjeta del Observatorio para la pagina principal (app.proyectoia.org).
+     Escrita con las clases propias de Servidor/web/index.html: .boton .aparece .dN, .icono, .titulo-boton,
+     .desc-boton y .pie-boton. Sin estilos en linea: hereda el diseno de la pagina, incluidos el borde de
+     color al pasar el cursor, la luz que sigue al raton y la animacion de entrada.
+
+     Sustituye a la tarjeta "Observatorio IA" actual, que es un boton sin destino y solo muestra
+     el aviso "proximamente".
+     El script agregar-boton.sh hace ese reemplazo y guarda copia del archivo original.
+     La clase de retardo (d6) es la del boton que sustituye: manteniendola, el orden de aparicion
+     de las tarjetas no cambia. El icono es el mismo globo del boton actual. -->
+    <a class="boton aparece d6" href="https://observatorioia.proyectoia.org" target="_blank" rel="noopener noreferrer">
+      <div>
+        <div class="icono">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        </div>
+        <div class="titulo-boton">Observatorio IA</div>
+        <div class="desc-boton">Ingreso unificado a las aplicaciones del proyecto y cuadro de mando con los datos que reportan.</div>
+      </div>
+      <div class="pie-boton">Entrar <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
