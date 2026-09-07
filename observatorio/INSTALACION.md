@@ -1,0 +1,82 @@
+# Guía de instalación y operación del portal del Observatorio
+
+Versión 0.1. Septiembre de 2026. Dirigida al ingeniero de sistemas que instale o mantenga el portal.
+
+## 1. Qué se instala y qué no se toca
+
+El portal es un contenedor nuevo, independiente, que corre en el mismo servidor que las aplicaciones del proyecto y se publica en observatorioia.proyectoia.org a través del túnel existente. Las aplicaciones actuales no cambian ni un archivo. Para que el portal pueda verificar claves y abrir sesiones en ellas, cada aplicación recibe dos archivos nuevos montados desde fuera de su imagen, más un cambio en su comando de arranque dentro del compose. Con esos archivos y el interruptor apagado, la aplicación se comporta igual que antes. Retirarlos consiste en restaurar el comando de arranque original.
+
+La Tabla 1 resume las piezas y su ubicación en el servidor.
+
+| Pieza | Ubicación en el servidor | Se modifica algo existente |
+|---|---|---|
+| Portal (contenedor observatorio) | ~/Servidor/apps/observatorio | No, carpeta nueva |
+| Ruta del túnel | ~/Servidor/rutas.conf | Se agrega una línea |
+| Botón en la página principal | ~/Servidor/web/index.html | Se inserta un bloque, con copia de seguridad |
+| Conector de la Solución Automatizada | ~/Servidor/apps/mintic1519/observatorio/ | No. Carpeta nueva montada por volumen. Cambia el comando en el compose |
+| Conector del Catálogo de IA | ~/Servidor/apps/catalogoia/observatorio/ | No. Carpeta nueva montada por volumen. Cambia el comando en el compose |
+
+Tabla 1. Componentes de la instalación. Fuente. Elaboración propia.
+
+## 2. Requisitos
+
+Docker con Compose (OrbStack en el Mac mini) y el túnel de cloudflared que ya publica las demás aplicaciones. Nada más. El portal no requiere Node ni Python instalados en el servidor porque corre en su contenedor.
+
+## 3. Instalación del portal (sin tocar las aplicaciones)
+
+Copie la carpeta `observatorio/portal` de este repositorio a `~/Servidor/apps/observatorio` y ejecute lo siguiente desde esa carpeta.
+
+```bash
+cp .env.example .env
+# Genere una clave de sesión y dos secretos de conector (uno por aplicación) y péguelos en .env
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))" 2>/dev/null || openssl rand -hex 48
+docker compose -f docker-compose.servidor.yml up -d --build
+curl -s http://127.0.0.1:8100/salud
+```
+
+La última orden debe responder con `{"ok":true,...}`. En este punto el portal está en el puerto 8100 del servidor, con su propia base de datos en un volumen, y todavía no puede verificar claves porque ningún conector está encendido. Eso es lo esperado.
+
+Los valores de `.env` que hay que completar son `CLAVE_SESION`, `ADMINISTRADORES` (correos que serán administradores del portal), `APP_SOLUCION_SECRETO` y `APP_CATALOGO_SECRETO`. Las direcciones de los conectores ya vienen en el compose apuntando a los puertos 8010 y 8020 del servidor por `host.docker.internal`, de modo que el tráfico entre portal y aplicaciones no sale a internet.
+
+## 4. Publicar el portal en el túnel
+
+Agregue una línea a `~/Servidor/rutas.conf` siguiendo el formato de las existentes, con el subdominio observatorioia.proyectoia.org apuntando a localhost:8100 y marcada como pública, y ejecute `scripts/tunel.sh` como hace con cualquier aplicación nueva. Cree el registro DNS del subdominio en Cloudflare si el script no lo hace. Verifique con el navegador que observatorioia.proyectoia.org muestra la pantalla de ingreso.
+
+## 5. Botón en la página principal
+
+Ejecute `portal-app-boton/agregar-boton.sh` de este repositorio. Hace copia de seguridad de `~/Servidor/web/index.html`, inserta la tarjeta del Observatorio y no reinicia nada porque nginx sirve el archivo tal cual. Si el estilo no encaja con la página, edite el bloque en `boton-observatorio.html` antes de ejecutar el script, o restaure la copia.
+
+## 6. Conector de la Solución Automatizada (mintic1519)
+
+Este conector está probado contra una réplica con la misma estructura de módulos de la aplicación (wsgi.app, web.app.csrf, src.models.user.User con bcrypt, Flask-Login y src.services.audit_service). Los pasos son los siguientes.
+
+1. Cree la carpeta `~/Servidor/apps/mintic1519/observatorio/` y copie ahí `conectores/python/observatorio_conector.py` y `conectores/mintic1519/wsgi_observatorio.py`.
+2. En `docker-compose.servidor.yml` del servicio web (mintic-web), agregue los dos volúmenes de solo lectura, las dos variables de entorno y cambie el comando, tal como se indica en el encabezado de `wsgi_observatorio.py`. Deje `OBS_CONECTOR_ACTIVO` en 0.
+3. Reinicie solo ese servicio con `docker compose -f docker-compose.servidor.yml up -d web` (o el nombre que tenga el servicio). Compruebe que solucion.proyectoia.org responde igual que antes y que `curl -X POST http://127.0.0.1:8010/observatorio-conector` devuelve 404.
+4. Cuando decida encender, ponga `OBS_CONECTOR_ACTIVO` en 1, vuelva a levantar el servicio y compruebe desde la administración del portal que el conector aparece como activo.
+
+Si en cualquier momento algo falla, restaure `command: gunicorn wsgi:app ...` en el compose y levante el servicio. La aplicación vuelve al estado exacto anterior porque sus archivos nunca cambiaron.
+
+## 7. Conector del Catálogo de IA (catalogoia)
+
+El archivo `conectores/catalogoia/servidor_observatorio.py` sigue el mismo patrón, pero requiere completar cuatro funciones marcadas con AJUSTAR a partir del código real de la aplicación (nombre de la tabla de usuarios, columna de la clave y su algoritmo, forma de iniciar sesión y consultas de los conjuntos). El resto del procedimiento es idéntico al de la Solución. Hasta que esas funciones no se completen, el conector responde pero no reconoce usuarios, de modo que el portal seguirá verificando contra la Solución y el Catálogo aparecerá sin vincular.
+
+## 8. Comprobación completa
+
+En el portal, ingrese con el correo y la clave que ya usa en la Solución Automatizada. Debe llegar al escritorio con la Solución marcada como vinculada. Pulse la tarjeta de la Solución. Debe abrirse solucion.proyectoia.org con la sesión ya iniciada. Vuelva al portal, abra Administración y pulse Recolectar ahora. En el cuadro de mando deben aparecer entidades, evaluaciones, consolidados y usuarios.
+
+## 9. Operación diaria
+
+El portal recolecta datos cada hora por defecto (`MINUTOS_RECOLECCION` en `.env`). La base de datos vive en el volumen `observatorio_datos` y entra en las copias de seguridad como cualquier otro volumen del servidor. Los registros del contenedor se consultan con `docker logs observatorio`. La auditoría del portal (ingresos, aperturas de sesión, recolecciones, errores) está en la pantalla de Administración y en la tabla `auditoria` de la base.
+
+Para actualizar el portal, reemplace la carpeta con la versión nueva y ejecute `docker compose -f docker-compose.servidor.yml up -d --build`. La base de datos se conserva porque está en el volumen. Para detenerlo por completo, `docker compose -f docker-compose.servidor.yml down`. Las aplicaciones no se ven afectadas en ningún caso.
+
+## 10. Instalación en otro servidor
+
+El portal solo necesita Docker. Copie la carpeta, configure `.env` con las direcciones de los conectores de ese servidor y levante el compose. Los conectores se instalan en cada aplicación con el mismo procedimiento de las secciones 6 y 7. Si las aplicaciones corren en otra máquina, cambie `host.docker.internal` por su dirección y use HTTPS entre servidores.
+
+## 11. Mantenimiento por un ingeniero de sistemas
+
+El código del portal son ocho archivos en `portal/src`, sin dependencias externas, cada uno con un propósito único descrito en `portal/README.md`. Las páginas HTML están en `vistas.js`. La lógica de ingreso está en `auth.js`. La comunicación con las aplicaciones está en `conector.js`. Agregar una tercera aplicación es declarar cinco variables `APP_<CLAVE>_` en `.env` e instalar su conector con el mismo archivo `observatorio_conector.py`. El protocolo completo del conector está en `conectores/PROTOCOLO.md`.
+
+Las pruebas se ejecutan con `npm test` (aplicaciones simuladas en Node) y `bash test/e2e-flask.sh` (Solución simulada en Flask con la estructura real). Ambas levantan todo en puertos locales, recorren el flujo completo y apagan lo que levantaron.

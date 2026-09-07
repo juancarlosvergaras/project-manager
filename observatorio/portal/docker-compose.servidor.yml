@@ -1,5 +1,5 @@
 # Portal del Observatorio en el Mac mini.
-# Publica solo en 127.0.0.1:8100. El tunel (rutas.conf) enruta observatorio.proyectoia.org a este puerto.
+# Publica solo en 127.0.0.1:8100. El tunel (rutas.conf) enruta observatorioia.proyectoia.org a este puerto.
 # Los secretos se leen del archivo .env de esta misma carpeta (no se versiona).
 services:
   observatorio:
@@ -11,7 +11,7 @@ services:
       - "127.0.0.1:8100:8100"
     env_file: .env
     environment:
-      - URL_PUBLICA=https://observatorio.proyectoia.org
+      - URL_PUBLICA=https://observatorioia.proyectoia.org
       - PUERTO=8100
       - RUTA_BD=/app/datos/portal.sqlite
       # Los conectores se alcanzan por la red local del servidor, sin salir a internet.
