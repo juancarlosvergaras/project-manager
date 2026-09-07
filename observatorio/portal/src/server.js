@@ -24,7 +24,11 @@ function setCookie(res, nombre, valor, { maxAge = null, httpOnly = true } = {}) 
   res.appendHeader('Set-Cookie', partes.join('; '));
 }
 function html(res, cuerpo, estado = 200) {
-  res.writeHead(estado, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin' });
+  const cab = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin',
+    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()' };
+  if (config.urlPublica.startsWith('https://')) cab['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+  res.writeHead(estado, cab);
   res.end(cuerpo);
 }
 function redirigir(res, a) { res.writeHead(303, { Location: a }); res.end(); }
@@ -64,9 +68,12 @@ const servidor = http.createServer(async (req, res) => {
       if (!r.ok) return render(V.vistaIngreso({ apps: config.apps, error: r.error, usuarioPrevio: c.usuario }), 401);
       setCookie(res, COOKIE, firmarCookie(r.sesion.id), { maxAge: config.horasSesion * 3600 });
       const destino = url.searchParams.get('siguiente');
-      return redirigir(res, destino && destino.startsWith('/') ? destino : '/escritorio');
+      const seguro = destino && destino.startsWith('/') && !destino.startsWith('//') && !destino.includes('\\');
+      return redirigir(res, seguro ? destino : '/escritorio');
     }
     if (ruta === '/salir' && req.method === 'POST') {
+      const c = await leerCuerpo(req);
+      if (usuario && !csrfValido(usuario, c)) return redirigir(res, '/escritorio');
       if (usuario) { cerrarSesion(usuario.sesionId); auditar('salida', { usuarioId: usuario.id, ip }); }
       setCookie(res, COOKIE, '', { maxAge: 0 });
       return redirigir(res, '/ingresar');
