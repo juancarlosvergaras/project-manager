@@ -74,7 +74,7 @@ paso_portal() {
   existe_docker
   hacer mkdir -p "$DEST_PORTAL"
   # Copia del codigo sin pruebas ni datos. El .env existente se conserva.
-  for item in Dockerfile docker-compose.servidor.yml package.json README.md .env.example src; do
+  for item in Dockerfile docker-compose.servidor.yml package.json README.md .env.example src static; do
     hacer rm -rf "$DEST_PORTAL/$item"
     hacer cp -R "$REPO/portal/$item" "$DEST_PORTAL/$item"
   done
