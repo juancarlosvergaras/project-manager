@@ -1,0 +1,15 @@
+{
+  "name": "portal-observatorio-ia",
+  "version": "0.1.0",
+  "description": "Portal del Observatorio Nacional de Inteligencia Artificial. Ingreso unificado y recoleccion de datos de las aplicaciones del proyecto IA para el Estado.",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --no-warnings src/server.js",
+    "dev": "node --no-warnings --watch src/server.js",
+    "recolectar": "node --no-warnings src/cli.js recolectar",
+    "test": "bash test/e2e.sh"
+  },
+  "license": "UNLICENSED"
+}
