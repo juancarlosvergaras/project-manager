@@ -124,6 +124,7 @@
   <button type="button" class="tab" data-seccion="comportamiento">Comportamiento</button>
   <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
   <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
+  <button type="button" class="tab" data-seccion="descargar">Descargar</button>
 </nav>
 
 <main id="contenido">
@@ -235,6 +236,7 @@
         <li><b>Arcoíris</b>: colores que corren por filas o por columnas; el color elegido no cuenta.</li>
       </ul>
       <p class="nota">Los nombres vienen del firmware común de estos teclados; si en el tuyo alguno hace otra cosa, el modo sigue valiendo, solo cambia el nombre.</p>
+      <p class="nota"><b>Por Bluetooth las luces van apagadas.</b> Es cosa del firmware, que ahorra batería cuando no tiene el cable: por cable se encienden con el modo y el color grabados, y por Bluetooth no, sea cual sea el modo. No hay orden que lo cambie, y por Bluetooth tampoco se le puede mandar nada.</p>
     </div>
   </div>
 </section>
@@ -389,6 +391,24 @@
       <li><b>Comprueba</b> en «Comportamiento › Escuchar»: pulsa y mira qué llega.</li>
     </ol>
     <p class="nota">Este teclado lleva el mismo chip que el MiniMic y el SiKai mini y Windows los ve iguales, pero habla otro protocolo: no contesta nunca ni deja leer lo grabado. La Botonera lo distingue por el descriptor HID de su interfaz de fabricante (64 bytes frente a 63) y no le escribe nada al que no es suyo.</p>
+  </div>
+</section>
+
+<!-- =============================== DESCARGAR =============================== -->
+<section class="seccion" id="seccion-descargar">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">La Botonera en otro PC</h2>
+    <p class="editor-sub">El teclado se lleva a cualquier equipo y las teclas grabadas (Intro, Ctrl+C, volumen…) funcionan solas, por cable o por Bluetooth. Lo que necesita este servicio en ese equipo es la tecla de dictado, las teclas que abren aplicaciones y el panel para reprogramarlo. Una carpeta con Python dentro: no hay que instalar nada antes.</p>
+    <div class="acciones">
+      <a class="btn btn-verde" id="btn-descargar" href="https://teclado.proyectoia.org/descargas/Botonera.zip" download>Descargar Botonera.zip</a>
+      <span class="nota" id="nota-descarga"></span>
+    </div>
+    <ol class="lista-pasos" style="margin-top:1rem">
+      <li>Descárgalo, extrae la carpeta <b>Botonera</b> donde quieras tenerla y abre <b>Botonera.exe</b>. Hace la instalación guiada: crea la tarea que lo arranca con Windows y lo pone en marcha.</li>
+      <li>Si Windows avisa de «editor desconocido», elige «Más información › Ejecutar de todas formas»: no está firmado.</li>
+      <li>Abre <code>http://127.0.0.1:8773</code> en ese PC. Conecta el teclado por cable una vez para grabarle los tres perfiles.</li>
+      <li>Para que <b>ledblanco.proyectoia.org</b> pase a ese equipo cuando tenga el teclado, ponle clave al panel y ten Tailscale conectado: se presenta solo.</li>
+    </ol>
   </div>
 </section>
 

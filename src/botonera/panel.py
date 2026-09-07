@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 
 from sikaimini.protocolo import CONSUMO
 
-from . import __version__, dispositivo, lanzador, protocolo
+from . import __version__, dispositivo, empaquetado, lanzador, protocolo
 from .config import ATAJO_MICROFONO, ATAJOS_DE_FABRICA, PROGRAMAS, Ajustes, aplicar_atajos_de_dictado, ruta_registro
 from .servicio import Servicio
 
@@ -156,7 +156,13 @@ class PanelWeb:
             consulta = parse_qs(partes.query)
             extras: list[str] = []
 
-            if partes.path == "/api/salud":
+            if partes.path == "/descargar/" + empaquetado.NOMBRE_EXE and metodo == "GET":
+                # Sin clave a propósito: el zip no lleva secretos y es lo que
+                # uno se baja en un PC nuevo, antes de tener nada.
+                estado, tipo, datos = self._descarga()
+                if estado.startswith("200"):
+                    extras.append(f'Content-Disposition: attachment; filename="{empaquetado.NOMBRE_EXE}"')
+            elif partes.path == "/api/salud":
                 # Sin clave a propósito: es lo que pregunta el siguiente arranque
                 # para no abrir dos servicios sobre el mismo teclado.
                 estado, tipo, datos = self._json_ok({
@@ -277,6 +283,12 @@ class PanelWeb:
                 return self._error("409 Conflict", str(error))
         return self._estatico(ruta)
 
+    def _descarga(self) -> tuple[str, str, bytes]:
+        ruta = empaquetado.ruta_ejecutable()
+        if ruta is None:
+            return self._error("404 Not Found", "el zip no está construido en este equipo")
+        return "200 OK", "application/zip", ruta.read_bytes()
+
     @staticmethod
     def _json_ok(datos: Any) -> tuple[str, str, bytes]:
         return "200 OK", "application/json; charset=utf-8", json.dumps(datos, ensure_ascii=False, default=str).encode("utf-8")
@@ -334,6 +346,8 @@ class PanelWeb:
                 "escuchando_en": self.ajustes.host_panel,
                 "equipo": _nombre_del_equipo(),
             })
+        if ruta == "/api/paquete" and metodo == "GET":
+            return self._json_ok(empaquetado.resumen_ejecutable())
         if ruta == "/api/registro" and metodo == "GET":
             return self._json_ok({"ruta": str(ruta_registro()), "lineas": _cola_del_registro()})
         if ruta == "/api/ajustes":

@@ -181,6 +181,12 @@ def orden_tarea(args: argparse.Namespace) -> int:
     return 0 if hecho else 1
 
 
+def orden_asistente(args: argparse.Namespace) -> int:
+    from . import asistente
+
+    return asistente.ejecutar()
+
+
 def construir_analizador() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="botonera", description=f"{NOMBRE} {__version__}: el teclado de 12 teclas, 3 perillas y luces, en español.")
     p.add_argument("--registro", default="info", choices=["info", "detalle", "aviso"], help="cuánto contar en el registro")
@@ -210,6 +216,9 @@ def construir_analizador() -> argparse.ArgumentParser:
     c.add_argument("segundos", type=float, nargs="?", default=15)
     c.add_argument("--todo", action="store_true", help="también lo que venga de otros teclados")
     c.set_defaults(funcion=orden_escuchar)
+
+    i = sub.add_parser("asistente", help="instalación guiada: clave, tarea programada y arranque")
+    i.set_defaults(funcion=orden_asistente)
 
     r = sub.add_parser("tarea", help="crea (o quita) la tarea que arranca el servicio con Windows")
     r.add_argument("--host", default="")

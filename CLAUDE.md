@@ -386,6 +386,15 @@ flash) y el teclado quedaba a oscuras: «no funcionan los leds». Ahora
 (0,6 s) y manda las tres órdenes de luces; y cada tecla grabada sola va
 seguida de las luces de su perfil.
 
+**Por Bluetooth las luces van apagadas.** Firmware: ahorra batería sin
+cable. Por cable se encienden con lo grabado; por Bluetooth no, con cualquier
+modo, y por ahí tampoco se le puede mandar nada. El panel lo dice en Luces.
+
+**Instalador**: `python construir_botonera.py` → `dist/Botonera-<versión>.zip`
+(carpeta con Python dentro, `lanzador_botonera.py` es la entrada; el
+asistente es `botonera/asistente.py`). Se sirve desde
+`teclado.proyectoia.org/descargas/` y desde `/descargar/` del panel.
+
 **Por Bluetooth no llegan las F13-F24.** El descriptor HID del lado Bluetooth
 (VID/PID de Apple 05AC:022C) declara teclas solo hasta el código `0x65`
 (`19 00 29 65 … 25 65`) y Windows tira las demás; por cable el descriptor

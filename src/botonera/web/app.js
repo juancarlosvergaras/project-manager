@@ -265,6 +265,17 @@ function pintarAjustes(a) {
   $("#atajo_claude").value = atajos.claude || "";
 }
 
+function pintarPaquete(p) {
+  const boton = $("#btn-descargar");
+  if (p.disponible) {
+    boton.href = "/descargar/" + p.nombre;
+    boton.textContent = "Descargar " + p.nombre;
+    $("#nota-descarga").textContent = `${p.megas} MB, con Python dentro.`;
+  } else {
+    $("#nota-descarga").textContent = "Se descarga de teclado.proyectoia.org (en este equipo no está construido).";
+  }
+}
+
 function pintarOpciones(o) {
   estado.opciones = o;
   $("#tecla-base").innerHTML = "<option value=''>(solo modificadores)</option>" + o.teclas.map(t => `<option value="${t}">${nombreBonito(t)}</option>`).join("");
@@ -543,6 +554,7 @@ function escuchando() {
   escuchando();
   try {
     pintarAjustes(await pedir("/api/ajustes"));
+    pintarPaquete(await pedir("/api/paquete"));
   } catch (e) { /* ya se avisó */ }
   setInterval(() => { if ($("#chip-vivo").hidden) refrescar().catch(() => {}); }, 5000);
 })();
