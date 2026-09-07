@@ -43,7 +43,7 @@ function ipDe(req) { return (req.headers['x-forwarded-for'] || '').split(',')[0]
 // Token anti falsificacion ligado a la sesion.
 function csrfDe(sesionId) { return crypto.createHmac('sha256', config.claveSesion).update('csrf:' + sesionId).digest('base64url').slice(0, 32); }
 function csrfValido(usuario, cuerpo) { return usuario && cuerpo._csrf && cuerpo._csrf === csrfDe(usuario.sesionId); }
-function conCsrf(htmlStr, usuario) { return usuario ? htmlStr.replace(/<form method="post"/g, `<form method="post"`).replace(/(<form method="post"[^>]*>)/g, `$1<input type="hidden" name="_csrf" value="${csrfDe(usuario.sesionId)}">`) : htmlStr; }
+function conCsrf(htmlStr, usuario) { return usuario ? htmlStr.replace(/(<form\b[^>]*\bmethod="post"[^>]*>)/gi, `$1<input type="hidden" name="_csrf" value="${csrfDe(usuario.sesionId)}">`) : htmlStr; }
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, config.urlPublica);
