@@ -17,6 +17,8 @@ services:
       # Los conectores se alcanzan por la red local del servidor, sin salir a internet.
       - APP_SOLUCION_CONECTOR=http://host.docker.internal:8010/observatorio-conector
       - APP_CATALOGO_CONECTOR=http://host.docker.internal:8020/observatorio-conector
+      - APP_SOLUCION_CONECTOR_PUBLICO=https://solucion.proyectoia.org/observatorio-conector
+      - APP_CATALOGO_CONECTOR_PUBLICO=https://catalogoia.proyectoia.org/observatorio-conector
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

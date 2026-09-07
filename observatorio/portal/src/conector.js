@@ -66,8 +66,9 @@ export function crearTokenSso(app, { correo, idExterno, usuarioExterno, jti }) {
 }
 
 export function urlSso(app, token) {
-  const sep = app.conector.includes('?') ? '&' : '?';
-  return `${app.conector}${sep}accion=sso&token=${encodeURIComponent(token)}`;
+  const base = app.conectorPublico || app.conector;
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}accion=sso&token=${encodeURIComponent(token)}`;
 }
 
 // Pide un conjunto de datos de la aplicacion para el tablero.

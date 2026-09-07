@@ -25,7 +25,7 @@ El portal queda disponible en el puerto configurado. En producción debe colocar
 
 ## Configuración
 
-Cada aplicación se declara con cinco variables con el prefijo `APP_<CLAVE>_`. La clave es el identificador interno de la aplicación (por ejemplo SOLUCION o CATALOGO). El secreto debe ser el mismo que se configure en el conector de esa aplicación y debe tener al menos 64 caracteres aleatorios. Puede generarse con `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
+Cada aplicación se declara con variables con el prefijo `APP_<CLAVE>_`. `CONECTOR` es la dirección interna con la que el portal verifica claves y recolecta datos, y `CONECTOR_PUBLICO` la dirección pública que recibe el navegador para abrir la sesión en la aplicación. En el mismo servidor la interna va por `host.docker.internal` y el tráfico nunca sale a internet. La clave es el identificador interno de la aplicación (por ejemplo SOLUCION o CATALOGO). El secreto debe ser el mismo que se configure en el conector de esa aplicación y debe tener al menos 64 caracteres aleatorios. Puede generarse con `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
 
 La variable `ADMINISTRADORES` lista los correos que reciben el rol de administrador del portal al crear su cuenta. `MINUTOS_RECOLECCION` define cada cuánto se recolectan datos de las aplicaciones. Con 0 la recolección solo se ejecuta a mano desde la administración o con `npm run recolectar`.
 

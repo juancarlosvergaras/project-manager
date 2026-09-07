@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'kill $(jobs -p) 2>/dev/null || true; rm -rf "$T"' EXIT
 export RUTA_BD="$T/portal.sqlite" PUERTO=8100 URL_PUBLICA=http://127.0.0.1:8100 CLAVE_SESION=clave-de-prueba-suficientemente-larga-0123456789 MINUTOS_RECOLECCION=0
 export ADMINISTRADORES=jvergaras@unicartagena.edu.co
-export APP_SOLUCION_NOMBRE="Solución Automatizada" APP_SOLUCION_URL=http://127.0.0.1:8101 APP_SOLUCION_CONECTOR=http://127.0.0.1:8101/observatorio-conector APP_SOLUCION_SECRETO=secreto-solucion-prueba APP_SOLUCION_ORDEN=1
+export APP_SOLUCION_NOMBRE="Solución Automatizada" APP_SOLUCION_URL=http://127.0.0.1:8101 APP_SOLUCION_CONECTOR=http://127.0.0.1:8101/observatorio-conector APP_SOLUCION_CONECTOR_PUBLICO=http://localhost:8101/observatorio-conector APP_SOLUCION_SECRETO=secreto-solucion-prueba APP_SOLUCION_ORDEN=1
 export APP_CATALOGO_NOMBRE="Catálogo de IA" APP_CATALOGO_URL=http://127.0.0.1:8102 APP_CATALOGO_CONECTOR=http://127.0.0.1:8102/observatorio-conector APP_CATALOGO_SECRETO=secreto-catalogo-prueba APP_CATALOGO_ORDEN=2
 N="node --no-warnings"
 fallo() { echo "FALLO: $*"; exit 1; }
@@ -40,8 +40,10 @@ echo "ingreso al portal con el usuario y la clave de la Solución Automatizada"
 paso "Abrir la aplicación desde el portal con la sesión ya iniciada"
 DEST=$(curl -s -o /dev/null -w '%{redirect_url}' -b "$T/p.txt" http://127.0.0.1:8100/abrir/solucion)
 echo "$DEST" | grep -q 'accion=sso&token=' || fallo "el portal no redirigió al conector"
+echo "$DEST" | grep -q '^http://localhost:8101/' || fallo "la apertura de sesión debe usar la dirección PÚBLICA del conector, no la interna"
+echo "el navegador recibe la dirección pública del conector y el portal usa la interna para verificar"
 curl -s -c "$T/app1.txt" -o /dev/null -w '%{http_code}\n' "$DEST" | grep -q 303 || fallo "el conector no abrió la sesión"
-curl -s -b "$T/app1.txt" http://127.0.0.1:8101/ | grep -q "Sesión de: Julián" || fallo "la aplicación no reconoce la sesión abierta por el portal"
+curl -s -b "$T/app1.txt" http://localhost:8101/ | grep -q "Sesión de: Julián" || fallo "la aplicación no reconoce la sesión abierta por el portal"
 echo "la Solución Automatizada se abrió con la sesión de Julián iniciada, sin pedir clave"
 curl -s -o /dev/null -w '%{http_code}' "$DEST" | grep -q 401 || fallo "un token reutilizado debería rechazarse"
 echo "el token de un solo uso no puede reutilizarse"

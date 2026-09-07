@@ -30,6 +30,8 @@ function apps() {
       nombre: env[`APP_${c}_NOMBRE`] || c,
       url: (env[`APP_${c}_URL`] || '').replace(/\/$/, ''),
       conector: env[`APP_${c}_CONECTOR`] || '',
+      // Direccion que recibe el navegador del usuario para abrir la sesion. Si no se indica, es la misma interna.
+      conectorPublico: env[`APP_${c}_CONECTOR_PUBLICO`] || env[`APP_${c}_CONECTOR`] || '',
       secreto: env[`APP_${c}_SECRETO`] || '',
       orden: Number(env[`APP_${c}_ORDEN`] || 99),
     }))

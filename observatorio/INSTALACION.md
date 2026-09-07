@@ -22,6 +22,24 @@ Tabla 1. Componentes de la instalación. Fuente. Elaboración propia.
 
 Docker con Compose (OrbStack en el Mac mini) y el túnel de cloudflared que ya publica las demás aplicaciones. Nada más. El portal no requiere Node ni Python instalados en el servidor porque corre en su contenedor.
 
+## 2a. Instalación asistida con un solo script
+
+La carpeta `despliegue` contiene `instalar.sh`, que ejecuta cada uno de los pasos siguientes con comprobaciones, copias de seguridad y reversa, de modo que el ingeniero de sistemas no necesite editar archivos a mano. Cada paso se puede repetir sin daño y se puede deshacer con la orden `revertir`. Los conectores no se agregan editando el compose de cada aplicación, sino con un archivo de superposición que se suma al original mediante una segunda opción `-f`, así que el compose de la aplicación queda intacto y retirar el conector consiste en volver a levantar el servicio sin esa superposición.
+
+```bash
+cd ~/Servidor/observatorio-portal/observatorio
+bash despliegue/instalar.sh estado                 # qué hay instalado y qué responde
+bash despliegue/instalar.sh portal                 # copia, crea .env con claves nuevas y levanta el contenedor
+bash despliegue/instalar.sh tunel --recargar       # agrega la línea a rutas.conf y ejecuta scripts/tunel.sh
+bash despliegue/instalar.sh boton                  # enlaza el Observatorio desde la página principal
+bash despliegue/instalar.sh conector solucion      # conector de la Solución, apagado
+bash despliegue/instalar.sh conector catalogo      # conector del Catálogo, apagado
+bash despliegue/instalar.sh encender solucion      # cuando se autorice
+bash despliegue/instalar.sh encender catalogo
+```
+
+Con `SIMULAR=1` delante de cualquier orden el script muestra lo que haría sin ejecutar docker ni escribir en el servidor, lo que sirve para revisar cada paso antes de aplicarlo. Las secciones siguientes describen a mano lo que el script hace, para quien prefiera hacerlo paso a paso o necesite entenderlo.
+
 ## 3. Instalación del portal (sin tocar las aplicaciones)
 
 Copie la carpeta `observatorio/portal` de este repositorio a `~/Servidor/apps/observatorio` y ejecute lo siguiente desde esa carpeta.
@@ -36,7 +54,7 @@ curl -s http://127.0.0.1:8100/salud
 
 La última orden debe responder con `{"ok":true,...}`. En este punto el portal está en el puerto 8100 del servidor, con su propia base de datos en un volumen, y todavía no puede verificar claves porque ningún conector está encendido. Eso es lo esperado.
 
-Los valores de `.env` que hay que completar son `CLAVE_SESION`, `ADMINISTRADORES` (correos que serán administradores del portal), `APP_SOLUCION_SECRETO` y `APP_CATALOGO_SECRETO`. Las direcciones de los conectores ya vienen en el compose apuntando a los puertos 8010 y 8020 del servidor por `host.docker.internal`, de modo que el tráfico entre portal y aplicaciones no sale a internet.
+Los valores de `.env` que hay que completar son `CLAVE_SESION`, `ADMINISTRADORES` (correos que serán administradores del portal), `APP_SOLUCION_SECRETO` y `APP_CATALOGO_SECRETO`. Las direcciones internas de los conectores ya vienen en el compose apuntando a los puertos 8010 y 8020 del servidor por `host.docker.internal`, de modo que el tráfico entre portal y aplicaciones no sale a internet. Las direcciones públicas, que son las que recibe el navegador del usuario para abrir la sesión en cada aplicación, también vienen en el compose y corresponden a los subdominios de cada una.
 
 ## 4. Publicar el portal en el túnel
 
