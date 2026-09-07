@@ -1,0 +1,31 @@
+# Portal del Observatorio en el Mac mini.
+# Publica solo en 127.0.0.1:8100. El tunel (rutas.conf) enruta observatorio.proyectoia.org a este puerto.
+# Los secretos se leen del archivo .env de esta misma carpeta (no se versiona).
+services:
+  observatorio:
+    build: .
+    image: observatorio-portal:0.1
+    container_name: observatorio
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8100:8100"
+    env_file: .env
+    environment:
+      - URL_PUBLICA=https://observatorio.proyectoia.org
+      - PUERTO=8100
+      - RUTA_BD=/app/datos/portal.sqlite
+      # Los conectores se alcanzan por la red local del servidor, sin salir a internet.
+      - APP_SOLUCION_CONECTOR=http://host.docker.internal:8010/observatorio-conector
+      - APP_CATALOGO_CONECTOR=http://host.docker.internal:8020/observatorio-conector
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - observatorio_datos:/app/datos
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8100/salud"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  observatorio_datos:
