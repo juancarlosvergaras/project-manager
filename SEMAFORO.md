@@ -32,6 +32,14 @@ con un AhaKey; para cualquier otro aparato, usa los que quieras.
 Los dos que de verdad importan son el **1** y el **6**: «te estoy esperando» y
 «he terminado». Si solo puedes representar dos colores, que sean esos.
 
+**Y mira todas las sesiones a la vez, no el último evento.** Cowork, Code y la
+terminal se presentan todas como «claude». Si enseñas el último evento, la
+sesión que ejecuta herramientas cada dos segundos por detrás tapa a la que te
+pide permiso delante. Lleva cada sesión (`session_id`) por separado y enseña el
+conjunto: **si alguna te espera, ámbar** (terminó su turno o pide permiso,
+hasta que le contestes o pasen unos minutos); si no y alguna trabaja, azul;
+si no, reposo. TecladoIA lo hace así desde el 9/9/2026.
+
 ---
 
 ## Qué evento dispara cada momento

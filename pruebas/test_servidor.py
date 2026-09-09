@@ -236,7 +236,22 @@ class PruebaBarraEnReposo(PruebaAislada):
         asyncio.run(caso())
 
     def test_un_momento_pasajero_vuelve_solo_al_reposo(self):
-        """Los demas momentos pasajeros si se apagan: no hay trabajo detras."""
+        """Un aviso suelto se apaga: no hay trabajo detras ni nadie esperando."""
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await servidor.procesar(
+                json.dumps({"orden": "evento", "agente": "claude",
+                            "evento": "Notification"})
+            )
+            await asyncio.sleep(0.02)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.NOTIFICACION))
+            await asyncio.sleep(0.15)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
+        asyncio.run(caso())
+
+    def test_tras_una_peticion_la_barra_sigue_en_curso(self):
+        """Mandarle algo al agente es ponerlo a trabajar: tras la onda, azul."""
         async def caso():
             servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
             await gestor.conectar()
@@ -247,8 +262,7 @@ class PruebaBarraEnReposo(PruebaAislada):
             await asyncio.sleep(0.02)
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.PETICION_ENVIADA))
             await asyncio.sleep(0.15)
-            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
-            self.assertIsNone(servidor.agente_activo)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO))
         asyncio.run(caso())
 
     def test_un_momento_sostenido_no_se_apaga_antes_de_tiempo(self):
@@ -313,11 +327,10 @@ class PruebaBarraEnReposo(PruebaAislada):
                 "al terminar tiene que verse el verde",
             )
 
-            # Y pasado el momento, a reposo: si no, se queda verde para siempre
-            # contando una tarea que acabo hace rato.
+            # Y pasado el momento, «te toca»: la sesion termino y te espera.
+            # Verde para siempre, no; ambar hasta que le contestes, si.
             await asyncio.sleep(0.12)
-            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
-            self.assertIsNone(servidor.agente_activo)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
         asyncio.run(caso())
 
     def test_el_verde_dura_mas_que_los_demas_momentos(self):
@@ -346,7 +359,7 @@ class PruebaBarraEnReposo(PruebaAislada):
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA))
             await asyncio.sleep(0.15)
             self.assertEqual(
-                simulado.ultimo_estado, int(EstadoIA.DETENIDO),
+                simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION),
                 "se uso el plazo de los otros momentos en vez del suyo",
             )
         asyncio.run(caso())
@@ -454,3 +467,93 @@ class PruebaStopEsTerminar(PruebaAislada):
         from tecladoia.servidor import ESTADOS_BREVES
 
         self.assertIn(EstadoIA.TAREA_COMPLETADA, ESTADOS_BREVES)
+
+
+class PruebaSemaforoPorSesion(unittest.TestCase):
+    """Varias sesiones «claude» a la vez: la barra enseña lo que importa del conjunto."""
+
+    def montar(self, **opciones):
+        simulado = TransporteSimulado(palanca=1)
+        ajustes = Ajustes(sincronizar_config_agentes=False, **opciones)
+        for modo in ajustes.modos:
+            modo.agente = ""
+        gestor = GestorTeclado(ajustes, simulado)
+        return ServidorEnganches(gestor, ajustes), gestor, simulado
+
+    @staticmethod
+    def evento(servidor, nombre, sesion, tipo=None, cwd=None):
+        contexto = {"sesion": sesion}
+        if tipo:
+            contexto["tipo"] = tipo
+        if cwd:
+            contexto["ruta"] = cwd
+        return servidor.procesar(json.dumps(
+            {"orden": "evento", "agente": "claude", "evento": nombre, "contexto": contexto}
+        ))
+
+    def test_la_sesion_que_te_espera_gana_a_la_que_trabaja(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30, milisegundos_tarea_completada=30)
+            await gestor.conectar()
+            await self.evento(servidor, "Stop", "cowork")          # Cowork termino: te toca
+            await asyncio.sleep(0.1)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            await self.evento(servidor, "PreToolUse", "code")      # otra sesion trabaja por detras
+            await asyncio.sleep(0.02)
+            self.assertEqual(
+                simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION),
+                "el trabajo de otra sesion no debe tapar que Cowork te espera",
+            )
+            await self.evento(servidor, "PostToolUse", "code")
+            await asyncio.sleep(0.1)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+        asyncio.run(caso())
+
+    def test_contestar_a_la_sesion_apaga_el_te_toca(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30, milisegundos_tarea_completada=30)
+            await gestor.conectar()
+            await self.evento(servidor, "Stop", "cowork")
+            await asyncio.sleep(0.1)
+            self.assertTrue(servidor.resumen_actividad()["te_toca"])
+            await self.evento(servidor, "UserPromptSubmit", "cowork")
+            await asyncio.sleep(0.1)
+            self.assertFalse(servidor.resumen_actividad()["te_toca"])
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.HERRAMIENTA_EN_CURSO))
+        asyncio.run(caso())
+
+    def test_el_aviso_de_permiso_es_te_toca_y_no_un_parpadeo(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await self.evento(servidor, "Notification", "cowork", tipo="permission_prompt")
+            await asyncio.sleep(0.05)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            await asyncio.sleep(0.15)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION), "se sostiene")
+        asyncio.run(caso())
+
+    def test_te_toca_caduca(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(
+                milisegundos_estado_breve=30, milisegundos_tarea_completada=30,
+                minutos_te_toca=0, segundos_hasta_reposo=5,
+            )
+            await gestor.conectar()
+            await self.evento(servidor, "Stop", "cowork")
+            await asyncio.sleep(0.1)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO), "con 0 minutos, caduca al instante")
+        asyncio.run(caso())
+
+    def test_el_panel_ve_las_sesiones(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await self.evento(servidor, "PreToolUse", "abc12345", cwd="C:/Proyectos/Teclado Ahakey")
+            await self.evento(servidor, "Stop", "def67890", cwd="/home/juan/observatorio")
+            resumen = servidor.resumen_actividad()
+            nombres = {s["nombre"]: s for s in resumen["sesiones"]}
+            self.assertIn("Teclado Ahakey · abc12345", nombres)
+            self.assertTrue(nombres["observatorio · def67890"]["espera"])
+            self.assertFalse(nombres["Teclado Ahakey · abc12345"]["espera"])
+        asyncio.run(caso())

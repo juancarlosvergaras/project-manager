@@ -56,6 +56,16 @@ ESTADOS_BREVES = frozenset(
 #: Momentos que ya son de reposo: no hace falta programar nada tras ellos.
 ESTADOS_TRANQUILOS = frozenset({EstadoIA.DETENIDO, EstadoIA.SESION_FINALIZADA})
 
+#: Momentos en los que el agente está trabajando de verdad: con uno de estos
+#: reciente en alguna sesión, la barra enseña «en curso» aunque otra sesión
+#: haya terminado un instante antes.
+ESTADOS_DE_TRABAJO = frozenset(
+    {EstadoIA.HERRAMIENTA_EN_CURSO, EstadoIA.HERRAMIENTA_TERMINADA, EstadoIA.PETICION_ENVIADA}
+)
+
+#: Tipos de «Notification» de Claude que significan «te está esperando a ti».
+TIPOS_QUE_ESPERAN = ("permission", "idle", "waiting", "elicitation")
+
 _ESTADOS_HEREDADOS = {
     "SessionStart": EstadoIA.SESION_INICIADA,
     "SessionEnd": EstadoIA.SESION_FINALIZADA,
@@ -75,6 +85,14 @@ _ESTADOS_HEREDADOS = {
     "UserPromptSubmit": EstadoIA.PETICION_ENVIADA,
     "PermissionRequest": EstadoIA.ESPERANDO_APROBACION,
 }
+
+
+def _nombre_de_sesion(s: dict[str, Any]) -> str:
+    """Algo que se pueda leer: la carpeta de trabajo y el principio del id."""
+    ruta = s.get("ruta") or ""
+    carpeta = ruta.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1] if ruta else ""
+    sesion = (s.get("sesion") or "")[:8]
+    return " · ".join(p for p in (carpeta, sesion) if p) or "sesión sin nombre"
 
 
 class ServidorEnganches:
@@ -109,6 +127,13 @@ class ServidorEnganches:
         self.avisos: list[dict[str, Any]] = []
         #: Lo último que se le vio al teclado, para avisar solo de lo que cambia.
         self._ultimo_resumen: dict[str, Any] = {}
+        #: Una entrada por sesión de agente (Cowork, Code, la terminal…), con su
+        #: último momento y si te está esperando. **La barra enseña el
+        #: conjunto, no el último evento**: todas las sesiones se llaman
+        #: «claude» y sin esto la que ejecuta herramientas cada dos segundos
+        #: —una sesión de Code en segundo plano— tapaba a la que te pedía
+        #: permiso en Cowork. Visto el 9/9/2026.
+        self.sesiones: dict[str, dict[str, Any]] = {}
         self.gestor.observar(self._al_cambiar_el_teclado)
 
     # --- ciclo de vida --------------------------------------------------
@@ -179,13 +204,27 @@ class ServidorEnganches:
 
     def resumen_actividad(self) -> dict[str, Any]:
         """Quién movió la barra por última vez y hace cuánto."""
+        ahora = time.monotonic()
         return {
             "agente_activo": self.agente_activo,
             "segundos_sin_eventos": (
-                round(time.monotonic() - self.ultimo_evento_en, 1)
+                round(ahora - self.ultimo_evento_en, 1)
                 if self.ultimo_evento_en
                 else None
             ),
+            "te_toca": self._quien_espera() is not None,
+            "sesiones": [
+                {
+                    "clave": clave,
+                    "agente": s["agente"],
+                    "estado": s["estado"].etiqueta,
+                    "espera": s["espera"],
+                    "hace_s": round(ahora - s["cuando"], 1),
+                    "ruta": s.get("ruta") or "",
+                    "nombre": _nombre_de_sesion(s),
+                }
+                for clave, s in sorted(self.sesiones.items(), key=lambda kv: -kv[1]["cuando"])
+            ][:8],
         }
 
     # --- atención de clientes -------------------------------------------
@@ -286,7 +325,7 @@ class ServidorEnganches:
         contexto = self._contexto(peticion, agente.id, evento)
 
         # La luz no debe retrasar la respuesta: se actualiza en paralelo.
-        self._marcar_actividad(agente.id, evento)
+        self._marcar_actividad(agente.id, evento, contexto)
 
         veredicto: Optional[Veredicto] = None
         if evento.permiso:
@@ -315,6 +354,7 @@ class ServidorEnganches:
             comando=crudo.get("comando") or crudo.get("command"),
             ruta=crudo.get("ruta") or crudo.get("cwd"),
             sesion=crudo.get("sesion") or crudo.get("session_id"),
+            tipo=crudo.get("tipo") or crudo.get("notification_type"),
         )
 
     async def _decidir(self, contexto: Contexto) -> Veredicto:
@@ -382,29 +422,50 @@ class ServidorEnganches:
             )
 
     # --- la barra de luz -------------------------------------------------
-    def _marcar_actividad(self, agente_id: str, evento: EventoEnganche) -> None:
+    def _marcar_actividad(
+        self, agente_id: str, evento: EventoEnganche, contexto: Optional[Contexto] = None
+    ) -> None:
         """Refleja el momento del agente y decide cuánto debe durar en pantalla.
 
         Sin esto la barra se queda con la última animación para siempre: el
         teclado no sabe qué programa tienes delante ni cuándo se cerró, así que
         si un agente termina sin avisar -o simplemente cambias de ventana- las
         luces seguirían moviéndose como si aún estuviera trabajando.
+
+        Y hay más de una sesión a la vez —Cowork, Code, una terminal— y todas
+        se presentan como «claude». Aquí se lleva cada una por separado y la
+        barra enseña lo que importa del conjunto: **si alguna te espera, ámbar,
+        aunque otra siga trabajando**; si ninguna espera y alguna trabaja,
+        azul; si no, reposo.
         """
-        self._anotar_actividad(agente_id, evento.estado)
+        estado = evento.estado
+        tipo = (getattr(contexto, "tipo", "") or "").lower()
+        if estado is EstadoIA.NOTIFICACION and any(t in tipo for t in TIPOS_QUE_ESPERAN):
+            # «Claude necesita tu permiso» o «lleva un rato esperando tu
+            # respuesta» son avisos que significan «te toca», no un parpadeo.
+            estado = EstadoIA.ESPERANDO_APROBACION
+
+        self._anotar_actividad(agente_id, estado)
+        self._anotar_sesion(agente_id, estado, contexto)
         # Se lleva la cuenta pase lo que pase —quién habló y cuándo— pero la
         # barra solo la toca el programa que manda en el modo puesto. Si estás
         # en el modo de ChatGPT, lo que haga Claude Code por detrás no debe
         # encenderte la luz: enseñaría algo que no estás mirando.
         le_toca = self._le_toca_a_este_modo(agente_id)
-        self._anotar_aviso(agente_id, evento.interno, evento.estado, atendido=le_toca)
+        self._anotar_aviso(agente_id, evento.interno, estado, atendido=le_toca, contexto=contexto)
         if le_toca:
-            self._en_segundo_plano(self.gestor.enviar_estado_ia(evento.estado))
+            if estado in ESTADOS_BREVES:
+                # Un momento pasajero se enseña tal cual…
+                self._en_segundo_plano(self.gestor.enviar_estado_ia(estado))
+            else:
+                # …y uno sostenido se enseña salvo que alguien te esté esperando.
+                self._en_segundo_plano(self._enviar(self._estado_agregado(preferido=estado)))
             # Manos libres: el agente del modo ha terminado, así que se avisa
             # a quien sepa abrir el micrófono. Se pide el mismo permiso que
             # para encender la luz —tiene que ser el dueño del modo puesto—,
             # porque abrirte el dictado sobre una ventana que no estás mirando
             # sería peor que no abrirlo.
-            if evento.estado is EstadoIA.TAREA_COMPLETADA and self.al_terminar_el_dueno:
+            if estado is EstadoIA.TAREA_COMPLETADA and self.al_terminar_el_dueno:
                 try:
                     self.al_terminar_el_dueno(agente_id)
                 except Exception:  # noqa: BLE001 - esto nunca tumba un evento
@@ -414,33 +475,92 @@ class ServidorEnganches:
             self._reposo.cancel()
             self._reposo = None
 
-        if evento.estado in ESTADOS_TRANQUILOS:
+        if estado in ESTADOS_TRANQUILOS:
             self.agente_activo = None
-        elif evento.estado in ESTADOS_BREVES:
+        elif estado in ESTADOS_BREVES:
             # El verde del final dura mas que los demas momentos pasajeros: es
             # el que de verdad quieres tener tiempo de ver, y ademas ocurre una
             # vez por turno, no cien veces como «herramienta terminada».
             milisegundos = (
                 getattr(self.ajustes, "milisegundos_tarea_completada", None)
-                if evento.estado is EstadoIA.TAREA_COMPLETADA
+                if estado is EstadoIA.TAREA_COMPLETADA
                 else None
             ) or self.ajustes.milisegundos_estado_breve
-            # Entre herramienta y herramienta el agente **sigue trabajando**,
-            # asi que la barra no debe apagarse: vuelve a «en curso», no a
-            # reposo. Antes parpadeaba azul-apagado veinte veces por turno,
-            # que es mucho movimiento para no decir nada; y encima ahogaba los
-            # dos momentos que si importan —te espera, y ha terminado—.
-            #
-            # El reposo de verdad lo pone el vigilante de inactividad cuando
-            # el agente lleva un rato callado, o «Stop» cuando acaba.
-            despues = (
-                EstadoIA.HERRAMIENTA_EN_CURSO
-                if evento.estado is EstadoIA.HERRAMIENTA_TERMINADA
-                else None
-            )
+            # Pasado el momento, la barra enseña lo que toque según todas las
+            # sesiones: «te toca» si alguna espera (el propio Stop deja a la
+            # suya esperándote), «en curso» si otra sigue trabajando, o reposo.
             self._reposo = asyncio.create_task(
-                self._volver_al_reposo(milisegundos / 1000, despues)
+                self._volver_al_reposo(milisegundos / 1000)
             )
+
+    def _anotar_sesion(self, agente_id: str, estado: EstadoIA, contexto: Optional[Contexto]) -> None:
+        clave = (getattr(contexto, "sesion", None) or agente_id or "?")
+        if estado is EstadoIA.SESION_FINALIZADA:
+            self.sesiones.pop(clave, None)
+            return
+        # «Te toca» cuando termina el turno o pide permiso; deja de tocarte en
+        # cuanto le contestas (petición enviada) o sigue trabajando.
+        espera = estado in (EstadoIA.TAREA_COMPLETADA, EstadoIA.ESPERANDO_APROBACION)
+        self.sesiones[clave] = {
+            "agente": agente_id,
+            "estado": estado,
+            "espera": espera,
+            "cuando": time.monotonic(),
+            "ruta": getattr(contexto, "ruta", None),
+            "sesion": getattr(contexto, "sesion", None),
+        }
+        # Sesiones muy viejas se olvidan, para que el panel no las enseñe eternamente.
+        limite = max(self.ajustes.minutos_te_toca * 60, self.ajustes.segundos_hasta_reposo) * 3
+        ahora = time.monotonic()
+        for k in [k for k, s in self.sesiones.items() if ahora - s["cuando"] > limite]:
+            self.sesiones.pop(k, None)
+
+    def _quien_espera(self) -> Optional[str]:
+        """La clave de alguna sesión que te esté esperando, si la hay y no ha caducado."""
+        ahora = time.monotonic()
+        plazo = max(0, self.ajustes.minutos_te_toca) * 60
+        for clave, s in self.sesiones.items():
+            if s["espera"] and ahora - s["cuando"] < plazo:
+                return clave
+        return None
+
+    def _alguien_trabaja(self) -> bool:
+        ahora = time.monotonic()
+        limite = self.ajustes.segundos_hasta_reposo
+        # Si hace mucho que no llega nada de nadie, nadie trabaja, digan lo que
+        # digan las marcas por sesión (es lo que mira el vigilante de siempre).
+        if self.ultimo_evento_en and ahora - self.ultimo_evento_en >= limite:
+            return False
+        return any(
+            not s["espera"]
+            and s["estado"] in ESTADOS_DE_TRABAJO
+            and ahora - s["cuando"] < limite
+            for s in self.sesiones.values()
+        )
+
+    def _estado_agregado(self, preferido: Optional[EstadoIA] = None) -> EstadoIA:
+        """Lo que debe enseñar la barra mirando todas las sesiones a la vez."""
+        if self._quien_espera() is not None:
+            return EstadoIA.ESPERANDO_APROBACION
+        if preferido is not None and preferido not in ESTADOS_TRANQUILOS and preferido not in ESTADOS_BREVES:
+            return preferido
+        if self._alguien_trabaja():
+            return EstadoIA.HERRAMIENTA_EN_CURSO
+        return ESTADO_EN_REPOSO
+
+    async def _enviar(self, estado: EstadoIA) -> None:
+        """Manda un estado sostenido al teclado, anotándolo solo si cambia."""
+        if estado is not self._ultimo_estado_registrado:
+            self._ultimo_estado_registrado = estado
+            _log.info("Barra: %s", estado.etiqueta)
+        await self.gestor.enviar_estado_ia(estado)
+
+    async def _refrescar_barra(self, motivo: str) -> None:
+        estado = self._estado_agregado()
+        if estado is ESTADO_EN_REPOSO:
+            await self._apagar_la_barra(motivo)
+            return
+        await self._enviar(estado)
 
     def _anotar_actividad(self, agente_id: str, estado: EstadoIA) -> None:
         self.agente_activo = agente_id
@@ -452,21 +572,20 @@ class ServidorEnganches:
             _log.info("%s → %s", agente_id, estado.etiqueta)
 
     async def _volver_al_reposo(self, espera_s: float, despues=None) -> None:
-        """Pasado el momento, a reposo — o a lo que se diga.
+        """Pasado el momento, lo que toque según todas las sesiones.
 
-        ``despues`` sirve para los momentos que ocurren **mientras** el agente
-        trabaja: al acabar una herramienta no se apaga la barra, se vuelve a
-        «en curso», porque el trabajo no ha terminado.
+        Al acabar una herramienta el trabajo sigue y la barra vuelve a «en
+        curso»; al terminar el turno, la sesión queda esperándote y la barra
+        pasa a ámbar; y si nadie espera ni trabaja, reposo.
         """
         try:
             await asyncio.sleep(espera_s)
         except asyncio.CancelledError:
             return
         if despues is not None:
-            self._ultimo_estado_registrado = despues
-            await self.gestor.enviar_estado_ia(despues)
+            await self._enviar(despues)
             return
-        await self._apagar_la_barra("el momento era pasajero")
+        await self._refrescar_barra("el momento era pasajero")
 
     async def _vigilar_inactividad(self) -> None:
         """Devuelve la barra al reposo cuando nadie dice nada durante un rato.
@@ -480,10 +599,21 @@ class ServidorEnganches:
         try:
             while True:
                 await asyncio.sleep(paso)
-                if self.agente_activo is None or not self.ultimo_evento_en:
+                if self._reposo is not None and not self._reposo.done():
+                    continue  # hay un momento pasajero en pantalla; que termine
+                if self._ultimo_estado_registrado in (None, ESTADO_EN_REPOSO) and not self.sesiones:
                     continue
-                if time.monotonic() - self.ultimo_evento_en >= limite:
-                    await self._apagar_la_barra(f"{limite} s sin noticias de {self.agente_activo}")
+                agregado = self._estado_agregado()
+                if agregado is self._ultimo_estado_registrado:
+                    continue
+                if agregado is ESTADO_EN_REPOSO:
+                    if self.agente_activo is None and self._ultimo_estado_registrado in (None, ESTADO_EN_REPOSO):
+                        continue
+                    quien = self.agente_activo or "nadie"
+                    await self._apagar_la_barra(f"{limite} s sin noticias de {quien}")
+                else:
+                    # Alguien te espera y la barra no lo decía (o dejó de esperarte).
+                    await self._enviar(agregado)
         except asyncio.CancelledError:
             return
 
@@ -595,7 +725,8 @@ class ServidorEnganches:
         self.bus.publicar("estado", resumen)
 
     def _anotar_aviso(
-        self, agente: str, evento: str, estado: EstadoIA, atendido: bool = True
+        self, agente: str, evento: str, estado: EstadoIA, atendido: bool = True,
+        contexto: Optional[Contexto] = None,
     ) -> None:
         """Deja constancia de qué llegó y qué luz encendió."""
         from datetime import datetime
@@ -608,6 +739,10 @@ class ServidorEnganches:
             "estado": estado.etiqueta,
             "efecto": efecto.etiqueta if efecto is not None else "—",
             "atendido": atendido,
+            "sesion": _nombre_de_sesion({
+                "ruta": getattr(contexto, "ruta", None), "sesion": getattr(contexto, "sesion", None),
+            }),
+            "tipo": getattr(contexto, "tipo", None) or "",
         }
         self.avisos.append(entrada)
         del self.avisos[:-40]

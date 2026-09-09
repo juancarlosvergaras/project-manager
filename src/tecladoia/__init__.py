@@ -29,5 +29,5 @@ import sys as _sys
 # aquí**: si ``comtypes`` se importa antes, ya no hay nada que hacer.
 _sys.coinit_flags = 0
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __all__ = ["__version__"]

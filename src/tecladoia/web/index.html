@@ -7,6 +7,17 @@
 <meta name="description" content="Configura tu teclado AhaKey X1 y decide qué puede hacer solo un agente de inteligencia artificial.">
 <link rel="stylesheet" href="/estilo.css">
 <link rel="icon" href="/icono.svg" type="image/svg+xml">
+<style>
+  .banda.te-toca{border-color:var(--duda);background:var(--duda-suave);color:var(--duda);font-weight:600}
+  .sesiones{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+  .sesiones li{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;font-size:.9rem;padding:.45rem .7rem;border:1px solid var(--borde);border-radius:10px}
+  .sesiones li.espera{border-color:var(--duda);background:var(--duda-suave)}
+  .sesiones .punto{width:.6rem;height:.6rem;border-radius:50%;background:var(--tenue);flex:none}
+  .sesiones li.espera .punto{background:var(--duda)}
+  .sesiones li.trabaja .punto{background:var(--azul)}
+  .sesiones .nombre{font-weight:600}
+  .sesiones .detalle{color:var(--tenue);font-size:.82rem}
+</style>
 </head>
 <body>
 
@@ -32,6 +43,10 @@
       <div class="indicador" id="ind-palanca">
         <span class="ind-etiqueta">Palanca</span>
         <span class="ind-valor" id="ind-palanca-valor">—</span>
+      </div>
+      <div class="indicador" id="ind-agente" title="Lo que enseña la barra, mirando todas las sesiones a la vez">
+        <span class="ind-etiqueta">Agente</span>
+        <span class="ind-valor" id="ind-agente-valor">—</span>
       </div>
     </div>
   </div>
@@ -64,6 +79,11 @@
 <section class="seccion activa" id="seccion-teclado">
   <div id="zona-pendientes" class="pendientes" aria-live="assertive"></div>
   <div id="aviso-sin-teclado" class="banda" hidden></div>
+  <div id="te-toca" class="banda" hidden></div>
+  <div class="tarjeta" id="tarjeta-sesiones" hidden>
+    <p class="bloque-titulo">Sesiones de los agentes (Cowork, Code, terminal…). La barra enseña el conjunto: <b>ámbar si alguna te espera</b>, azul si alguna trabaja, reposo si no.</p>
+    <ul class="sesiones" id="sesiones"></ul>
+  </div>
 
   <div class="taller">
 

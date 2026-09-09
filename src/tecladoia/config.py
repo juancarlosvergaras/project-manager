@@ -227,6 +227,11 @@ class Ajustes:
     #: y alargarlo dejaría la barra siempre por detrás, mientras que el verde
     #: del final es justo el que quieres tener tiempo de ver.
     milisegundos_tarea_completada: int = 5000
+    #: Cuántos minutos se sostiene «te toca» (ámbar) después de que un agente
+    #: termine o pida permiso, si no le contestas. Pasado ese tiempo, reposo:
+    #: una sesión abandonada no debe dejar la barra pidiendo atención toda
+    #: la noche.
+    minutos_te_toca: int = 10
 
     palanca_fija: Optional[int] = None
 

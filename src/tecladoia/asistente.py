@@ -172,6 +172,67 @@ def abrir_en_el_navegador(url: str) -> bool:
         return False
 
 
+def detener_servicios_anteriores() -> int:
+    """Para cualquier TecladoIA que quede vivo. Devuelve cuántos paró.
+
+    Al reinstalar encima, el servicio viejo seguía en marcha y el nuevo, al
+    arrancar, veía que «ya hay otro» y se retiraba: uno se quedaba con el
+    código de antes creyendo que había actualizado.
+    """
+    if os.name != "nt":
+        return 0
+    guion = (
+        "$mio = $PID; Get-CimInstance Win32_Process | Where-Object { "
+        "($_.Name -like 'python*' -or $_.Name -like 'TecladoIA*') -and $_.ProcessId -ne $mio "
+        "-and $_.CommandLine -like '*tecladoia*servicio*' } | ForEach-Object { "
+        "Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }"
+    )
+    try:
+        hecho = subprocess.run(["powershell", "-NoProfile", "-Command", guion], capture_output=True, text=True,
+                               timeout=40, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except Exception:  # noqa: BLE001
+        return 0
+    subprocess.run(["schtasks", "/End", "/TN", TAREA], capture_output=True, text=True,
+                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    return len([l for l in hecho.stdout.split() if l.strip().isdigit()])
+
+
+def arrancar_ahora(host: str = "") -> bool:
+    """Arranca el servicio ya, sin esperar al programador de tareas ni abrir consola."""
+    if os.name != "nt":
+        return False
+    ejecutable, argumentos = ejecutable_y_argumentos("servicio" + (f" --host {host}" if host else ""))
+    try:
+        subprocess.Popen(
+            [ejecutable, *argumentos.split()] if argumentos else [ejecutable],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            cwd=str(Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path.cwd()),
+            creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def esperar_al_servicio(puerto: int, plazo_s: float = 30.0) -> str:
+    """La versión del servicio que contesta en /api/estado (en local no pide clave), o «»."""
+    import json
+    import time
+    import urllib.request
+
+    limite = time.monotonic() + plazo_s
+    while time.monotonic() < limite:
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{puerto}/api/estado", timeout=2) as r:
+                datos = json.loads(r.read().decode("utf-8"))
+            if isinstance(datos, dict) and "estado" in datos:
+                return str(datos.get("servicio", {}).get("version") or "en marcha")
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(0.5)
+    return ""
+
+
 def ejecutar(preguntar=input, escribir=print) -> int:
     """El asistente completo. Se le pueden pasar otras funciones para probarlo."""
     escribir("")
@@ -229,10 +290,27 @@ def ejecutar(preguntar=input, escribir=print) -> int:
 
     # --- 4. Que arranque solo -----------------------------------------
     escribir("")
+    escribir("==> Parando lo que hubiera de antes")
+    parados = detener_servicios_anteriores()
+    escribir(f"    [ok] {parados} servicio(s) anterior(es) parado(s)" if parados else "    [ok] no había ninguno")
+
+    escribir("")
     escribir("==> Dejando el servicio arrancando con el equipo")
-    hecho, detalle = registrar_tarea(ajustes.host_panel or "")
+    host_publico = ajustes.host_panel if ajustes.host_panel not in ("", "127.0.0.1", "localhost") else ""
+    hecho, detalle = registrar_tarea(host_publico)
     escribir(("    [ok] " if hecho else "    [!]  ") + detalle)
-    if not hecho:
+    if arrancar_ahora(host_publico):
+        escribir("    … arrancando el servicio")
+        version = esperar_al_servicio(ajustes.puerto_panel)
+        if version:
+            escribir(f"    [ok] el servicio contesta: TecladoIA {version}")
+        else:
+            escribir("    [!]  el servicio no contesta en 30 s; mira %APPDATA%\\TecladoIA\\servicio.log")
+    elif hecho:
+        subprocess.run(["schtasks", "/Run", "/TN", TAREA], capture_output=True, text=True,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        escribir("    [ok] se le pidió arrancar a la tarea programada")
+    else:
         escribir(f"    Puedes arrancarlo a mano: {orden_de_arranque()} servicio")
 
     # --- 5. En marcha --------------------------------------------------

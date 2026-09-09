@@ -98,6 +98,51 @@ $$(".tab").forEach((b) => b.addEventListener("click", () => irA(b.dataset.seccio
 
 /* ------------------------- estado y encabezado -------------------------- */
 
+function pintarSesiones(e) {
+  // Lo que enseña la barra sale del conjunto de sesiones, no del último evento:
+  // si Cowork te espera, la sesión de Code que trabaja por detrás no lo tapa.
+  const sesiones = Array.isArray(e.sesiones) ? e.sesiones : [];
+  const teToca = !!e.te_toca;
+  const esperando = sesiones.filter(s => s.espera);
+  const trabajando = sesiones.filter(s => !s.espera && (s.hace_s == null || s.hace_s < 45));
+  const ind = $("#ind-agente");
+  const valor = $("#ind-agente-valor");
+  if (ind && valor) {
+    if (teToca) {
+      ind.className = "indicador aviso";
+      valor.textContent = "Te toca" + (esperando[0] ? " · " + esperando[0].nombre : "");
+    } else if (trabajando.length) {
+      ind.className = "indicador info";
+      valor.textContent = "Trabajando · " + trabajando[0].nombre;
+    } else {
+      ind.className = "indicador";
+      valor.textContent = e.estado_ia_etiqueta || "En reposo";
+    }
+  }
+  const banda = $("#te-toca");
+  if (banda) {
+    banda.hidden = !teToca;
+    banda.className = "banda te-toca";
+    banda.textContent = teToca
+      ? "Te toca: " + esperando.map(s => s.nombre).join(", ") + (esperando.some(s => s.estado === "Esperando aprobación") ? " (pide permiso o espera tu respuesta)" : " (terminó su turno)")
+      : "";
+  }
+  const tarjeta = $("#tarjeta-sesiones");
+  const lista = $("#sesiones");
+  if (!tarjeta || !lista) return;
+  tarjeta.hidden = sesiones.length === 0;
+  lista.innerHTML = "";
+  for (const s of sesiones) {
+    const li = document.createElement("li");
+    li.className = s.espera ? "espera" : (s.hace_s < 45 ? "trabaja" : "");
+    const hace = s.hace_s == null ? "" : (s.hace_s < 60 ? `hace ${Math.round(s.hace_s)} s` : `hace ${Math.round(s.hace_s / 60)} min`);
+    li.innerHTML = `<span class="punto"></span><span class="nombre">${esc(s.nombre || s.clave)}</span>` +
+      `<span class="detalle">${esc(s.estado)}${s.espera ? " · te espera" : ""} · ${esc(hace)}</span>` +
+      (s.ruta ? `<span class="detalle" title="${esc(s.ruta)}">${esc(s.agente)}</span>` : "");
+    lista.appendChild(li);
+  }
+}
+
 function pintarEstado(panorama) {
   estado.panorama = panorama;
   const e = panorama.estado || {};
@@ -125,6 +170,8 @@ function pintarEstado(panorama) {
     palanca + (conectado && e.palanca_forzada ? " (virtual)" : "");
   $("#ind-palanca").className =
     "indicador " + (!conectado ? "aviso" : e.palanca === 0 ? "bien" : "aviso");
+
+  pintarSesiones(e);
 
   $("#btn-conectar").textContent = conectado ? "Desconectar" : "Conectar dispositivo";
   $("#btn-conectar").className = "btn " + (conectado ? "btn-claro" : "btn-verde");

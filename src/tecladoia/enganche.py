@@ -93,6 +93,8 @@ def extraer_contexto(entrada: dict[str, Any]) -> dict[str, Any]:
         "comando": str(comando)[:500] if comando else None,
         "ruta": entrada.get("cwd") or entrada.get("workspace_path"),
         "sesion": entrada.get("session_id") or entrada.get("sessionId"),
+        # «Notification» trae su tipo: permission_prompt, idle_prompt…
+        "tipo": entrada.get("notification_type") or entrada.get("type"),
     }
     return {c: v for c, v in contexto.items() if v}
 

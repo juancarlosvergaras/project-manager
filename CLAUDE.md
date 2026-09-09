@@ -526,6 +526,21 @@ Bluetooth, y el script avisa si falta.
 | 3 | Cursor | `cursor.gif` | 150 |
 | 4 | libre | | 220 |
 
+**La barra enseña el conjunto de sesiones, no el último evento** (desde el
+9/9/2026, `servidor.sesiones`). Cowork, Code y la terminal se presentan todas
+como «claude», y la sesión que ejecuta herramientas cada dos segundos por
+detrás tapaba a la que te pedía permiso delante. Ahora cada `session_id` lleva
+su momento: **si alguna te espera, ámbar** («Esperando aprobación»: terminó su
+turno con `Stop`, pidió permiso, o mandó una `Notification` de tipo
+`permission_prompt`/`idle_prompt`), hasta que le contestes (`UserPromptSubmit`)
+o pasen `minutos_te_toca` (10); si ninguna espera y alguna trabaja, azul; si
+no, reposo. El verde de `Stop` se ve sus cinco segundos y **después viene el
+ámbar**, no el reposo. El panel lo enseña en el indicador «Agente», la banda
+«Te toca» y la tarjeta de sesiones (`resumen_actividad()["sesiones"]`).
+`PermissionRequest` nunca ha llegado desde la aplicación de escritorio (ni
+Cowork ni Code) en 3.000 líneas de registro; el «te toca» de verdad sale de
+`Stop`.
+
 **El seguimiento de la aplicación activa viene APAGADO** (`seguir_aplicacion`).
 La idea es buena pero peleaba con quien elige un modo a mano: pulsabas el
 micrófono en el modo de ChatGPT, volvías a la ventana de Claude para seguir

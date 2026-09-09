@@ -219,6 +219,9 @@ class Contexto:
     comando: Optional[str] = None
     ruta: Optional[str] = None
     sesion: Optional[str] = None
+    #: Subtipo del evento cuando lo hay: en «Notification» de Claude,
+    #: ``permission_prompt`` o ``idle_prompt`` — los dos significan «te espera».
+    tipo: Optional[str] = None
 
     def resumen(self) -> str:
         piezas = [self.agente, self.evento]
