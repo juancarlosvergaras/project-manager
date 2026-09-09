@@ -244,6 +244,40 @@ class MicrofonoDeLaApp:
         self.hwnd = hwnd
         self.programa = programa
         self.perfil = perfil_de(programa)
+        #: El interruptor con el que se arrancó la grabación, si lo hubo.
+        #:
+        #: Claude renombra el botón mientras graba («Mantén presionado para
+        #: grabar» pasa a «Detener dictado») y en alguna de sus vistas —Cowork,
+        #: visto el 9/9/2026— el nombre nuevo no está en el perfil. Buscarlo
+        #: otra vez por nombre no lo encontraba, y quien llamaba concluía que
+        #: el dictado era el de Windows y mandaba Escape, que en el de Claude
+        #: es **cancelar**: lo dictado desaparecía. El elemento es el mismo
+        #: (mismo identificador), así que se guarda y se vuelve a usar.
+        self._interruptor_conocido: Any = None
+        self._identificador_conocido: Any = None
+
+    def _recordar(self, boton: Any, interruptor: Any) -> None:
+        self._interruptor_conocido = interruptor
+        try:
+            self._identificador_conocido = list(boton.GetRuntimeId())
+        except Exception:  # noqa: BLE001
+            self._identificador_conocido = None
+
+    def _interruptor_recordado(self, botones: list[Any]) -> Any:
+        """El interruptor guardado, buscado otra vez por su identificador entre
+        los botones de ahora (el nombre puede haber cambiado; el id, no).
+        Si no aparece, el puntero guardado, que suele seguir vivo."""
+        if self._identificador_conocido is not None:
+            for boton in botones:
+                try:
+                    if list(boton.GetRuntimeId()) == self._identificador_conocido:
+                        interruptor = _interruptor(boton)
+                        if interruptor is not None:
+                            self._interruptor_conocido = interruptor
+                            return interruptor
+                except Exception:  # noqa: BLE001
+                    continue
+        return self._interruptor_conocido
 
     # --- lectura ------------------------------------------------------
     def estado(self, intentos: int = 2) -> Optional[bool]:
@@ -275,6 +309,10 @@ class MicrofonoDeLaApp:
         trozos = self.perfil.get("interruptor")
         if trozos:
             _, interruptor = _buscar_interruptor(botones, trozos)
+            if interruptor is None:
+                # Por nombre no está: puede que se haya renombrado al grabar.
+                # Si lo conocemos de antes, se le pregunta a él.
+                interruptor = self._interruptor_recordado(botones)
             if interruptor is not None:
                 try:
                     return bool(interruptor.CurrentToggleState == 1)
@@ -309,6 +347,11 @@ class MicrofonoDeLaApp:
         lo hace él, sabiendo cuándo ha terminado de transcribir.
         """
         actual = self.estado()
+        if actual is None and self._interruptor_conocido is not None:
+            # No se sabe leer, pero la grabación la empezamos nosotros con
+            # este interruptor: se apaga con él. Es lo contrario de rendirse
+            # y mandar Escape, que borraba lo dictado.
+            return self._accionar("parar", quedando=False)
         if actual is None or not actual:
             return actual
         if enviar and self.perfil.get("enviar"):
@@ -329,7 +372,11 @@ class MicrofonoDeLaApp:
         interruptor = None
         if trozos:
             # Un solo botón para las dos cosas.
-            _, interruptor = _buscar_interruptor(botones, trozos)
+            boton, interruptor = _buscar_interruptor(botones, trozos)
+            if interruptor is not None:
+                self._recordar(boton, interruptor)
+            else:
+                interruptor = self._interruptor_recordado(botones)
         if interruptor is not None:
             try:
                 interruptor.Toggle()

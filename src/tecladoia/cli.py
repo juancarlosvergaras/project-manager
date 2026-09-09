@@ -38,6 +38,12 @@ def _salida_en_utf8() -> None:
     veces; de ahí el ``errors="replace"``: en el peor caso sale un interrogante,
     pero el servicio sigue en pie.
     """
+    # Bajo pythonw no hay consola y sys.stdout es None: cualquier print o
+    # isatty() reventaría el servicio nada más arrancar. Se le da un sumidero.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
     for flujo in (sys.stdout, sys.stderr):
         try:
             flujo.reconfigure(encoding="utf-8", errors="replace")
@@ -121,6 +127,11 @@ def hay_otro_servicio(ajustes: Ajustes) -> Optional[dict[str, Any]]:
 
 def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
     """Arranca el servicio: teclado, servidor de enganches y panel web."""
+    # El registro a archivo lo escribe el servicio, no cmd: así la tarea
+    # programada puede lanzar pythonw a secas, sin consola que asome.
+    from .config import directorio_base
+
+    registro.a_archivo(directorio_base() / "servicio.log")
 
     # Uno y solo uno. Si ya hay otro vivo, este se retira en vez de arrancar en
     # el puerto siguiente.

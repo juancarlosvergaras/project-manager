@@ -12,7 +12,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional
 
 from .config import ruta_bitacora
 
@@ -31,6 +31,30 @@ def configurar(nivel: str = "info") -> None:
     entorno = os.environ.get("TECLADOIA_NIVEL", "").lower()
     elegido = _NIVELES.get(entorno or nivel.lower(), logging.INFO)
     logging.basicConfig(level=elegido, format=_FORMATO, datefmt="%H:%M:%S")
+
+
+def a_archivo(ruta: Path, megas: int = 5, copias: int = 3) -> Optional[logging.Handler]:
+    """Además de la consola, escribe el registro en ese archivo, rotando.
+
+    Es lo que permite que la tarea programada lance `pythonw.exe` a secas,
+    sin `cmd /c start /min … >> registro`: aquella envoltura era la que
+    asomaba una consola minimizada cada diez minutos en los cuatro
+    teclados. Sin consola, `pythonw` no tiene dónde escribir, así que lo
+    escribe él mismo. Devuelve el manejador, o ``None`` si no se pudo.
+    """
+    from logging.handlers import RotatingFileHandler
+
+    try:
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        manejador = RotatingFileHandler(ruta, maxBytes=megas * 1_048_576, backupCount=copias, encoding="utf-8")
+    except OSError:
+        return None
+    manejador.setFormatter(logging.Formatter(_FORMATO, datefmt="%H:%M:%S"))
+    raiz = logging.getLogger()
+    if any(getattr(h, "baseFilename", None) == str(ruta) for h in raiz.handlers):
+        return None
+    raiz.addHandler(manejador)
+    return manejador
 
 
 def obtener(nombre: str) -> logging.Logger:

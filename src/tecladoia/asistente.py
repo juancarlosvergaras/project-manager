@@ -75,6 +75,25 @@ def hay_teclado_emparejado() -> bool:
         return False
 
 
+def ejecutable_y_argumentos(argumentos: str = "") -> tuple[str, str]:
+    """Qué programa lanza la tarea y con qué argumentos, **sin consola**.
+
+    Antes la tarea lanzaba `cmd /c start /min "" cmd /c "pythonw … >> registro"`
+    para tener registro. Cada disparador de diez minutos asomaba una consola
+    minimizada en la barra de tareas —cuatro teclados, una ventana cada dos
+    minutos y medio—, aunque el servicio se retirara al ver que ya había otro.
+    Ahora la tarea ejecuta `pythonw.exe` (o el propio .exe) directamente y el
+    servicio escribe su registro él mismo (`tecladoia.registro.a_archivo`).
+    """
+    if getattr(sys, "frozen", False):
+        return str(Path(sys.executable).resolve()), argumentos.strip()
+    interprete = Path(sys.executable).resolve()
+    sin_consola = interprete.with_name("pythonw.exe")
+    if os.name == "nt" and sin_consola.is_file():
+        interprete = sin_consola
+    return str(interprete), f"-m {'tecladoia'} {argumentos}".strip()
+
+
 def registrar_tarea(host: str = "") -> tuple[bool, str]:
     """Deja el servicio arrancando al iniciar sesión.
 
@@ -88,19 +107,11 @@ def registrar_tarea(host: str = "") -> tuple[bool, str]:
     registro = Path(os.environ.get("APPDATA", Path.home())) / "TecladoIA" / "servicio.log"
     registro.parent.mkdir(parents=True, exist_ok=True)
     argumentos = "servicio" + (f" --host {host}" if host else "")
-    # Se lanza minimizado y con la salida a un archivo. Sin eso, el servicio
-    # arrancado por el programador de tareas es mudo: no hay consola donde
-    # mirar, y averiguar por que no arranca se vuelve adivinar.
-    # Ojo con las comillas: van tal cual, sin barras delante. `cmd` no entiende
-    # `\"` como comilla escapada —eso es cosa de otros lenguajes—, y con ellas
-    # el comando entero queda invalido. La tarea disparaba puntual y no
-    # arrancaba nada, que desde fuera parece que el disparador no funciona.
-    orden = (
-        f'/c start /min "" cmd /c "{orden_de_arranque()} {argumentos} '
-        f'>> "{registro}" 2>&1"'
-    )
+    # Sin cmd ni consola: pythonw directamente. El registro lo escribe el
+    # propio servicio en %APPDATA%\TecladoIA\servicio.log (registro.a_archivo).
+    ejecutable, arg_tarea = ejecutable_y_argumentos(argumentos)
     guion = (
-        f"$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '{orden}' "
+        f"$a = New-ScheduledTaskAction -Execute '{ejecutable}' -Argument '{arg_tarea}' "
         f"-WorkingDirectory '{Path.cwd()}';"
         "$d = New-ScheduledTaskTrigger -AtLogOn -User "
         "($env:USERDOMAIN + '\\' + $env:USERNAME);"

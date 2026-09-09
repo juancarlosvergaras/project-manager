@@ -21,6 +21,12 @@ TAREA = NOMBRE
 
 
 def _salida_en_utf8() -> None:
+    # Bajo pythonw no hay consola y sys.stdout es None: cualquier print o
+    # isatty() reventaría el servicio nada más arrancar. Se le da un sumidero.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
     for flujo in (sys.stdout, sys.stderr):
         try:
             flujo.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
@@ -47,6 +53,11 @@ def hay_otro_servicio(ajustes: Ajustes) -> Optional[dict]:
 
 
 def orden_servicio(args: argparse.Namespace) -> int:
+    from tecladoia.registro import a_archivo
+
+    from .config import ruta_registro
+
+    a_archivo(ruta_registro())  # el registro lo escribe el servicio, no cmd
     ajustes = Ajustes.cargar()
     if args.host:
         ajustes.host_panel = args.host
@@ -138,6 +149,25 @@ def orden_de_arranque() -> str:
     return f'"{ejecutable}" -m botonera'
 
 
+def ejecutable_y_argumentos(argumentos: str = "") -> tuple[str, str]:
+    """Qué programa lanza la tarea y con qué argumentos, **sin consola**.
+
+    Antes la tarea lanzaba `cmd /c start /min "" cmd /c "pythonw … >> registro"`
+    para tener registro. Cada disparador de diez minutos asomaba una consola
+    minimizada en la barra de tareas —cuatro teclados, una ventana cada dos
+    minutos y medio—, aunque el servicio se retirara al ver que ya había otro.
+    Ahora la tarea ejecuta `pythonw.exe` (o el propio .exe) directamente y el
+    servicio escribe su registro él mismo (`tecladoia.registro.a_archivo`).
+    """
+    if getattr(sys, "frozen", False):
+        return str(Path(sys.executable).resolve()), argumentos.strip()
+    interprete = Path(sys.executable).resolve()
+    sin_consola = interprete.with_name("pythonw.exe")
+    if os.name == "nt" and sin_consola.is_file():
+        interprete = sin_consola
+    return str(interprete), f"-m {'botonera'} {argumentos}".strip()
+
+
 def registrar_tarea(host: str = "", directorio: Path | None = None) -> tuple[bool, str]:
     """Deja el servicio arrancando al iniciar sesión y revisándose cada diez minutos."""
     if os.name != "nt":
@@ -146,9 +176,9 @@ def registrar_tarea(host: str = "", directorio: Path | None = None) -> tuple[boo
     registro.parent.mkdir(parents=True, exist_ok=True)
     argumentos = "servicio" + (f" --host {host}" if host else "")
     # Las comillas van tal cual, sin barras: `cmd` no entiende `\"`.
-    orden = f'/c start /min "" cmd /c "{orden_de_arranque()} {argumentos} >> "{registro}" 2>&1"'
+    ejecutable, arg_tarea = ejecutable_y_argumentos(argumentos)
     guion = (
-        f"$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '{orden}' "
+        f"$a = New-ScheduledTaskAction -Execute '{ejecutable}' -Argument '{arg_tarea}' "
         f"-WorkingDirectory '{directorio or Path.cwd()}';"
         "$d = New-ScheduledTaskTrigger -AtLogOn -User ($env:USERDOMAIN + '\\' + $env:USERNAME);"
         "$d.Delay = 'PT25S';"

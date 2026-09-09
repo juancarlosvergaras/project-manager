@@ -689,6 +689,31 @@ siempre, con la palanca donde sea.
 
 ## Trampas que ya costaron tiempo
 
+- **Si el micrófono propio arrancó la grabación, se para por él, nunca con
+  Escape.** En Claude Cowork el botón se renombra al grabar y el perfil no lo
+  reconocía; `alternar` concluía «esto es Win+H» y mandaba Escape, que en el
+  dictado de Claude es **cancelar**: lo dictado desaparecía (9/9/2026). Ahora
+  `MicrofonoDeLaApp` recuerda el interruptor con el que empezó (mismo
+  `RuntimeId` aunque cambie el nombre) y `Dictado` guarda `_propio_abierto` y
+  cierra por ahí; si no puede, deja la grabación como está y lo dice.
+- **Pulsar Intro (K2) mientras Claude graba no manda nada**: la transcripción
+  aún no está en el cuadro. Primero se para con la tecla del micrófono. Si se
+  quiere que K2 pare y envíe, hay que darle una combinación propia y
+  atenderla en `dictado`; hoy K2 es un Intro que manda el teclado solo.
+- **El transporte BLE de respaldo tenía el teclado tomado tras fallar.** Si
+  `connect()` salía bien y `start_notify()` no («Characteristic 7344 not
+  found»), el `BleakClient` quedaba abierto en el proceso y el camino de
+  Windows recibía «acceso denegado» en cada vuelta. Así estuvo el AhaKey **cinco
+  días** (4 al 9/9/2026) con la barra clavada en verde: un proceso nuevo lo
+  abría a la primera; el servicio, jamás. `ble._abrir` ahora desconecta antes
+  de rendirse. Síntoma para reconocerlo: «no expone sus canales (acceso
+  denegado o dormido)» repetido con el teclado funcionando como teclado.
+- **Las tareas programadas lanzan `pythonw` a secas.** La envoltura `cmd /c
+  start /min … >> registro` asomaba una consola minimizada en cada disparador
+  de diez minutos, por cuatro teclados: «cada rato aparecen ventanas de DOS».
+  El registro lo escribe cada servicio (`tecladoia.registro.a_archivo`, con
+  rotación) y bajo `pythonw` los `cli` dan un sumidero a `sys.stdout`, que
+  es `None` y tumbaba el arranque con el primer `print`.
 - **`DataReader.read_bytes(x)` rellena el búfer que le pasas**; no devuelve uno
   del tamaño que pidas. Con la firma equivocada lanza `TypeError` y las
   notificaciones del teclado se pierden sin dejar rastro.

@@ -123,6 +123,17 @@ class TransporteBLE(Transporte):
             await cliente.connect()
             await cliente.start_notify(protocolo.CARACTERISTICA_NOTIFICA, self._al_notificar)
         except Exception as error:  # noqa: BLE001 - bleak lanza excepciones variadas
+            # **Soltar el aparato antes de rendirse.** Si `connect()` salió bien
+            # y falló lo de después (el 4/9/2026: «Characteristic 7344 was not
+            # found»), el cliente se quedaba con el teclado abierto dentro de
+            # este proceso, y desde entonces el camino de Windows —el bueno—
+            # recibía «acceso denegado» en cada vuelta, durante días. Un proceso
+            # nuevo abría el teclado a la primera; el servicio, nunca. Cerrarlo
+            # aquí es lo que rompe ese círculo.
+            try:
+                await cliente.disconnect()
+            except Exception:  # noqa: BLE001 - ya estaba suelto, mejor
+                pass
             raise ErrorTransporte(
                 f"No se pudo abrir el teclado en {direccion}: {error}. "
                 "Comprueba que está encendido, emparejado y que ninguna otra "

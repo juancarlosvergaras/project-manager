@@ -560,9 +560,12 @@ def abrir_programa(orden: str) -> bool:
 
     try:
         if orden.lower().startswith("shell:"):
-            subprocess.Popen(["explorer.exe", orden], shell=False)
+            subprocess.Popen(["explorer.exe", orden], shell=False,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         else:
-            subprocess.Popen(orden, shell=True)
+            # Sin CREATE_NO_WINDOW, `shell=True` desde un servicio sin consola
+            # asoma una ventana de cmd cada vez que se abre un programa.
+            subprocess.Popen(orden, shell=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except Exception:  # noqa: BLE001 - que no arranque no debe tumbar nada
         _log.exception("No se pudo abrir «%s»", orden)
         return False
@@ -595,6 +598,11 @@ class Dictado:
         self._primera_vez = True
         #: ¿Se prefiere el micrófono del propio programa cuando lo tenga?
         self.usar_el_propio = True
+        #: El micrófono propio con el que se abrió la última vez, si fue así.
+        #: Se guarda para cerrar por el mismo camino: si al cerrar no se
+        #: reconoce el botón (Claude lo renombra al grabar) no se puede caer a
+        #: Escape, que en el dictado propio es cancelar y borra lo dictado.
+        self._propio_abierto = None
         self.programa = ""
         self._ultima = 0.0
 
@@ -660,6 +668,27 @@ class Dictado:
         # nuestras cuentas**. Es la diferencia de fondo con Win+H: en vez de
         # recordar si lo abrimos —y desajustarnos en cuanto Windows lo cerrara
         # por su cuenta o el servicio se reiniciara— se le pregunta.
+        # Si la grabación la empezó el micrófono propio, se cierra con él,
+        # aunque ahora no se le reconozca el botón por nombre: recuerda el
+        # interruptor con el que arrancó. Antes se volvía a buscar por nombre,
+        # en Cowork no se encontraba, y el cierre caía a Escape: se borraba
+        # lo dictado.
+        if self.abierto and self._propio_abierto is not None:
+            propio = self._propio_abierto
+            quedo = propio.parar(enviar=enviar_al_cerrar)
+            self.abierto = False
+            self._propio_abierto = None
+            if quedo is None:
+                _log.warning(
+                    "No se pudo parar el micrófono propio de «%s»; se deja como está "
+                    "en vez de mandar Escape, que lo cancelaría", programa,
+                )
+                return {"accion": "sin parar", "programa": programa, "con_el_propio": True}
+            return {
+                "accion": "cerrado", "programa": programa,
+                "enviado": bool(enviar_al_cerrar), "con_el_propio": True,
+            }
+
         propio = self._boton_propio(programa)
         if propio is not None:
             if propio.estado():
@@ -669,6 +698,7 @@ class Dictado:
                 # medio segundo y pulsar Intro a ver si ya estaba.
                 propio.parar(enviar=enviar_al_cerrar)
                 self.abierto = False
+                self._propio_abierto = None
                 return {
                     "accion": "cerrado", "programa": programa,
                     "enviado": bool(enviar_al_cerrar), "con_el_propio": True,
@@ -678,9 +708,11 @@ class Dictado:
                 pinchar_el_cuadro=pinchar_el_cuadro,
                 alto_del_cuadro=alto_del_cuadro,
                 grabando=True,
+                microfono_propio=propio,
             )
             self.abierto = True
             self.programa = programa
+            self._propio_abierto = propio if hecho.get("con_el_propio") else None
             return {"accion": "abierto", **hecho}
 
         if self.abierto:
@@ -739,6 +771,7 @@ def dictar_en(
     alto_del_cuadro: int = 0,
     usar_el_propio: bool = True,
     grabando: bool = True,
+    microfono_propio=None,
 ) -> dict:
     """Enfoca el programa —abriéndolo si hace falta— y dicta dentro de él.
 
@@ -805,7 +838,10 @@ def dictar_en(
     if usar_el_propio and hwnd:
         from .microfono_propio import buscar as buscar_propio
 
-        boton = buscar_propio(hwnd, proceso)
+        # Si quien llama ya lo tenía localizado, se usa ese mismo objeto: así
+        # recuerda el interruptor con el que arrancó y puede parar aunque el
+        # botón se llame de otra forma mientras graba.
+        boton = microfono_propio if microfono_propio is not None else buscar_propio(hwnd, proceso)
         if boton is not None:
             quedo = boton.arrancar() if grabando else boton.parar()
             if quedo is not None:

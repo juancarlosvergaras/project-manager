@@ -19,6 +19,12 @@ _FORMATO = "%(asctime)s %(levelname)-7s %(name)s: %(message)s"
 
 
 def _salida_en_utf8() -> None:
+    # Bajo pythonw no hay consola y sys.stdout es None: cualquier print o
+    # isatty() reventaría el servicio nada más arrancar. Se le da un sumidero.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
     for flujo in (sys.stdout, sys.stderr):
         try:
             flujo.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
@@ -48,6 +54,11 @@ def hay_otro_servicio(ajustes: Ajustes) -> Optional[dict]:
 
 
 def orden_servicio(args: argparse.Namespace) -> int:
+    from tecladoia.registro import a_archivo
+
+    from .config import ruta_registro
+
+    a_archivo(ruta_registro())  # el registro lo escribe el servicio, no cmd
     ajustes = Ajustes.cargar()
     if args.host:
         ajustes.host_panel = args.host

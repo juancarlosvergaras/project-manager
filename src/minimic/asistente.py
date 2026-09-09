@@ -28,6 +28,25 @@ def orden_de_arranque() -> str:
     return f'"{interprete}" -m minimic'
 
 
+def ejecutable_y_argumentos(argumentos: str = "") -> tuple[str, str]:
+    """Qué programa lanza la tarea y con qué argumentos, **sin consola**.
+
+    Antes la tarea lanzaba `cmd /c start /min "" cmd /c "pythonw … >> registro"`
+    para tener registro. Cada disparador de diez minutos asomaba una consola
+    minimizada en la barra de tareas —cuatro teclados, una ventana cada dos
+    minutos y medio—, aunque el servicio se retirara al ver que ya había otro.
+    Ahora la tarea ejecuta `pythonw.exe` (o el propio .exe) directamente y el
+    servicio escribe su registro él mismo (`tecladoia.registro.a_archivo`).
+    """
+    if getattr(sys, "frozen", False):
+        return str(Path(sys.executable).resolve()), argumentos.strip()
+    interprete = Path(sys.executable).resolve()
+    sin_consola = interprete.with_name("pythonw.exe")
+    if os.name == "nt" and sin_consola.is_file():
+        interprete = sin_consola
+    return str(interprete), f"-m {'minimic'} {argumentos}".strip()
+
+
 def registrar_tarea(host: str = "", directorio: Path | None = None) -> tuple[bool, str]:
     """Deja el servicio arrancando al iniciar sesión. Devuelve (hecho, explicación)."""
     if os.name != "nt":
@@ -37,9 +56,9 @@ def registrar_tarea(host: str = "", directorio: Path | None = None) -> tuple[boo
     argumentos = "servicio" + (f" --host {host}" if host else "")
     # Las comillas van tal cual, sin barras: `cmd` no entiende `\"`, y con
     # ellas el comando entero queda inválido y la tarea dispara sin arrancar nada.
-    orden = f'/c start /min "" cmd /c "{orden_de_arranque()} {argumentos} >> "{registro}" 2>&1"'
+    ejecutable, arg_tarea = ejecutable_y_argumentos(argumentos)
     guion = (
-        f"$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '{orden}' "
+        f"$a = New-ScheduledTaskAction -Execute '{ejecutable}' -Argument '{arg_tarea}' "
         f"-WorkingDirectory '{directorio or Path.cwd()}';"
         "$d = New-ScheduledTaskTrigger -AtLogOn -User ($env:USERDOMAIN + '\\' + $env:USERNAME);"
         "$d.Delay = 'PT25S';"
