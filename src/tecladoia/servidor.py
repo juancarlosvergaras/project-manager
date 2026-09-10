@@ -118,6 +118,7 @@ class ServidorEnganches:
         self._reposo: Optional[asyncio.Task] = None
         self._vigilante: Optional[asyncio.Task] = None
         self._ultimo_estado_registrado: Optional[EstadoIA] = None
+        self._ultimo_evento_registrado: Optional[EstadoIA] = None
         #: Canal por el que el panel se entera de todo sin ir preguntando.
         self.bus = Bus()
         #: Peticiones esperando que alguien conteste desde el navegador.
@@ -566,9 +567,10 @@ class ServidorEnganches:
         self.agente_activo = agente_id
         self.ultimo_evento_en = time.monotonic()
         # Solo se registra el cambio: un agente activo dispara muchos eventos
-        # seguidos y repetirlos todos ahogaría lo que sí importa.
-        if estado is not self._ultimo_estado_registrado:
-            self._ultimo_estado_registrado = estado
+        # seguidos y repetirlos todos ahogaría lo que sí importa. (Aparte de lo
+        # que enseña la barra, que es cosa del conjunto de sesiones.)
+        if estado is not self._ultimo_evento_registrado:
+            self._ultimo_evento_registrado = estado
             _log.info("%s → %s", agente_id, estado.etiqueta)
 
     async def _volver_al_reposo(self, espera_s: float, despues=None) -> None:
