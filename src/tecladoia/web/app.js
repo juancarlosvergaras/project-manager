@@ -98,6 +98,11 @@ $$(".tab").forEach((b) => b.addEventListener("click", () => irA(b.dataset.seccio
 
 /* ------------------------- estado y encabezado -------------------------- */
 
+document.addEventListener("DOMContentLoaded", () => {
+  const boton = document.getElementById("btn-te-toca");
+  if (boton) boton.addEventListener("click", async () => { await pedir("/api/te-toca/quitar", {}); await refrescar(); });
+});
+
 function pintarSesiones(e) {
   // Lo que enseña la barra sale del conjunto de sesiones, no del último evento:
   // si Cowork te espera, la sesión de Code que trabaja por detrás no lo tapa.
@@ -123,7 +128,8 @@ function pintarSesiones(e) {
   if (banda) {
     banda.hidden = !teToca;
     banda.className = "banda te-toca";
-    banda.textContent = teToca
+    const texto = $("#te-toca-texto");
+    if (texto) texto.textContent = teToca
       ? "Te toca: " + esperando.map(s => s.nombre).join(", ") + (esperando.some(s => s.estado === "Esperando aprobación") ? " (pide permiso o espera tu respuesta)" : " (terminó su turno)")
       : "";
   }

@@ -533,8 +533,10 @@ detrás tapaba a la que te pedía permiso delante. Ahora cada `session_id` lleva
 su momento: **si alguna te espera, ámbar** («Esperando aprobación»: terminó su
 turno con `Stop`, pidió permiso, o mandó una `Notification` de tipo
 `permission_prompt`/`idle_prompt`), hasta que le contestes (`UserPromptSubmit`)
-o pasen `minutos_te_toca` (10); si ninguna espera y alguna trabaja, azul; si
-no, reposo. El verde de `Stop` se ve sus cinco segundos y **después viene el
+o pasen `minutos_te_toca` (**3**: toda conversación termina con `Stop`, y con
+diez cada respuesta dejaba el rojo puesto), o **pulses el micrófono**, o el
+botón «Ya lo vi» del panel (`servidor.dar_por_atendido`); si ninguna espera y
+alguna trabaja, azul; si no, reposo. El verde de `Stop` se ve sus cinco segundos y **después viene el
 ámbar**, no el reposo. El panel lo enseña en el indicador «Agente», la banda
 «Te toca» y la tarjeta de sesiones (`resumen_actividad()["sesiones"]`).
 `PermissionRequest` nunca ha llegado desde la aplicación de escritorio (ni

@@ -687,6 +687,35 @@ class ServidorEnganches:
         evento = EventoEnganche(f"ChatGPT{que.capitalize()}", que, estado)
         self._bucle.call_soon_threadsafe(self._marcar_actividad, "chatgpt", evento)
 
+    def dar_por_atendido(self, motivo: str) -> None:
+        """Quita el «te toca» de todas las sesiones: ya les estás contestando.
+
+        Se llama al pulsar el micrófono y desde el botón del panel. Vale desde
+        cualquier hilo: el trabajo se cruza al bucle.
+        """
+        cuantas = 0
+        for s in self.sesiones.values():
+            if s["espera"]:
+                s["espera"] = False
+                cuantas += 1
+        if not cuantas:
+            return
+        _log.info("Te toca atendido (%s): %d sesión(es)", motivo, cuantas)
+
+        def refrescar() -> None:
+            self._en_segundo_plano(self._refrescar_barra(f"atendido: {motivo}"))
+
+        bucle = self._bucle
+        try:
+            if bucle is not None and bucle.is_running():
+                try:
+                    asyncio.get_running_loop()
+                    refrescar()  # ya estamos dentro del bucle
+                except RuntimeError:
+                    bucle.call_soon_threadsafe(refrescar)
+        except Exception:  # noqa: BLE001 - un aviso roto no debe tumbar nada
+            _log.debug("No se pudo refrescar la barra tras atender", exc_info=True)
+
     def avisar_de_pulsacion(self, pieza: str, detalle: dict[str, Any]) -> None:
         """Cuenta al panel que algo se ha tocado, para que lo señale.
 

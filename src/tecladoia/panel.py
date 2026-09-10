@@ -685,6 +685,9 @@ if (location.search.includes("clave=")) {
         if metodo != "POST":
             return None
 
+        if ruta == "/api/te-toca/quitar" and metodo == "POST":
+            self.servidor.dar_por_atendido("desde el panel")
+            return {"ok": True, "te_toca": False}
         if ruta == "/api/palanca":
             valor = datos.get("valor")
             valor = None if valor is None else int(valor)

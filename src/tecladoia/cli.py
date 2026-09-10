@@ -385,6 +385,9 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                     )
                     if hecho["accion"] == "repetida":
                         return   # rebote de la misma pulsacion
+                    # Si algún agente te esperaba, ya le estás contestando: el
+                    # rojo de «te toca» se quita aquí, no diez minutos después.
+                    servidor.dar_por_atendido("pulsaste el micrófono")
                     # Al registro, que es lo que queda cuando algo va mal.
                     registro.obtener("microfono").info(
                         "%s · modo %s (%s) · programa %s · cuadro %s%s",

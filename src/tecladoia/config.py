@@ -228,10 +228,12 @@ class Ajustes:
     #: del final es justo el que quieres tener tiempo de ver.
     milisegundos_tarea_completada: int = 5000
     #: Cuántos minutos se sostiene «te toca» (ámbar) después de que un agente
-    #: termine o pida permiso, si no le contestas. Pasado ese tiempo, reposo:
-    #: una sesión abandonada no debe dejar la barra pidiendo atención toda
-    #: la noche.
-    minutos_te_toca: int = 10
+    #: termine o pida permiso, si no le contestas. Pasado ese tiempo, reposo.
+    #: Tres y no diez: **toda** sesión de Claude termina su turno con `Stop`,
+    #: también una simple conversación, y con diez minutos cada respuesta
+    #: dejaba el rojo puesto aunque no hubiera nada pendiente (9/9/2026).
+    #: Además se quita solo al pulsar el micrófono, que es contestar.
+    minutos_te_toca: int = 3
 
     palanca_fija: Optional[int] = None
 

@@ -533,6 +533,23 @@ class PruebaSemaforoPorSesion(unittest.TestCase):
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION), "se sostiene")
         asyncio.run(caso())
 
+    def test_pulsar_el_microfono_o_el_boton_atiende_el_te_toca(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30, milisegundos_tarea_completada=30)
+            await gestor.conectar()
+            await servidor.arrancar(con_tcp=False)
+            try:
+                await self.evento(servidor, "Stop", "cowork")
+                await asyncio.sleep(0.1)
+                self.assertTrue(servidor.resumen_actividad()["te_toca"])
+                servidor.dar_por_atendido("pulsaste el micrófono")
+                await asyncio.sleep(0.1)
+                self.assertFalse(servidor.resumen_actividad()["te_toca"])
+                self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
+            finally:
+                await servidor.detener()
+        asyncio.run(caso())
+
     def test_te_toca_caduca(self):
         async def caso():
             servidor, gestor, simulado = self.montar(
