@@ -1,6 +1,6 @@
 // Plantillas HTML del portal. Mismo diseño institucional que la Solución Automatizada (franja GOV.CO, cabezote
 // MinTIC, barra de navegación gris con subrayado amarillo, pie con cinta tricolor y barra de accesibilidad).
-import { F1, F10, NIVELES } from './indicadores.js';
+import { F1, F10, NIVELES, nivelDe } from './indicadores.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString('es-CO', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -13,9 +13,10 @@ function menuAplicativos(apps, ids, usuario, ruta) {
     const estado = usuario ? (v ? '<span class="badge bg-success ms-2">Vinculada</span>' : '<span class="badge bg-secondary ms-2">Sin vincular</span>') : '';
     return `<li><a class="dropdown-item d-flex justify-content-between align-items-center" href="${href}">${esc(a.nombre)}${estado}</a></li>`;
   }).join('');
+  const cuestionarios = `<li><a class="dropdown-item d-flex justify-content-between align-items-center" href="${usuario ? '/cuestionarios' : '/ingresar?siguiente=%2Fcuestionarios'}">Cuestionarios del Observatorio<span class="badge bg-primary ms-2">Del portal</span></a></li>`;
   return `<li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle ${ruta === 'aplicativos' ? 'active' : ''}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Aplicativos</a>
-    <ul class="dropdown-menu">${items}<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="${usuario ? '/aplicativos' : '/ingresar?siguiente=%2Faplicativos'}">Ver todos los aplicativos</a></li></ul></li>`;
+    <a class="nav-link dropdown-toggle ${['aplicativos', 'cuestionarios'].includes(ruta) ? 'active' : ''}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Aplicativos</a>
+    <ul class="dropdown-menu">${items}${cuestionarios}<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="${usuario ? '/aplicativos' : '/ingresar?siguiente=%2Faplicativos'}">Ver todos los aplicativos</a></li></ul></li>`;
 }
 
 export function pagina({ titulo, cuerpo, usuario = null, ruta = '', apps = [], ids = [] }) {
@@ -97,8 +98,9 @@ ${cuerpo}
 const nivelBadge = (n) => n ? `<span class="badge nivel-${n.n}">${esc(n.nombre)}</span>` : '<span class="badge bg-secondary">Sin medición</span>';
 
 // ---------------------------------------------------------------- inicio (público)
-export function vistaInicio({ usuario, apps, indicadores, ids }) {
+export function vistaInicio({ usuario, apps, indicadores, ids, cuestionarios = [] }) {
   const r = indicadores.r1519;
+  const respuestas = cuestionarios.reduce((s, q) => s + (q.respuestas || 0), 0);
   return pagina({ usuario, apps, ids, ruta: 'inicio', titulo: 'Inicio', cuerpo: `
 <div class="row"><div class="col-lg-8 mx-auto text-center">
   <h1 class="display-5 fw-bold mb-3">Observatorio Nacional de Inteligencia Artificial</h1>
@@ -114,9 +116,10 @@ export function vistaInicio({ usuario, apps, indicadores, ids }) {
   </div></div>
 </div></div>
 <div class="row g-4 mt-1">
-  <div class="col-md-4"><div class="card h-100 border-primary"><div class="card-body text-center"><h2 class="display-6 fw-bold text-primary">${apps.length}</h2><p class="text-muted mb-0">Aplicativos conectados</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100 border-success"><div class="card-body text-center"><h2 class="display-6 fw-bold text-success">${r ? fmt(r.entidades) : '--'}</h2><p class="text-muted mb-0">Entidades territoriales registradas</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100 border-info"><div class="card-body text-center"><h2 class="display-6 fw-bold text-info">${indicadores.fichas ? fmt(indicadores.fichas + indicadores.herramientas) : '--'}</h2><p class="text-muted mb-0">Fichas y herramientas de IA catalogadas</p></div></div></div>
+  <div class="col-md-3"><div class="card h-100 border-primary"><div class="card-body text-center"><h2 class="display-6 fw-bold text-primary">${apps.length}</h2><p class="text-muted mb-0">Aplicativos conectados</p></div></div></div>
+  <div class="col-md-3"><div class="card h-100 border-success"><div class="card-body text-center"><h2 class="display-6 fw-bold text-success">${r ? fmt(r.entidades) : '--'}</h2><p class="text-muted mb-0">Entidades territoriales registradas</p></div></div></div>
+  <div class="col-md-3"><div class="card h-100 border-info"><div class="card-body text-center"><h2 class="display-6 fw-bold text-info">${indicadores.fichas ? fmt(indicadores.fichas + indicadores.herramientas) : '--'}</h2><p class="text-muted mb-0">Fichas y herramientas de IA catalogadas</p></div></div></div>
+  <div class="col-md-3"><div class="card h-100 border-warning"><div class="card-body text-center"><h2 class="display-6 fw-bold text-warning">${fmt(respuestas)}</h2><p class="text-muted mb-0">Respuestas a los cuestionarios del Observatorio</p></div></div></div>
 </div>
 <div class="row mt-5">
   <div class="col-md-6"><h3>Aplicativos del proyecto</h3>
@@ -125,6 +128,7 @@ export function vistaInicio({ usuario, apps, indicadores, ids }) {
     <ul class="list-group">
       <li class="list-group-item"><a href="${usuario ? '/tablero' : '/ingresar?siguiente=%2Ftablero'}">Cuadro de mando del Observatorio</a></li>
       <li class="list-group-item"><a href="/acerca">Dimensiones, índice y niveles de madurez</a></li>
+      ${usuario && usuario.rol === 'administrador' ? '<li class="list-group-item"><a href="/cuestionarios">Cuestionarios y campañas de aplicación</a></li>' : ''}
       <li class="list-group-item"><a href="${usuario ? '/cuenta' : '/ingresar'}">${usuario ? 'Mi cuenta y aplicativos vinculados' : 'Ingresar con la cuenta de un aplicativo'}</a></li>
       <li class="list-group-item"><a href="https://app.proyectoia.org" target="_blank" rel="noopener">Portal del proyecto IA para el Estado</a></li>
     </ul></div>
@@ -193,7 +197,7 @@ export function vistaIngreso({ error = '', apps, usuarioPrevio = '' }) {
 }
 
 // ---------------------------------------------------------------- aplicativos (con sesión)
-export function vistaAplicativos({ usuario, apps, ids, resumen }) {
+export function vistaAplicativos({ usuario, apps, ids, resumen, cuestionariosPublicados = 0 }) {
   const tarjetas = apps.map((a) => {
     const v = ids.find((i) => i.app === a.clave);
     const r = resumen.find((x) => x.app.clave === a.clave);
@@ -209,6 +213,7 @@ export function vistaAplicativos({ usuario, apps, ids, resumen }) {
 <div class="mintic-page-intro mb-4"><div><h1>Aplicativos</h1><p>Aplicativos del proyecto IA para el Estado disponibles con su sesión del portal.</p></div>
 <div class="mintic-page-intro-note"><strong>${ids.length} de ${apps.length} vinculados</strong>Cada aplicativo se vincula una sola vez con su usuario y clave propios.</div></div>
 <div class="row g-4">${tarjetas}
+<div class="col-md-6 col-xl-4"><div class="card h-100 border-primary"><div class="card-body d-flex flex-column"><h2 class="h5 text-primary">Cuestionarios del Observatorio</h2><p class="small text-muted flex-grow-1">Instrumentos del proyecto para diligenciar en línea${usuario.rol === 'administrador' ? ', con su editor, sus campañas de aplicación por correo y sus resultados' : ''}. Módulo propio del portal: se abre con esta misma sesión.</p><div class="d-flex justify-content-between align-items-center"><span class="small text-muted">${cuestionariosPublicados} publicados</span><span class="badge bg-primary">Del portal</span></div><a class="btn btn-primary mt-3" href="/cuestionarios">Abrir</a></div></div></div>
 <div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body d-flex flex-column"><h2 class="h5 text-primary">Cuadro de mando</h2><p class="small text-muted flex-grow-1">Indicadores del Observatorio construidos con los datos que reportan los aplicativos.</p><a class="btn btn-primary mt-3" href="/tablero">Abrir</a></div></div></div>
 </div>` });
 }
@@ -225,8 +230,12 @@ function barras(serie, etiqueta) {
   return out + '</svg>';
 }
 
-export function vistaTablero({ usuario, apps, ids, resumen, indicadores }) {
+export function vistaTablero({ usuario, apps, ids, resumen, indicadores, cuestionarios = [] }) {
   const r = indicadores.r1519;
+  // Promedio nacional por ámbito del diagnóstico de preparación, tomado del cuestionario con niveles cuyas dimensiones usan los códigos de los ámbitos.
+  const f1Prom = {};
+  for (const q of cuestionarios.filter((x) => x.niveles)) for (const [k, x] of Object.entries(q.dimensiones || {})) if (F1.ambitos.some((a) => a.codigo === k) && !f1Prom[k]) f1Prom[k] = { ...x, cuestionario: q };
+  const f1Global = Object.values(f1Prom).length ? Object.values(f1Prom).reduce((s, x) => s + x.promedio, 0) / Object.values(f1Prom).length : null;
   const ultima = resumen.flatMap((x) => x.conjuntos.map((c) => c.fecha)).sort().pop();
   const conDatos = resumen.filter((x) => x.conjuntos.length).length;
   const tieneDatos = (clave) => (resumen.find((x) => x.app.clave === clave) || { conjuntos: [] }).conjuntos.length > 0;
@@ -263,8 +272,8 @@ export function vistaTablero({ usuario, apps, ids, resumen, indicadores }) {
     <p class="small text-muted mt-2 mb-0">El índice se publicará cuando la cobertura y la calidad de las fuentes superen los umbrales aprobados por la gobernanza del Observatorio.</p></div></div></div>
   <div class="col-lg-6"><div class="card h-100"><div class="card-header">Diagnóstico de preparación institucional</div><div class="card-body">
     <p class="small">${esc(F1.escala)}</p><p class="small">${esc(F1.calculo)}</p>
-    <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Ámbito</th><th>Criterios</th><th>Promedio nacional</th><th>Nivel</th></tr></thead><tbody>${F1.ambitos.map((a) => `<tr><td><strong>${esc(a.nombre)}</strong></td><td>${a.criterios.map(([c]) => c).join(', ')}</td><td class="text-muted">Sin mediciones</td><td>${nivelBadge(null)}</td></tr>`).join('')}</tbody></table></div>
-    <p class="small text-muted mt-2 mb-0">Los promedios se llenarán con las respuestas de las entidades al instrumento de diagnóstico cuando se aplique desde el portal.</p></div></div></div>
+    <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Ámbito</th><th>Criterios</th><th>Promedio nacional</th><th>Nivel</th></tr></thead><tbody>${F1.ambitos.map((a) => `<tr><td><strong>${esc(a.nombre)}</strong></td><td>${a.criterios.map(([c]) => c).join(', ')}</td>${f1Prom[a.codigo] ? `<td><strong>${fmt(f1Prom[a.codigo].promedio, 2)}</strong> <span class="small text-muted">(${fmt(f1Prom[a.codigo].n)} entidades)</span></td><td>${nivelBadge(nivelDe(f1Prom[a.codigo].promedio))}</td>` : `<td class="text-muted">Sin mediciones</td><td>${nivelBadge(null)}</td>`}</tr>`).join('')}${f1Global != null ? `<tr class="table-light"><td><strong>Promedio institucional nacional</strong></td><td></td><td><strong>${fmt(f1Global, 2)}</strong></td><td>${nivelBadge(nivelDe(f1Global))}</td></tr>` : ''}</tbody></table></div>
+    <p class="small text-muted mt-2 mb-0">${f1Global != null ? `Promedios calculados con las respuestas al cuestionario «${esc(Object.values(f1Prom)[0].cuestionario.titulo)}» (${fmt(Object.values(f1Prom)[0].cuestionario.respuestas)} respuestas).` : 'Los promedios se llenan con las respuestas de las entidades al instrumento de autodiagnóstico aplicado desde el módulo de cuestionarios.'}</p></div></div></div>
 </div>
 
 <h2 class="mt-5">Evidencia complementaria de la Solución Automatizada (Resolución 1519 de 2020)</h2>
@@ -288,6 +297,10 @@ ${indicadores.fichas || indicadores.herramientas ? `<div class="row g-3">
   <div class="col-md-4"><div class="card text-center"><div class="card-body py-3"><h3 class="mb-0">${fmt(indicadores.casos)}</h3><small class="text-muted">Casos de éxito documentados</small></div></div></div>
   ${Object.keys(indicadores.herramientasPorCategoria).length ? `<div class="col-12"><div class="card"><div class="card-header">Herramientas por categoría</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead><tr><th>Categoría</th><th class="text-end">Herramientas</th></tr></thead><tbody>${Object.entries(indicadores.herramientasPorCategoria).sort((a, b) => b[1] - a[1]).map(([c, n]) => `<tr><td>${esc(c)}</td><td class="text-end">${fmt(n)}</td></tr>`).join('')}</tbody></table></div></div></div></div>` : ''}
 </div>` : `<div class="alert alert-warning">${tieneDatos('catalogo') ? 'Los conjuntos recibidos del Catálogo de IA aún no incluyen fichas ni herramientas.' : 'Todavía no se han recolectado datos del Catálogo de IA.'}</div>`}
+
+<h2 class="mt-5">Cuestionarios del Observatorio</h2>
+<p class="text-muted">Instrumentos aplicados desde el portal, con sus respuestas y los promedios por dimensión.</p>
+${cuestionarios.length ? `<div class="row g-3">${cuestionarios.map((q) => `<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body"><h3 class="h6 text-primary mb-1">${esc(q.titulo)}</h3><p class="small text-muted mb-2">${fmt(q.respuestas)} respuestas${q.entidades ? ` · ${fmt(q.entidades)} entidades` : ''}${q.campanias ? ` · ${fmt(q.campanias)} campañas` : ''}${q.ultima ? ` · última ${esc(String(q.ultima).slice(0, 16))} UTC` : ''}</p>${Object.values(q.dimensiones || {}).map((x) => `<div class="d-flex justify-content-between small border-bottom py-1"><span>${esc(x.nombre)}</span><strong>${fmt(x.valor, 2)}${x.nivel ? ` · ${esc(x.nivel)}` : ''}</strong></div>`).join('')}${usuario.rol === 'administrador' ? `<a class="btn btn-sm btn-outline-primary mt-2" href="/cuestionarios/${q.id}">Ver resultados</a>` : ''}</div></div></div>`).join('')}</div>` : '<p class="text-muted">Todavía no hay cuestionarios con respuestas.</p>'}
 
 <h2 class="mt-5">Datos recolectados</h2>
 <div class="accordion" id="acordeonDatos">

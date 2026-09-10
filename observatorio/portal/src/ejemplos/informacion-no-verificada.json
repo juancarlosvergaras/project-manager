@@ -1,0 +1,833 @@
+{
+ "titulo": "DIAGNÓSTICO SOBRE EL CONOCIMIENTO Y USO DE LA INTELIGENCIA ARTIFICIAL EN EL SECTOR PÚBLICO COLOMBIANO",
+ "intro": [
+  "**Objetivo:** El propósito de este cuestionario consiste en analizar el nivel de conocimiento, las formas de uso y las percepciones sobre la Inteligencia Artificial (IA) entre los funcionarios adscritos a entidades públicas de Colombia. Los resultados serán un insumo clave para la formulación de recomendaciones orientadas al diseño de una política pública para la implementación efectiva, ética y segura de la IA en la administración pública del país.",
+  "**Confidencialidad y anonimato:** Le garantizamos el absoluto anonimato y secreto de sus respuestas. Serán tratadas con la más estricta confidencialidad y se utilizarán exclusivamente con fines académicos y de investigación.",
+  "**Duración estimada:** 15 - 20 minutos. **Instrucciones:** Le agradecemos responder con la mayor sinceridad posible. No hay respuestas correctas o incorrectas; su perspectiva y experiencia son lo más importante para nosotros.",
+  "Los datos recopilados tendrán fines exclusivamente académicos y serán tratados de acuerdo con la Ley Nº 1581 de 2012 y el Decreto Nº 1377 de 2013, así como la Resolución 2238 de 2024 del Ministerio de TIC y la Resolución Nº 03153 de 2013 de la Universidad de Cartagena."
+ ],
+ "politicas": {
+  "mostrar": true,
+  "posicion": "final",
+  "titulo": "Términos y Política de Tratamiento de Datos",
+  "textos": [
+   "El Ministerio / Fondo Único de TIC se permite solicitar autorización para realizar el tratamiento de sus datos personales, la cual tiene como finalidad: gestionar el proceso de inscripción, acceso, participación, seguimiento, comunicaciones, certificación de los servidores públicos en el diplomado en \"Fortalecimiento de habilidades y herramientas de inteligencia artificial para el sector público\" y compartir información con aliados estratégicos en la ejecución tecnológica que facilitarán las actividades de formación. Para tal fin, usted reconoce que el registro y autorización para el tratamiento de su información personal lo realiza de manera voluntaria y que conoce los derechos que detenta, especialmente a conocer, actualizar y rectificar su información personal, revocar la autorización y solicitar la supresión del dato, los cuales podrá ejercer a través de minticresponde@mintic.gov.co, la línea telefónica gratuita nacional 01-800-0914014 o en el Punto de Atención al Ciudadano ubicado en el Edificio Murillo Toro, carrera 8 a entre calles 12 y 13 en Bogotá, Colombia. La información suministrada será tratada por el Ministerio/Fondo Único de Tecnologías de la Información y las Comunicaciones como responsable del tratamiento, de acuerdo con la Ley 1581 de 2012 y la Política de Tratamiento de Datos Personales, descrita en la Resolución 2238 de 2024 del Ministerio de TIC, o aquella que la modifique, derogue o sustituya, la cual puede consultar en https://www.mintic.gov.co/portal/inicio/Secciones-auxiliares/Politicas/2627:Politicas-de-Privacidad-y-Condiciones-de-Uso",
+   "Autorización de tratamiento de datos – Universidad de Cartagena (UdeC) Adicionalmente, el participante manifiesta que ha leído y acepta los Términos de Uso y el Aviso de Privacidad de la Universidad de Cartagena (UdeC) y autoriza el tratamiento de sus datos personales por parte de UdeC, en calidad de responsable del tratamiento, para las siguientes finalidades: gestionar la inscripción, verificación de requisitos, acceso a plataformas, participación académica, seguimiento y acompañamiento, comunicaciones informativas y operativas, emisión de certificados, control de calidad del servicio, fines estadísticos e institucionales, seguridad de la información y cumplimiento de obligaciones legales y contractuales, así como la transmisión y/o transferencia a aliados tecnológicos y académicos estrictamente necesarios para la ejecución del diplomado y bajo acuerdos de protección de datos. El titular podrá ejercer sus derechos de conocer, actualizar, rectificar y suprimir sus datos, así como revocar la autorización, mediante el correo datospersonales@unicartagena.edu.co, o de manera presencial en la Oficina Asesora de Planeación – Datos Personales, Cra. 6 No. 36-100, Centro de Cartagena de Indias, CP 130001, Bolívar, Colombia, PBX (+57) 3164390360 ext. 165. La política de tratamiento de datos de UdeC puede consultarse en https://www.unicartagena.edu.co/proteccion-de-datos. UdeC realizará el tratamiento conforme a la Ley 1581 de 2012, sus decretos reglamentarios y las demás normas aplicables."
+  ],
+  "etiqueta": "Autorizo el tratamiento de mis datos personales conforme a lo descrito"
+ },
+ "progreso": {
+  "barra": false
+ },
+ "pasos": [
+  {
+   "etiqueta": "Perfil",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "1",
+     "titulo": "Perfil sociodemográfico y laboral",
+     "icono": "🪪"
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "correo_electronico",
+     "etiqueta": "Correo electrónico",
+     "numero": 1,
+     "requerido": true,
+     "ancho": 6,
+     "formato": "email"
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "tipo_documento",
+     "etiqueta": "Tipo de documento de identidad",
+     "numero": 2,
+     "requerido": true,
+     "ancho": 3,
+     "opciones": [
+      "Cédula de ciudadanía",
+      "Cédula de extranjería",
+      "Pasaporte",
+      "Permiso por Protección Temporal",
+      "Permiso de trabajo"
+     ]
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "numero_documento",
+     "etiqueta": "Número de documento de identidad",
+     "numero": 3,
+     "requerido": true,
+     "ancho": 3
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "rango_edad",
+     "etiqueta": "Rango de edad",
+     "numero": 4,
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Menos de 25 años",
+      "25 a 34 años",
+      "35 a 44 años",
+      "45 a 54 años",
+      "55 a 64 años",
+      "65 años o más"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "genero",
+     "etiqueta": "Género",
+     "numero": 5,
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Femenino",
+      "Masculino",
+      "Otros"
+     ],
+     "otro": {
+      "valor": "Otros",
+      "etiqueta": "Especifique"
+     }
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "reconocimiento_etnico",
+     "etiqueta": "De acuerdo con su cultura, pueblo o rasgos físicos, ¿usted se reconoce como?",
+     "numero": 6,
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Indígena",
+      "Gitano o Rrom",
+      "Raizal del Archipiélago de San Andrés, Providencia y Santa Catalina",
+      "Palenquero de San Basilio",
+      "Negro(a), mulato(a), afrodescendiente o afrocolombiano(a)",
+      "Ninguno de los anteriores"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "nivel_estudios",
+     "etiqueta": "Último nivel de estudios alcanzado",
+     "numero": 7,
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Bachillerato",
+      "Técnico o tecnólogo",
+      "Profesional o pregrado",
+      "Especialización",
+      "Maestría",
+      "Doctorado"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "entidad_rama",
+     "etiqueta": "Entidad pública en la que labora",
+     "numero": 8,
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Rama Ejecutiva, nivel nacional o territorial",
+      "Rama Legislativa",
+      "Rama Judicial",
+      "Órgano de control, como Contraloría o Procuraduría",
+      "Organización electoral",
+      "Otros"
+     ],
+     "otro": {
+      "valor": "Otros",
+      "etiqueta": "Especifique"
+     }
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "anios_experiencia",
+     "etiqueta": "Años de experiencia en el sector público",
+     "numero": 9,
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Menos de 1 año",
+      "1 a 5 años",
+      "6 a 10 años",
+      "11 a 20 años",
+      "Más de 20 años"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "area_funcional",
+     "etiqueta": "Área funcional principal en la que se desempeña",
+     "numero": 10,
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Jurídica",
+      "Tecnologías de la información",
+      "Planeación o proyectos",
+      "Atención al ciudadano",
+      "Comunicaciones",
+      "Administrativa o financiera",
+      "Misional u operativa",
+      "Talento humano",
+      "Otros"
+     ],
+     "otro": {
+      "valor": "Otros",
+      "etiqueta": "Especifique"
+     }
+    }
+   ]
+  },
+  {
+   "etiqueta": "Conocimiento",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "2",
+     "titulo": "Conocimiento y familiaridad con la inteligencia artificial",
+     "icono": "🧠"
+    },
+    {
+     "tipo": "unica",
+     "nombre": "nivel_conocimiento_ia",
+     "etiqueta": "¿Cómo calificaría su nivel de conocimiento sobre la inteligencia artificial?",
+     "numero": 11,
+     "requerido": true,
+     "opciones": [
+      "Nulo: nunca he oído del tema o no sé qué significa.",
+      "Básico: he oído el término, pero no podría explicarlo con claridad.",
+      "Intermedio: entiendo los conceptos fundamentales y conozco algunas aplicaciones comunes.",
+      "Avanzado: puedo explicar conceptos complejos y sus implicaciones.",
+      "Experto: trabajo o investigo activamente en el campo de la inteligencia artificial."
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "tecnologias_asociadas",
+     "etiqueta": "¿Cuáles de las siguientes tecnologías asocia usted con la inteligencia artificial?",
+     "numero": 12,
+     "requerido": true,
+     "opciones": [
+      "Asistentes virtuales, por ejemplo ChatGPT, Gemini o Copilot.",
+      "Sistemas de recomendación, por ejemplo Netflix o Amazon.",
+      "Análisis predictivo de datos.",
+      "Reconocimiento facial o de voz.",
+      "Automatización de procesos, RPA.",
+      "No estoy seguro(a)."
+     ]
+    },
+    {
+     "tipo": "unica",
+     "nombre": "concepto_ia_generativa",
+     "etiqueta": "De las siguientes opciones, ¿cuál cree que describe mejor a la IA generativa, como ChatGPT, Gemini o Copilot?",
+     "numero": 13,
+     "requerido": true,
+     "opciones": [
+      "Un programa que busca información en Google y la resume.",
+      "Un sistema capaz de crear contenido nuevo, como texto, imágenes o código, a partir de instrucciones.",
+      "Un tipo de robot físico que realiza tareas manuales.",
+      "Un software para analizar grandes volúmenes de datos numéricos.",
+      "No estoy seguro(a)."
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "medios_informacion_ia",
+     "etiqueta": "¿A través de qué medios ha obtenido información sobre IA?",
+     "numero": 14,
+     "requerido": true,
+     "opciones": [
+      "Medios de comunicación, noticias o documentales.",
+      "Redes sociales y plataformas digitales.",
+      "Capacitaciones formales, cursos, seminarios o universidad.",
+      "Conversaciones con colegas, amigos o familiares.",
+      "Exploración y uso personal de herramientas de IA.",
+      "No he buscado ni recibido información sobre el tema."
+     ]
+    }
+   ]
+  },
+  {
+   "etiqueta": "Uso",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "3",
+     "titulo": "Uso y aplicación de la inteligencia artificial",
+     "icono": "💻"
+    },
+    {
+     "tipo": "unica",
+     "nombre": "frecuencia_uso_personal",
+     "etiqueta": "En su vida personal, ¿con qué frecuencia utiliza herramientas o servicios que usan IA, por ejemplo Waze, Maps, Netflix, Spotify, asistentes de voz o chatbots?",
+     "numero": 15,
+     "requerido": true,
+     "opciones": [
+      "Diariamente",
+      "Semanalmente",
+      "Mensualmente",
+      "Casi nunca",
+      "Nunca"
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "tipos_ia_utilizados",
+     "etiqueta": "¿Cuáles de los siguientes tipos de IA ha utilizado alguna vez?",
+     "numero": 16,
+     "requerido": true,
+     "opciones": [
+      "Asistentes conversacionales o IA generativa de texto, como ChatGPT, Gemini o Copilot.",
+      "Herramientas de traducción automática, como Google Translate o DeepL.",
+      "Software de transcripción de audio a texto.",
+      "Generadores de imágenes o video, como Midjourney o DALL-E.",
+      "Herramientas de análisis predictivo o de datos.",
+      "Chatbots para atención al cliente o trámites.",
+      "Ninguna de las anteriores."
+     ]
+    },
+    {
+     "tipo": "unica",
+     "nombre": "frecuencia_uso_laboral",
+     "etiqueta": "Pensando exclusivamente en sus actividades laborales, ¿con qué frecuencia utiliza herramientas de IA en su trabajo?",
+     "numero": 17,
+     "requerido": true,
+     "opciones": [
+      "Diariamente",
+      "Semanalmente",
+      "Mensualmente",
+      "Casi nunca",
+      "Nunca"
+     ],
+     "ayuda": "Si responde \"Nunca\", las preguntas 18 y 19 se omiten."
+    },
+    {
+     "tipo": "condicional",
+     "condicion": {
+      "campo": "frecuencia_uso_laboral",
+      "operador": "!=",
+      "valor": "Nunca"
+     },
+     "bloques": [
+      {
+       "tipo": "multiple",
+       "nombre": "razones_uso_laboral",
+       "etiqueta": "¿Cuáles son las razones principales por las que utiliza la IA en su trabajo?",
+       "numero": 18,
+       "requerido": true,
+       "opciones": [
+        "Aumentar la eficiencia y ahorrar tiempo.",
+        "Mejorar la calidad de los documentos o análisis.",
+        "Automatizar tareas repetitivas.",
+        "Generar ideas nuevas y fomentar la creatividad.",
+        "Facilitar la búsqueda y síntesis de información.",
+        "Por recomendación de colegas o superiores.",
+        "Por interés personal y desarrollo de nuevas habilidades."
+       ],
+       "max": 3,
+       "ayuda": "Seleccione las tres más importantes."
+      },
+      {
+       "tipo": "multiple",
+       "nombre": "tareas_laborales_ia",
+       "etiqueta": "¿Para qué tareas laborales específicas ha utilizado la IA?",
+       "numero": 19,
+       "requerido": true,
+       "opciones": [
+        "Redacción y corrección de borradores, oficios, informes o correos.",
+        "Resumen de documentos extensos o normatividad.",
+        "Búsqueda y análisis de información para la toma de decisiones.",
+        "Elaboración de presentaciones.",
+        "Traducción de textos.",
+        "Generación de ideas para proyectos o soluciones.",
+        "Análisis de datos.",
+        "Creación de contenido para comunicación pública.",
+        "Otra"
+       ],
+       "otro": {
+        "valor": "Otros",
+        "etiqueta": "Especifique"
+       }
+      }
+     ]
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "ejemplo_utilidad_ia",
+     "etiqueta": "Por favor, describa brevemente un ejemplo concreto en el que el uso de la IA le haya sido de gran utilidad en su trabajo.",
+     "numero": 20,
+     "ayuda": "Ejemplo: informe ejecutivo, diagnóstico de un sector económico o búsqueda de información."
+    }
+   ]
+  },
+  {
+   "etiqueta": "Beneficios",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "4",
+     "titulo": "Beneficios y oportunidades de la IA en la administración pública",
+     "icono": "📈"
+    },
+    {
+     "tipo": "texto",
+     "texto": "21. ¿Qué tan de acuerdo está con que la IA puede generar los siguientes beneficios para el sector público colombiano?"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "beneficio_agilizar_tramites",
+     "etiqueta": "Agilizar y reducir los tiempos de los trámites para los ciudadanos.",
+     "numero": 1,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "beneficio"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "beneficio_toma_decisiones",
+     "etiqueta": "Mejorar la toma de decisiones basadas en evidencia y datos.",
+     "numero": 2,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "beneficio"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "beneficio_optimizar_recursos",
+     "etiqueta": "Optimizar el uso de los recursos públicos y reducir costos.",
+     "numero": 3,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "beneficio"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "beneficio_transparencia",
+     "etiqueta": "Aumentar la transparencia y facilitar la rendición de cuentas.",
+     "numero": 4,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "beneficio"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "beneficio_personalizar_servicios",
+     "etiqueta": "Personalizar los servicios y la comunicación con los ciudadanos.",
+     "numero": 5,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "beneficio"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "beneficio_prevenir_corrupcion",
+     "etiqueta": "Prevenir la corrupción mediante el análisis de patrones y datos.",
+     "numero": 6,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "beneficio"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Riesgos",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "5",
+     "titulo": "Riesgos y desafíos de la IA en la administración pública",
+     "icono": "⚠️"
+    },
+    {
+     "tipo": "texto",
+     "texto": "22. ¿Cómo calificaría los siguientes riesgos asociados al uso de la IA en el sector público?"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_sesgos_discriminacion",
+     "etiqueta": "Sesgos y discriminación en las decisiones automáticas.",
+     "numero": 1,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_privacidad_seguridad",
+     "etiqueta": "Vulneración de la privacidad y seguridad de los datos de los ciudadanos.",
+     "numero": 2,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_falta_transparencia",
+     "etiqueta": "Falta de transparencia y dificultad para explicar cómo funciona un algoritmo.",
+     "numero": 3,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_informacion_falsa",
+     "etiqueta": "Generación de información falsa o alucinaciones que lleven a errores.",
+     "numero": 4,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_sustitucion_empleos",
+     "etiqueta": "Sustitución de empleos públicos por sistemas automatizados.",
+     "numero": 5,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_dificultad_responsabilidad",
+     "etiqueta": "Dificultad para asignar responsabilidades cuando una IA comete un error.",
+     "numero": 6,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "riesgo_brecha_digital",
+     "etiqueta": "Aumento de la brecha digital y exclusión de ciudadanos sin acceso a tecnología.",
+     "numero": 7,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Totalmente en desacuerdo",
+      "Totalmente de acuerdo"
+     ],
+     "dimension": "riesgo"
+    },
+    {
+     "tipo": "texto",
+     "texto": "23. ¿En cuál de las siguientes áreas considera que su entidad es más vulnerable a los riesgos de la información no verificada generada por IA?"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "vulnerabilidad_comunicaciones_publicas",
+     "etiqueta": "Comunicaciones públicas y redes sociales.",
+     "numero": 1,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Baja vulneración",
+      "Vulneración muy alta"
+     ],
+     "dimension": "vulnerabilidad"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "vulnerabilidad_informes_tecnicos",
+     "etiqueta": "Elaboración de informes técnicos o jurídicos.",
+     "numero": 2,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Baja vulneración",
+      "Vulneración muy alta"
+     ],
+     "dimension": "vulnerabilidad"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "vulnerabilidad_toma_decisiones",
+     "etiqueta": "Toma de decisiones basadas en datos.",
+     "numero": 3,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Baja vulneración",
+      "Vulneración muy alta"
+     ],
+     "dimension": "vulnerabilidad"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "vulnerabilidad_chatbots_ciudadanos",
+     "etiqueta": "Interacción con los ciudadanos a través de chatbots.",
+     "numero": 4,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Baja vulneración",
+      "Vulneración muy alta"
+     ],
+     "dimension": "vulnerabilidad"
+    },
+    {
+     "tipo": "escala",
+     "nombre": "vulnerabilidad_seguridad_orden_publico",
+     "etiqueta": "Análisis de seguridad y orden público.",
+     "numero": 5,
+     "requerido": true,
+     "min": 1,
+     "max": 5,
+     "extremos": [
+      "Baja vulneración",
+      "Vulneración muy alta"
+     ],
+     "dimension": "vulnerabilidad"
+    },
+    {
+     "tipo": "unica",
+     "nombre": "experiencia_problema_ia",
+     "etiqueta": "¿Ha identificado o experimentado alguna situación en su trabajo donde la información de una IA resultó ser incorrecta o generó un problema?",
+     "numero": 24,
+     "requerido": true,
+     "opciones": [
+      "Sí",
+      "No"
+     ]
+    },
+    {
+     "tipo": "condicional",
+     "condicion": {
+      "campo": "experiencia_problema_ia",
+      "operador": "!=",
+      "valor": "No"
+     },
+     "bloques": [
+      {
+       "tipo": "parrafo",
+       "nombre": "descripcion_desafio_riesgo",
+       "etiqueta": "Si lo desea, describa brevemente un desafío o riesgo concreto que haya observado o que anticipe con el uso creciente de la IA en el sector público.",
+       "numero": 25
+      }
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "mecanismo_verificacion",
+     "etiqueta": "¿Qué mecanismo utiliza habitualmente para verificar la exactitud de la información generada por una IA antes de aplicarla en sus funciones públicas?",
+     "numero": 26,
+     "requerido": true,
+     "opciones": [
+      "Contrastar con normatividad vigente, documentos institucionales o fuentes oficiales.",
+      "Realizar búsquedas manuales complementarias en internet o bases de datos.",
+      "Consultar el resultado con colegas o superiores.",
+      "Validar los datos mediante cruce con otros sistemas de información de la entidad.",
+      "No suelo realizar ninguna verificación adicional (asumo que el resultado es correcto).",
+      "Otra"
+     ],
+     "otro": {
+      "valor": "Otros",
+      "etiqueta": "Especifique"
+     }
+    }
+   ]
+  },
+  {
+   "etiqueta": "Política",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "6",
+     "titulo": "Hacia una política pública de inteligencia artificial",
+     "icono": "🏛️"
+    },
+    {
+     "tipo": "unica",
+     "nombre": "necesidad_politica_publica",
+     "etiqueta": "¿Considera necesario que Colombia cuente con una política pública clara y específica para el uso de la IA en la administración pública?",
+     "numero": 27,
+     "requerido": true,
+     "opciones": [
+      "Sí, es urgente y prioritario.",
+      "Sí, es importante, pero no es la máxima prioridad.",
+      "No estoy seguro de sus beneficios.",
+      "No, no es necesario."
+     ]
+    },
+    {
+     "tipo": "unica",
+     "nombre": "nivel_preparacion",
+     "etiqueta": "¿Qué tan preparado se siente usted para utilizar la IA de forma efectiva y ética en sus labores diarias?",
+     "numero": 28,
+     "requerido": true,
+     "opciones": [
+      "Muy preparado",
+      "Algo preparado",
+      "Poco preparado",
+      "Nada preparado"
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "apoyo_recursos_necesarios",
+     "etiqueta": "Para fomentar un uso seguro y eficaz de la IA, ¿qué tipo de apoyo o recursos considera más necesarios para que los funcionarios públicos puedan adoptar la IA de manera exitosa?",
+     "numero": 29,
+     "requerido": true,
+     "opciones": [
+      "Capacitación y formación continua sobre herramientas y conceptos de IA.",
+      "Lineamientos y guías claras sobre el uso ético y seguro de la IA.",
+      "Acceso a un catálogo de herramientas y tecnología de IA seguras y recomendadas.",
+      "Creación de espacios para experimentar y compartir buenas prácticas.",
+      "Liderazgo y respaldo por parte de los directivos.",
+      "Inversión en infraestructura tecnológica y de datos.",
+      "Asesoría técnica para la implementación de proyectos de IA en su entidad."
+     ],
+     "max": 3,
+     "ayuda": "Seleccione las tres más importantes."
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "temas_guia_ia",
+     "etiqueta": "¿Qué temas considera indispensables incluir en una guía para el uso de IA dirigida a funcionarios?",
+     "numero": 30,
+     "requerido": true,
+     "opciones": [
+      "Cómo verificar la información generada por IA.",
+      "Protección de datos personales y sensibles.",
+      "Riesgos éticos, sesgos y discriminación.",
+      "Pautas para la contratación de soluciones de IA.",
+      "Casos de uso prácticos y permitidos.",
+      "Responsabilidad legal y funcional por el uso de IA."
+     ]
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "recomendacion_gobierno",
+     "etiqueta": "Si pudiera darle una recomendación clave al Gobierno Nacional para la implementación de la IA en el sector público, ¿cuál sería?",
+     "numero": 31
+    }
+   ]
+  }
+ ],
+ "cierre": {
+  "boton": "Enviar respuestas",
+  "titulo": "¡Gracias por participar!",
+  "mensaje": "Sus respuestas fueron registradas. Su perspectiva es un insumo clave para la política pública de inteligencia artificial en Colombia."
+ },
+ "subtitulo": "Conocimiento y uso de la inteligencia artificial en el sector público colombiano",
+ "calculo": {
+  "modo": "suma",
+  "dimensiones": [
+   {
+    "clave": "beneficio",
+    "nombre": "Percepción de beneficios",
+    "descripcion": "Suma de los seis ítems de beneficios (máximo 30)."
+   },
+   {
+    "clave": "riesgo",
+    "nombre": "Percepción de riesgos",
+    "descripcion": "Suma de los siete ítems de riesgos (máximo 35)."
+   },
+   {
+    "clave": "vulnerabilidad",
+    "nombre": "Vulnerabilidad percibida",
+    "descripcion": "Suma de los cinco ámbitos de vulnerabilidad (máximo 25)."
+   }
+  ]
+ },
+ "identificacion": {
+  "correo": "correo_electronico",
+  "documento": "numero_documento"
+ },
+ "duplicados": {
+  "campos": [],
+  "mensaje": ""
+ },
+ "tablero": {
+  "graficos": [
+   "nivel_conocimiento_ia",
+   "frecuencia_uso_laboral",
+   "nivel_preparacion",
+   "necesidad_politica_publica"
+  ],
+  "indicadores": [
+   {
+    "nombre": "Con conocimiento avanzado o experto",
+    "campo": "nivel_conocimiento_ia",
+    "contar": [
+     "Avanzado",
+     "Experto"
+    ],
+    "empieza_por": true
+   }
+  ]
+ }
+}

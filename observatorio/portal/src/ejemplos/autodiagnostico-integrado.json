@@ -1,0 +1,1675 @@
+{
+ "titulo": "Instrumento Autodiagnóstico Integrado — Proyecto IA para el Estado",
+ "intro": [
+  "Este instrumento hace parte del **Proyecto IA para el Estado** y tiene como propósito identificar el nivel de madurez de la entidad en materia de **datos e inteligencia artificial**, a partir de seis ámbitos de evaluación: dirección y gobierno institucional, gestión de datos, base tecnológica, seguridad y privacidad, capacidades del equipo humano, y procesos y valor público.",
+  "**Importante:** a diferencia del diagnóstico diligenciado anteriormente, este instrumento **no** se responde por cada funcionario(a). Debe diligenciarse **una sola vez por entidad**, procurando que las respuestas reflejen su situación institucional real.",
+  "Por esta razón, recomendamos que su diligenciamiento sea coordinado por el punto focal de la entidad y que, cuando sea necesario, se consulte a las áreas de tecnología, planeación, datos, seguridad de la información, talento humano u otras dependencias que puedan aportar información para responder con precisión.",
+  "Cada criterio deberá valorarse en una escala de **1 a 5**, donde:\n**1 = Inicial | 2 = Gestionado | 3 = Definido | 4 = Avanzado | 5 = Optimizado**",
+  "No será necesario adjuntar evidencias documentales. Sin embargo, agradecemos responder con la mayor objetividad posible, considerando si la entidad cuenta efectivamente con procesos, responsables, instrumentos o soportes que respalden cada valoración.",
+  "⏱️ **Tiempo estimado de diligenciamiento:** entre 30 y 60 minutos.\n🏛️ **Se debe registrar una única respuesta por entidad.**",
+  "Los resultados permitirán orientar de manera más precisa el **acompañamiento técnico y la ruta de fortalecimiento** de cada entidad dentro del Proyecto IA para el Estado."
+ ],
+ "politicas": {
+  "mostrar": true,
+  "titulo": "Términos y Política de Tratamiento de Datos",
+  "textos": [
+   "El Ministerio / Fondo Único de TIC se permite solicitar autorización para realizar el tratamiento de sus datos personales, la cual tiene como finalidad: gestionar el proceso de convocatoria, postulación, evaluación, selección, comunicación, seguimiento y eventual acompañamiento de las entidades territoriales beneficiarias del Proyecto IA para el Estado, y compartir información con aliados estratégicos en la ejecución técnica que facilitarán las actividades del proyecto. Para tal fin, usted reconoce que el registro y autorización para el tratamiento de su información personal lo realiza de manera voluntaria y que conoce los derechos que detenta, especialmente a conocer, actualizar y rectificar su información personal, revocar la autorización y solicitar la supresión del dato, los cuales podrá ejercer a través de minticresponde@mintic.gov.co, la línea telefónica gratuita nacional 01-800-0914014 o en el Punto de Atención al Ciudadano ubicado en el Edificio Murillo Toro, carrera 8 a entre calles 12 y 13 en Bogotá, Colombia. La información suministrada será tratada por el Ministerio/Fondo Único de Tecnologías de la Información y las Comunicaciones como responsable del tratamiento, de acuerdo con la Ley 1581 de 2012 y la Política de Tratamiento de Datos Personales, descrita en la Resolución 2238 de 2024 del Ministerio de TIC, o aquella que la modifique, derogue o sustituya, la cual puede consultar en https://www.mintic.gov.co/portal/inicio/Secciones-auxiliares/Politicas/2627:Politicas-de-Privacidad-y-Condiciones-de-Uso",
+   "Autorización de tratamiento de datos – Universidad de Cartagena (UdeC) Adicionalmente, el postulante manifiesta que ha leído y acepta los Términos de Uso y el Aviso de Privacidad de la Universidad de Cartagena (UdeC) y autoriza el tratamiento de sus datos personales por parte de UdeC, en calidad de responsable del tratamiento, para las siguientes finalidades: gestionar la postulación, verificación de requisitos, evaluación y selección, participación en el proyecto, seguimiento y acompañamiento, comunicaciones informativas y operativas, control de calidad del servicio, fines estadísticos e institucionales, seguridad de la información y cumplimiento de obligaciones legales y contractuales, así como la transmisión y/o transferencia a aliados tecnológicos y académicos estrictamente necesarios para la ejecución del proyecto y bajo acuerdos de protección de datos. El titular podrá ejercer sus derechos de conocer, actualizar, rectificar y suprimir sus datos, así como revocar la autorización, mediante el correo datospersonales@unicartagena.edu.co, o de manera presencial en la Oficina Asesora de Planeación – Datos Personales, Cra. 6 No. 36-100, Centro de Cartagena de Indias, CP 130001, Bolívar, Colombia, PBX (+57) 3164390360 ext. 165. La política de tratamiento de datos de UdeC puede consultarse en https://www.unicartagena.edu.co/proteccion-de-datos. UdeC realizará el tratamiento conforme a la Ley 1581 de 2012, sus decretos reglamentarios y las demás normas aplicables."
+  ],
+  "etiqueta": "Autorizo el tratamiento de mis datos personales conforme a lo descrito (*)"
+ },
+ "progreso": {
+  "barra": false
+ },
+ "pasos": [
+  {
+   "etiqueta": "Entidad",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "1",
+     "titulo": "Identificación de la entidad postulante",
+     "icono": "🏛️"
+    },
+    {
+     "tipo": "entidad",
+     "nombre": "nombre_entidad",
+     "etiqueta": "Nombre completo de la entidad territorial o entidad pública postulante",
+     "requerido": true,
+     "ancho": 6,
+     "ayuda": "Debe coincidir con el nombre institucional oficial."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "tipo_entidad",
+     "etiqueta": "Tipo de entidad",
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Alcaldía municipal o distrital",
+      "Gobernación",
+      "Entidad descentralizada territorial",
+      "Área metropolitana",
+      "Esquema asociativo territorial",
+      "Otra entidad pública territorial"
+     ]
+    },
+    {
+     "tipo": "departamento",
+     "nombre": "departamento",
+     "etiqueta": "Departamento",
+     "requerido": true,
+     "ancho": 4
+    },
+    {
+     "tipo": "municipio",
+     "nombre": "municipio",
+     "etiqueta": "Municipio o distrito",
+     "requerido": true,
+     "ancho": 4,
+     "depende_de": "departamento"
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "categoria_territorial",
+     "etiqueta": "Categoría territorial (Ley 617 de 2000)",
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Categoría especial",
+      "Categoría 1",
+      "Categoría 2",
+      "Categoría 3",
+      "Categoría 4",
+      "Categoría 5",
+      "Categoría 6",
+      "No sabe / no responde"
+     ]
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "pagina_web",
+     "etiqueta": "Página web oficial de la entidad",
+     "requerido": true,
+     "ancho": 6
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "enlace_pdt",
+     "etiqueta": "Enlace al Plan de Desarrollo o de Acción vigente",
+     "ancho": 6,
+     "ayuda": "Puede corresponder a página oficial, documento PDF o repositorio institucional."
+    }
+   ]
+  },
+  {
+   "etiqueta": "Diligencia",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "2",
+     "titulo": "Datos de quien diligencia el formulario",
+     "icono": "👤"
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "nombres_apellidos",
+     "etiqueta": "Nombres y apellidos completos",
+     "requerido": true,
+     "ancho": 6
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "tipo_documento",
+     "etiqueta": "Tipo de documento",
+     "requerido": true,
+     "ancho": 3,
+     "opciones": [
+      "Cédula de ciudadanía",
+      "Cédula de extranjería",
+      "Permiso por Protección Temporal",
+      "Pasaporte",
+      "Otro"
+     ]
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "numero_documento",
+     "etiqueta": "Número de documento",
+     "requerido": true,
+     "ancho": 3
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "cargo",
+     "etiqueta": "Cargo o rol que desempeña",
+     "requerido": true,
+     "ancho": 4
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "dependencia",
+     "etiqueta": "Dependencia o área",
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Despacho",
+      "Planeación",
+      "Secretaría General",
+      "TIC/Sistemas/Tecnología",
+      "Gobierno Digital",
+      "Datos/Analítica/Estadística",
+      "Administrativa",
+      "Jurídica",
+      "Otra"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "tipo_vinculacion",
+     "etiqueta": "Tipo de vinculación",
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Carrera administrativa",
+      "Libre nombramiento y remoción",
+      "Provisional",
+      "Contratista",
+      "Otro"
+     ]
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "correo_institucional",
+     "etiqueta": "Correo electrónico institucional",
+     "requerido": true,
+     "ancho": 4,
+     "formato": "email"
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "correo_alternativo",
+     "etiqueta": "Correo electrónico alternativo",
+     "ancho": 4,
+     "formato": "email",
+     "ayuda": "Para contingencias de comunicación."
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "telefono",
+     "etiqueta": "Teléfono celular o de contacto",
+     "requerido": true,
+     "ancho": 4
+    }
+   ]
+  },
+  {
+   "etiqueta": "Ámbito 1",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "3",
+     "titulo": "Ámbito 1. Dirección y gobierno institucional",
+     "icono": "📋"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de evaluación",
+     "descripcion": "Cada pregunta de esta sección se valora en una escala de 1 a 5. Selecciona el nivel que mejor describa la situación actual de tu entidad.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "Nivel 1",
+       "texto": "Inicial"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "Nivel 2",
+       "texto": "Gestionado"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "Nivel 3",
+       "texto": "Definido"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "Nivel 4",
+       "texto": "Avanzado"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "Nivel 5",
+       "texto": "Optimizado"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p1_lineamientos_gestion_datos_ia",
+     "etiqueta": "¿La entidad ha adoptado lineamientos para orientar la gestión de datos y el desarrollo de iniciativas de inteligencia artificial?",
+     "numero": 1,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DG"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p2_responsable_datos_designado",
+     "etiqueta": "¿La entidad ha designado formalmente un responsable de datos con funciones asociadas a la gestión de datos e inteligencia artificial?",
+     "numero": 2,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DG"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p3_instancia_prioriza_casos_uso",
+     "etiqueta": "¿La entidad cuenta con una instancia que prioriza casos de uso, revisa avances y adopta acuerdos de seguimiento?",
+     "numero": 3,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DG"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p4_instrumentos_valoran_riesgos",
+     "etiqueta": "¿La entidad ha aplicado instrumentos para valorar riesgos, efectos y condiciones de uso de datos o sistemas asociados a inteligencia artificial para garantizar trazabilidad?",
+     "numero": 4,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DG"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p5_persona_responsable_administracion_datos",
+     "etiqueta": "¿La entidad cuenta con una persona responsable de la administración de datos?",
+     "numero": 5,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DG"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p6_documenta_ajustes_gestion_datos",
+     "etiqueta": "¿La entidad documenta de manera periódica las acciones de ajuste, revisión y perfeccionamiento aplicadas a la gestión de datos y a los sistemas de inteligencia artificial?",
+     "numero": 6,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DG"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Ámbito 2",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "4",
+     "titulo": "Ámbito 2. Gestión de datos",
+     "icono": "🗄️"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de evaluación",
+     "descripcion": "Cada pregunta de esta sección se valora en una escala de 1 a 5. Selecciona el nivel que mejor describa la situación actual de tu entidad.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "Nivel 1",
+       "texto": "Inicial"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "Nivel 2",
+       "texto": "Gestionado"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "Nivel 3",
+       "texto": "Definido"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "Nivel 4",
+       "texto": "Avanzado"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "Nivel 5",
+       "texto": "Optimizado"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p7_inventario_datos_fuentes",
+     "etiqueta": "¿La entidad dispone de un inventario de datos que identifique las fuentes de información con potencial de uso en iniciativas de inteligencia artificial?",
+     "numero": 7,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p8_procedimientos_limpieza_datos",
+     "etiqueta": "¿La entidad ha formalizado y documentado procedimientos para la limpieza, transformación, validación y organización de datos con fines de uso en inteligencia artificial?",
+     "numero": 8,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p9_datos_estandarizados_interoperables",
+     "etiqueta": "¿La entidad dispone de datos estandarizados, interoperables y reutilizables para inteligencia artificial?",
+     "numero": 9,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p10_gestiona_accesos_trazabilidad",
+     "etiqueta": "¿La entidad gestiona accesos y trazabilidad para la consulta, uso, modificación y compartición de datos?",
+     "numero": 10,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p11_datos_formatos_homogeneos",
+     "etiqueta": "¿La entidad tiene los datos en formatos homogéneos?",
+     "numero": 11,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p12_informacion_documentada_estructurada",
+     "etiqueta": "¿La entidad cuenta con información documentada y estructurada que facilite su uso en iniciativas de inteligencia artificial?",
+     "numero": 12,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p13_actividades_basicas_organizacion_datos",
+     "etiqueta": "¿La entidad ha iniciado actividades básicas de organización, depuración o clasificación de datos para facilitar su uso en proyectos de inteligencia artificial?",
+     "numero": 13,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p14_documenta_metadatos_iniciales",
+     "etiqueta": "¿La entidad ha comenzado a documentar atributos, estructura y características de sus datos mediante esquemas iniciales de metadatos?",
+     "numero": 14,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p15_catalogo_institucional_datos",
+     "etiqueta": "¿La entidad ha consolidado un catálogo institucional que organice y describa los conjuntos de datos priorizados para proyectos de inteligencia artificial?",
+     "numero": 15,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p16_datos_abiertos_organizados",
+     "etiqueta": "¿La entidad dispone de conjuntos de datos abiertos organizados, documentados y utilizables en iniciativas de inteligencia artificial?",
+     "numero": 16,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "DA"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Ámbito 3",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "5",
+     "titulo": "Ámbito 3. Base tecnológica",
+     "icono": "💻"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de evaluación",
+     "descripcion": "Cada pregunta de esta sección se valora en una escala de 1 a 5. Selecciona el nivel que mejor describa la situación actual de tu entidad.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "Nivel 1",
+       "texto": "Inicial"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "Nivel 2",
+       "texto": "Gestionado"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "Nivel 3",
+       "texto": "Definido"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "Nivel 4",
+       "texto": "Avanzado"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "Nivel 5",
+       "texto": "Optimizado"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p17_dispone_apis",
+     "etiqueta": "¿La entidad dispone de interfaces de programación (API) que permiten el acceso, consulta o intercambio de datos para iniciativas de inteligencia artificial?",
+     "numero": 17,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TE"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p18_capacidad_almacenamiento_procesamiento",
+     "etiqueta": "¿La entidad dispone de capacidad de almacenamiento y procesamiento acorde con sus casos de uso prioritarios?",
+     "numero": 18,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TE"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p19_herramientas_analisis_visualizacion",
+     "etiqueta": "¿La entidad cuenta con herramientas para análisis, visualización, modelado o automatización con uso controlado?",
+     "numero": 19,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TE"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p20_mecanismos_seguimiento_sistemas_ia",
+     "etiqueta": "¿La entidad cuenta con mecanismos automáticos para hacer seguimiento al funcionamiento de sus sistemas de inteligencia artificial y de los flujos de datos asociados?",
+     "numero": 20,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TE"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p21_intercambio_semantico_datos",
+     "etiqueta": "¿La entidad ha implementado mecanismos que permiten el intercambio semántico de datos entre sistemas, plataformas o servicios institucionales?",
+     "numero": 21,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TE"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p22_mecanismos_compartir_datos_modelos",
+     "etiqueta": "¿La entidad dispone de mecanismos institucionales para compartir datos y modelos con fines de reutilización, articulación o colaboración?",
+     "numero": 22,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TE"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Ámbito 4",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "6",
+     "titulo": "Ámbito 4. Seguridad y privacidad",
+     "icono": "🛡️"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de evaluación",
+     "descripcion": "Cada pregunta de esta sección se valora en una escala de 1 a 5. Selecciona el nivel que mejor describa la situación actual de tu entidad.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "Nivel 1",
+       "texto": "Inicial"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "Nivel 2",
+       "texto": "Gestionado"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "Nivel 3",
+       "texto": "Definido"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "Nivel 4",
+       "texto": "Avanzado"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "Nivel 5",
+       "texto": "Optimizado"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p23_controles_seguridad_riesgos",
+     "etiqueta": "¿La entidad aplica controles de seguridad y gestión de riesgos alineados con su marco institucional?",
+     "numero": 23,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "SP"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p24_gestiona_datos_personales_privacidad",
+     "etiqueta": "¿La entidad gestiona datos personales e información sensible con criterios de privacidad, minimización y anonimización cuando corresponde?",
+     "numero": 24,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "SP"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p25_controla_perfiles_accesos_monitoreo",
+     "etiqueta": "¿La entidad controla perfiles, accesos y monitoreo sobre los activos de información usados en analítica o inteligencia artificial?",
+     "numero": 25,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "SP"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p26_medidas_continuidad_respaldo_incidentes",
+     "etiqueta": "¿La entidad cuenta con medidas de continuidad, respaldo y respuesta a incidentes para servicios y datos críticos?",
+     "numero": 26,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "SP"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Ámbito 5",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "7",
+     "titulo": "Ámbito 5. Capacidades del equipo humano",
+     "icono": "👥"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de evaluación",
+     "descripcion": "Cada pregunta de esta sección se valora en una escala de 1 a 5. Selecciona el nivel que mejor describa la situación actual de tu entidad.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "Nivel 1",
+       "texto": "Inicial"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "Nivel 2",
+       "texto": "Gestionado"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "Nivel 3",
+       "texto": "Definido"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "Nivel 4",
+       "texto": "Avanzado"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "Nivel 5",
+       "texto": "Optimizado"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p27_perfiles_roles_datos_tecnologia",
+     "etiqueta": "¿La entidad dispone de perfiles o roles asociados a datos, tecnología, seguridad y gestión misional del proyecto?",
+     "numero": 27,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TH"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p28_funcionarios_certificados_capacitados",
+     "etiqueta": "¿La entidad cuenta con funcionarios certificados o capacitados en datos, analítica o inteligencia artificial?",
+     "numero": 28,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TH"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p29_articula_trabajo_interdisciplinario",
+     "etiqueta": "¿La entidad articula trabajo interdisciplinario entre áreas misionales, jurídicas, técnicas y directivas?",
+     "numero": 29,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TH"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p30_promueve_nuevas_iniciativas_ia",
+     "etiqueta": "¿La entidad promueve de forma permanente el desarrollo de nuevas iniciativas, capacidades y aplicaciones institucionales basadas en inteligencia artificial?",
+     "numero": 30,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TH"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p31_participa_redes_ecosistema_ia",
+     "etiqueta": "¿La entidad participa en redes, iniciativas o mecanismos de articulación que fortalezcan el ecosistema nacional de inteligencia artificial?",
+     "numero": 31,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "TH"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Ámbito 6",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "8",
+     "titulo": "Ámbito 6. Procesos y valor público",
+     "icono": "🎯"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de evaluación",
+     "descripcion": "Cada pregunta de esta sección se valora en una escala de 1 a 5. Selecciona el nivel que mejor describa la situación actual de tu entidad.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "Nivel 1",
+       "texto": "Inicial"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "Nivel 2",
+       "texto": "Gestionado"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "Nivel 3",
+       "texto": "Definido"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "Nivel 4",
+       "texto": "Avanzado"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "Nivel 5",
+       "texto": "Optimizado"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p32_piloto_ia_implementado",
+     "etiqueta": "¿La entidad ha desarrollado e implementado piloto(s) de inteligencia artificial o iniciativa(s) basada(s) en datos orientada(s) a evaluar su viabilidad en procesos institucionales y a fortalecer los servicios digitales, la innovación pública o la competitividad territorial?",
+     "numero": 32,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p33_procesos_reglas_negocio_claras",
+     "etiqueta": "¿Los procesos vinculados al caso de uso están descritos y cuentan con reglas de negocio suficientemente claras?",
+     "numero": 33,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p34_mide_reporta_resultados_ia",
+     "etiqueta": "¿La entidad mide y reporta de manera periódica los resultados obtenidos mediante el uso de inteligencia artificial?",
+     "numero": 34,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p35_gestiona_cambio_organizacional",
+     "etiqueta": "¿La entidad gestiona cambios organizacionales, comunicación y apropiación de los resultados por parte de usuarios internos o la ciudadanía?",
+     "numero": 35,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p36_mas_de_un_sistema_ia_funcionamiento",
+     "etiqueta": "¿La entidad tiene en funcionamiento más de un sistema de inteligencia artificial aplicado a procesos institucionales?",
+     "numero": 36,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p37_mide_efectos_sistemas_ia",
+     "etiqueta": "¿La entidad mide los efectos de sus sistemas de inteligencia artificial mediante variables definidas para evaluar resultados institucionales?",
+     "numero": 37,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "p38_implementa_modelos_predictivos_avanzados",
+     "etiqueta": "¿La entidad implementa modelos predictivos o herramientas avanzadas de inteligencia artificial con resultados medibles en sostenibilidad territorial, eficiencia institucional, competitividad o calidad de vida?",
+     "numero": 38,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Inicial"
+      },
+      {
+       "valor": "2",
+       "texto": "Gestionado"
+      },
+      {
+       "valor": "3",
+       "texto": "Definido"
+      },
+      {
+       "valor": "4",
+       "texto": "Avanzado"
+      },
+      {
+       "valor": "5",
+       "texto": "Optimizado"
+      }
+     ],
+     "dimension": "PV"
+    }
+   ]
+  }
+ ],
+ "cierre": {
+  "boton": "Enviar autodiagnóstico",
+  "titulo": "Autodiagnóstico registrado",
+  "mensaje": "La entidad quedó registrada. Los resultados orientarán el acompañamiento técnico y la ruta de fortalecimiento dentro del Proyecto IA para el Estado."
+ },
+ "subtitulo": "Nivel de madurez de la entidad en datos e inteligencia artificial, en seis ámbitos",
+ "calculo": {
+  "modo": "promedio",
+  "niveles": true,
+  "dimensiones": [
+   {
+    "clave": "DG",
+    "nombre": "Dirección y gobierno institucional"
+   },
+   {
+    "clave": "DA",
+    "nombre": "Gestión de datos"
+   },
+   {
+    "clave": "TE",
+    "nombre": "Base tecnológica"
+   },
+   {
+    "clave": "SP",
+    "nombre": "Seguridad y privacidad"
+   },
+   {
+    "clave": "TH",
+    "nombre": "Capacidades del equipo humano"
+   },
+   {
+    "clave": "PV",
+    "nombre": "Procesos y valor público"
+   }
+  ]
+ },
+ "identificacion": {
+  "entidad": "nombre_entidad",
+  "correo": "correo_institucional",
+  "documento": "numero_documento",
+  "nombre": "nombres_apellidos",
+  "departamento": "departamento",
+  "municipio": "municipio"
+ },
+ "duplicados": {
+  "campos": [
+   "nombre_entidad",
+   "numero_documento",
+   "correo_institucional"
+  ],
+  "mensaje": "Ya existe una respuesta registrada con esta entidad, este correo o este número de documento."
+ },
+ "tablero": {
+  "graficos": [
+   "tipo_entidad",
+   "categoria_territorial",
+   "departamento"
+  ],
+  "indicadores": [
+   {
+    "nombre": "Entidades prioritarias (categoría 4 a 6)",
+    "campo": "categoria_territorial",
+    "contar": [
+     "Categoría 4",
+     "Categoría 5",
+     "Categoría 6"
+    ]
+   }
+  ]
+ }
+}

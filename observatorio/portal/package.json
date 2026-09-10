@@ -9,7 +9,7 @@
     "start": "node --no-warnings src/server.js",
     "dev": "node --no-warnings --watch src/server.js",
     "recolectar": "node --no-warnings src/cli.js recolectar",
-    "test": "bash test/e2e.sh"
+    "test": "bash test/e2e.sh && bash test/e2e-cuestionarios.sh"
   },
   "license": "UNLICENSED"
 }

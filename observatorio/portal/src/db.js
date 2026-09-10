@@ -61,6 +61,65 @@ CREATE TABLE IF NOT EXISTS auditoria (
   ip TEXT,
   ocurrido_en TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Módulo de cuestionarios: instrumentos, respuestas y campañas de aplicación por correo.
+CREATE TABLE IF NOT EXISTS cuestionarios (
+  id INTEGER PRIMARY KEY,
+  clave TEXT UNIQUE NOT NULL,
+  titulo TEXT NOT NULL,
+  definicion TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  estado TEXT NOT NULL DEFAULT 'borrador',
+  origen TEXT NOT NULL DEFAULT 'propio',
+  protegido INTEGER NOT NULL DEFAULT 0,
+  creado_por INTEGER,
+  creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+  actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS campanias (
+  id INTEGER PRIMARY KEY,
+  cuestionario_id INTEGER NOT NULL REFERENCES cuestionarios(id),
+  nombre TEXT NOT NULL,
+  asunto TEXT NOT NULL,
+  cuerpo TEXT NOT NULL,
+  programada_en TEXT,
+  estado TEXT NOT NULL DEFAULT 'borrador',
+  creado_por INTEGER,
+  creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+  enviada_en TEXT,
+  ultimo_resultado TEXT,
+  cierra_en TEXT
+);
+CREATE TABLE IF NOT EXISTS destinatarios (
+  id INTEGER PRIMARY KEY,
+  campania_id INTEGER NOT NULL REFERENCES campanias(id),
+  correo TEXT NOT NULL,
+  nombre TEXT,
+  entidad TEXT,
+  token TEXT UNIQUE NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'pendiente',
+  enviado_en TEXT,
+  respondido_en TEXT,
+  respuesta_id INTEGER,
+  error TEXT,
+  envios INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS ix_destinatarios_campania ON destinatarios(campania_id, estado);
+CREATE TABLE IF NOT EXISTS respuestas (
+  id INTEGER PRIMARY KEY,
+  cuestionario_id INTEGER NOT NULL REFERENCES cuestionarios(id),
+  campania_id INTEGER,
+  destinatario_id INTEGER,
+  datos TEXT NOT NULL,
+  puntajes TEXT,
+  correo TEXT,
+  nombre TEXT,
+  entidad TEXT,
+  ip TEXT,
+  agente TEXT,
+  enviado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS ix_respuestas_cuestionario ON respuestas(cuestionario_id, enviado_en DESC);
 `);
 
 export function auditar(evento, { usuarioId = null, app = null, detalle = null, ip = null } = {}) {

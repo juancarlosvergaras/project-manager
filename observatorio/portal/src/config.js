@@ -39,6 +39,24 @@ function apps() {
     .sort((a, b) => a.orden - b.orden);
 }
 
+// Servidor de correo para las campañas de cuestionarios. Sin SMTP_HOST el portal funciona igual, pero no envía correos.
+function smtp() {
+  const seguridad = (env.SMTP_SEGURIDAD || 'starttls').toLowerCase();
+  return {
+    host: env.SMTP_HOST || '',
+    puerto: Number(env.SMTP_PUERTO || (seguridad === 'tls' ? 465 : 587)),
+    usuario: env.SMTP_USUARIO || '',
+    clave: env.SMTP_CLAVE || '',
+    seguridad: ['tls', 'starttls', 'ninguna'].includes(seguridad) ? seguridad : 'starttls',
+    verificar: env.SMTP_VERIFICAR_CERTIFICADO !== '0',
+    desde: env.CORREO_DESDE || env.SMTP_USUARIO || '',
+    nombre: env.CORREO_NOMBRE || 'Observatorio Nacional de IA',
+    responderA: env.CORREO_RESPONDER_A || '',
+    pausaMs: Number(env.SMTP_PAUSA_MS || 400),
+    plazoMs: Number(env.SMTP_PLAZO_MS || 20000),
+  };
+}
+
 export const config = {
   puerto: Number(env.PUERTO || 8100),
   urlPublica: (env.URL_PUBLICA || `http://localhost:${env.PUERTO || 8100}`).replace(/\/$/, ''),
@@ -48,6 +66,7 @@ export const config = {
   minutosRecoleccion: Number(env.MINUTOS_RECOLECCION || 60),
   administradores: (env.ADMINISTRADORES || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
   apps: apps(),
+  smtp: smtp(),
   produccion: env.NODE_ENV === 'production',
 };
 

@@ -1,0 +1,1234 @@
+{
+ "titulo": "Diagnóstico de Infraestructura Computacional en Inteligencia Artificial y Big Data — Proyecto IA para el Estado",
+ "intro": [
+  "Este cuestionario es un instrumento de recolección de información dirigido a las entidades del Estado colombiano que ejecutan, planifican o tienen interés en implementar proyectos basados en **Inteligencia Artificial y Big Data**. Su objetivo es dimensionar la demanda actual y futura de infraestructura computacional, identificar necesidades específicas no satisfechas, y capturar valoraciones sobre barreras y oportunidades percibidas desde la perspectiva institucional.",
+  "Está dirigido a directores de TI, oficiales de datos o responsables de innovación tecnológica de entidades del orden nacional y territorial. **Se debe registrar una única respuesta por entidad.**",
+  "⏱️ **Tiempo estimado de diligenciamiento:** entre 25 y 35 minutos."
+ ],
+ "politicas": {
+  "mostrar": true,
+  "titulo": "Términos y Política de Tratamiento de Datos",
+  "textos": [
+   "El Ministerio / Fondo Único de TIC se permite solicitar autorización para realizar el tratamiento de sus datos personales, la cual tiene como finalidad: dimensionar la demanda de infraestructura computacional para Inteligencia Artificial y Big Data, gestionar el seguimiento y eventual acompañamiento técnico de las entidades participantes del Proyecto IA para el Estado, y compartir información con aliados estratégicos en la ejecución técnica que facilitarán las actividades del proyecto. Para tal fin, usted reconoce que el registro y autorización para el tratamiento de su información personal lo realiza de manera voluntaria y que conoce los derechos que detenta, especialmente a conocer, actualizar y rectificar su información personal, revocar la autorización y solicitar la supresión del dato, los cuales podrá ejercer a través de minticresponde@mintic.gov.co, la línea telefónica gratuita nacional 01-800-0914014 o en el Punto de Atención al Ciudadano ubicado en el Edificio Murillo Toro, carrera 8 a entre calles 12 y 13 en Bogotá, Colombia. La información suministrada será tratada por el Ministerio/Fondo Único de Tecnologías de la Información y las Comunicaciones como responsable del tratamiento, de acuerdo con la Ley 1581 de 2012 y la Política de Tratamiento de Datos Personales, descrita en la Resolución 2238 de 2024 del Ministerio de TIC, o aquella que la modifique, derogue o sustituya, la cual puede consultar en https://www.mintic.gov.co/portal/inicio/Secciones-auxiliares/Politicas/2627:Politicas-de-Privacidad-y-Condiciones-de-Uso",
+   "Autorización de tratamiento de datos – Universidad de Cartagena (UdeC) Adicionalmente, el diligenciante manifiesta que ha leído y acepta los Términos de Uso y el Aviso de Privacidad de la Universidad de Cartagena (UdeC) y autoriza el tratamiento de sus datos personales por parte de UdeC, en calidad de responsable del tratamiento, para las siguientes finalidades: gestionar el diligenciamiento del instrumento, análisis y consolidación de resultados, seguimiento y acompañamiento, comunicaciones informativas y operativas, control de calidad del servicio, fines estadísticos e institucionales, seguridad de la información y cumplimiento de obligaciones legales y contractuales, así como la transmisión y/o transferencia a aliados tecnológicos y académicos estrictamente necesarios para la ejecución del proyecto y bajo acuerdos de protección de datos. El titular podrá ejercer sus derechos de conocer, actualizar, rectificar y suprimir sus datos, así como revocar la autorización, mediante el correo datospersonales@unicartagena.edu.co, o de manera presencial en la Oficina Asesora de Planeación – Datos Personales, Cra. 6 No. 36-100, Centro de Cartagena de Indias, CP 130001, Bolívar, Colombia, PBX (+57) 3164390360 ext. 165. La política de tratamiento de datos de UdeC puede consultarse en https://www.unicartagena.edu.co/proteccion-de-datos. UdeC realizará el tratamiento conforme a la Ley 1581 de 2012, sus decretos reglamentarios y las demás normas aplicables."
+  ],
+  "etiqueta": "Autorizo el tratamiento de mis datos personales conforme a lo descrito (*)"
+ },
+ "progreso": {
+  "barra": true
+ },
+ "pasos": [
+  {
+   "etiqueta": "Entidad",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "1",
+     "titulo": "Sección I. Identificación de la entidad",
+     "icono": "🏛️"
+    },
+    {
+     "tipo": "entidad",
+     "nombre": "nombre_entidad",
+     "etiqueta": "Nombre de la entidad",
+     "requerido": true,
+     "ancho": 6
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "orden_entidad",
+     "etiqueta": "Orden de la entidad",
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Nacional",
+      "Departamental",
+      "Municipal",
+      "Distrital"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "sector_publico",
+     "etiqueta": "Sector público",
+     "requerido": true,
+     "ancho": 6,
+     "opciones": [
+      "Interior",
+      "Relaciones Exteriores",
+      "Hacienda y Crédito Público",
+      "Defensa Nacional",
+      "Agricultura y Desarrollo Rural",
+      "Salud y Protección Social",
+      "Trabajo",
+      "Minas y Energía",
+      "Comercio, Industria y Turismo",
+      "Educación",
+      "Ambiente y Desarrollo Sostenible",
+      "Vivienda, Ciudad y Territorio",
+      "Tecnologías de la Información y las Comunicaciones",
+      "Transporte",
+      "Cultura",
+      "Inclusión Social y Reconciliación",
+      "Deporte",
+      "Ciencia, Tecnología e Innovación",
+      "Estadística",
+      "Función Pública",
+      "Planeación",
+      "Justicia y del Derecho",
+      "Inteligencia Estratégica y Contrainteligencia",
+      "Igualdad y Equidad"
+     ]
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "nombre_responsable",
+     "etiqueta": "Nombre de quien diligencia",
+     "requerido": true,
+     "ancho": 3
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "cargo_responsable",
+     "etiqueta": "Cargo",
+     "requerido": true,
+     "ancho": 3
+    },
+    {
+     "tipo": "texto_corto",
+     "nombre": "correo_responsable",
+     "etiqueta": "Correo electrónico de quien diligencia",
+     "requerido": true,
+     "ancho": 6,
+     "formato": "email",
+     "ayuda": "Se usará para enviarte la confirmación de este diligenciamiento y comunicaciones sobre el proceso."
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "tiene_area_ia",
+     "etiqueta": "¿La entidad cuenta con un área o equipo especializado en IA, analítica de datos o transformación digital?",
+     "requerido": true,
+     "ancho": 4
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "num_funcionarios_ti",
+     "etiqueta": "Número total de funcionarios de TI",
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "0",
+      "1-10",
+      "11-30",
+      "31-50",
+      "51-100",
+      "Más de 100"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "presupuesto_anual_ti",
+     "etiqueta": "Presupuesto anual de TI (rango en SMMLV)",
+     "requerido": true,
+     "ancho": 4,
+     "opciones": [
+      "Menos de 500",
+      "500-1.500",
+      "1.501-3.000",
+      "3.001-6.000",
+      "6.001-12.000",
+      "Más de 12.000"
+     ]
+    }
+   ]
+  },
+  {
+   "etiqueta": "Infraestructura",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "2",
+     "titulo": "Sección II. Estado actual de infraestructura",
+     "icono": "🖥️"
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "tiene_centro_servidores_propio",
+     "etiqueta": "¿La entidad cuenta con un cuarto o centro de servidores propio, instalado en sus instalaciones físicas, para el procesamiento de grandes volúmenes de datos? (On-premise)",
+     "numero": 8,
+     "requerido": true,
+     "opciones": [
+      "Sí",
+      "No",
+      "Tercerizado"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "usa_nube",
+     "etiqueta": "¿La entidad utiliza servicios de computación en la nube pública, privada o híbrida para sus operaciones?",
+     "numero": 9,
+     "requerido": true,
+     "opciones": [
+      "Sí",
+      "En proceso de contratación",
+      "No",
+      "Lo hemos evaluado sin contratar"
+     ],
+     "ayuda": "La nube es un servicio que permite almacenar información y ejecutar aplicaciones a través de internet. Ejemplos: Google Cloud, Microsoft Azure, Amazon Web Services (AWS)."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "modelo_tecnologico_predominante",
+     "etiqueta": "¿Cuál es el modelo tecnológico que predomina actualmente en la entidad para alojar sus sistemas e información?",
+     "numero": 10,
+     "requerido": true,
+     "opciones": [
+      "Servidores propios (On-premise)",
+      "Nube",
+      "Combinación de ambos",
+      "Sin definir",
+      "Otros"
+     ],
+     "ayuda": "Servidores propios: equipos físicos en la entidad. Nube: servicios externos por internet. Combinación: uso de ambos.",
+     "otro": {
+      "valor": "Otros",
+      "etiqueta": "Si elegiste \"Otros\", indica cuál"
+     }
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "recursos_tecnologicos_descripcion",
+     "etiqueta": "Indique los recursos tecnológicos con que cuenta actualmente la entidad. Si conoce los datos técnicos, puede incluirlos; si no, describa de manera aproximada los equipos disponibles.",
+     "numero": 11,
+     "requerido": true,
+     "ayuda": "Incluya, si los conoce: número de servidores físicos y virtuales, capacidad de procesamiento (vCPU/cores), memoria RAM en GB, capacidad de almacenamiento en TB, tarjetas gráficas especializadas (GPU/TPU) y otros equipos."
+    },
+    {
+     "tipo": "archivo",
+     "nombre": "recursos_tecnologicos_archivo",
+     "etiqueta": "Adjuntar archivo (opcional)",
+     "ayuda": "PDF, Word, Excel, CSV o imagen — máx. 10MB.",
+     "acepta": ".pdf,.doc,.docx,.xls,.xlsx,.csv,image/*",
+     "max_mb": 10
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "dispone_gpu",
+     "etiqueta": "¿La entidad dispone de tarjetas gráficas especializadas (GPU) o procesadores acelerados para tareas de Inteligencia Artificial?",
+     "numero": 12,
+     "requerido": true,
+     "opciones": [
+      "Sí, propios",
+      "Sí, en nube",
+      "Ambos",
+      "No"
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "tecnologias_gestion",
+     "etiqueta": "¿La entidad utiliza alguna de las siguientes tecnologías para gestionar y ejecutar sus aplicaciones? Seleccione todas las que apliquen.",
+     "numero": 13,
+     "requerido": true,
+     "opciones": [
+      "Máquinas virtuales (VMware, Hyper-V, etc.)",
+      "Contenedores (Docker, Kubernetes, etc.)",
+      "Servidores físicos tradicionales",
+      "Infraestructura en la nube pública, privada o híbrida (AWS, Azure, Google Cloud, etc.)",
+      "No utiliza",
+      "Desconoce",
+      "Otros (indique cual)"
+     ],
+     "en_linea": true,
+     "ayuda": "Máquinas virtuales: equipos simulados dentro de un servidor físico. Contenedores: paquetes de software portátiles que agrupan una aplicación y sus dependencias.",
+     "otro": {
+      "valor": "Otros (indique cual)",
+      "etiqueta": "Si elegiste \"Otros (indique cual)\", indica cuál"
+     }
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "herramientas_bigdata",
+     "etiqueta": "¿La entidad utiliza plataformas o herramientas especializadas para procesar y analizar grandes volúmenes de datos (Big Data)? Seleccione todas las que apliquen.",
+     "numero": 14,
+     "requerido": true,
+     "opciones": [
+      "Plataformas de procesamiento distribuido (Hadoop, Spark, etc.)",
+      "Almacenes de datos centralizados (Data Warehouse)",
+      "Bases de datos NoSQL",
+      "No utiliza",
+      "Desconoce",
+      "Otros (indique cual)"
+     ],
+     "en_linea": true,
+     "ayuda": "Plataformas de procesamiento distribuido: procesan datos dividiéndolos entre varios equipos. Almacenes de datos centralizados: repositorios que integran información de múltiples fuentes para análisis. Bases de datos NoSQL: almacenan información en formatos flexibles, no en tablas tradicionales.",
+     "otro": {
+      "valor": "Otros (indique cual)",
+      "etiqueta": "Si elegiste \"Otros (indique cual)\", indica cuál"
+     }
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "arquitectura_almacenamiento",
+     "etiqueta": "¿La entidad cuenta con arquitecturas de almacenamiento distribuido o masivo? Seleccione todas las que apliquen.",
+     "numero": 15,
+     "requerido": true,
+     "opciones": [
+      "Almacenamiento distribuido (HDFS, Ceph, etc.)",
+      "Almacenamiento en objeto compatible con estándares cloud (S3, MinIO, etc.)",
+      "Almacenamiento centralizado tradicional",
+      "No cuenta",
+      "Desconoce",
+      "Otros (indique cual)"
+     ],
+     "en_linea": true,
+     "ayuda": "Almacenamiento distribuido: datos repartidos entre varios servidores para mayor capacidad y resiliencia. Almacenamiento centralizado tradicional: un único servidor o dispositivo que guarda toda la información.",
+     "otro": {
+      "valor": "Otros (indique cual)",
+      "etiqueta": "Si elegiste \"Otros (indique cual)\", indica cuál"
+     }
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "sistemas_analisis_ia",
+     "etiqueta": "¿Cuáles son los principales sistemas de información o plataformas tecnológicas que la entidad utiliza actualmente para el análisis de datos o el desarrollo de iniciativas de IA?",
+     "numero": 16,
+     "requerido": true,
+     "opciones": [
+      "Power BI",
+      "Tableau",
+      "SAS",
+      "Python",
+      "TensorFlow",
+      "PyTorch",
+      "Ninguno",
+      "Otros (indique cual)"
+     ],
+     "en_linea": true,
+     "otro": {
+      "valor": "Otros (indique cual)",
+      "etiqueta": "Si elegiste \"Otros (indique cual)\", indica cuál"
+     }
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "mecanismos_respaldo_continuidad",
+     "etiqueta": "Describa cómo garantiza la entidad que su información no se pierda ante fallas técnicas o imprevistos. ¿Con qué mecanismos de respaldo, recuperación y continuidad cuenta?",
+     "numero": 17,
+     "requerido": true,
+     "ayuda": "Incluya, si los conoce: sistemas de copia de seguridad, replicación de datos, redundancia de equipos y planes de recuperación ante desastres."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "indicadores_rendimiento_infraestructura",
+     "etiqueta": "¿La entidad mide el rendimiento de su infraestructura tecnológica mediante indicadores formales?",
+     "numero": 18,
+     "requerido": true,
+     "ayuda": "Indique si cuenta con mediciones de: disponibilidad del sistema (porcentaje de tiempo en que opera sin interrupciones), tiempo de respuesta (latencia), capacidad de crecimiento (escalabilidad), velocidad de lectura/escritura de datos (IOPS) y capacidad de transferencia de información (ancho de banda)."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "conoce_marco_interoperabilidad",
+     "etiqueta": "¿La entidad ha adoptado o tiene conocimiento del Marco de Interoperabilidad para Gobierno Digital definido por MinTIC?",
+     "numero": 19,
+     "requerido": true,
+     "opciones": [
+      "Sí, implementado",
+      "En proceso de adopción",
+      "Conocido, pero no implementado",
+      "Desconocido"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "usa_lcii",
+     "etiqueta": "¿La entidad utiliza el Lenguaje Común de Intercambio de Información (LCII) u otro estándar de intercambio de datos definido por el gobierno nacional?",
+     "numero": 20,
+     "requerido": true,
+     "opciones": [
+      "Sí",
+      "En proceso",
+      "No",
+      "Desconoce el estándar"
+     ],
+     "ayuda": "El LCII es un estándar que permite que diferentes sistemas del Estado compartan información de manera ordenada y comprensible entre sí."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "datos_estandarizados",
+     "etiqueta": "¿Los datos que gestiona la entidad están organizados bajo formatos estandarizados que permitan compartirlos o integrarlos con los sistemas de otras entidades del Estado?",
+     "numero": 21,
+     "requerido": true,
+     "opciones": [
+      "Totalmente",
+      "Parcialmente",
+      "No",
+      "En proceso de estandarización"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "usa_xroad",
+     "etiqueta": "¿La entidad utiliza o tiene previsto utilizar la Plataforma de Interoperabilidad del Estado (X-Road) para intercambiar información con otras entidades?",
+     "numero": 22,
+     "requerido": true,
+     "opciones": [
+      "Sí, en uso",
+      "En proceso de integración",
+      "No, pero la conoce",
+      "No la conoce"
+     ],
+     "ayuda": "X-Road es la plataforma tecnológica del gobierno colombiano que permite que las entidades del Estado compartan información de forma segura y automática."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "usa_scd",
+     "etiqueta": "¿La entidad hace uso de los Servicios Ciudadanos Digitales (SCD) establecidos en la Política de Gobierno Digital?",
+     "numero": 23,
+     "requerido": true,
+     "opciones": [
+      "Sí, todos",
+      "Algunos",
+      "No",
+      "No aplica"
+     ],
+     "ayuda": "Los SCD son servicios tecnológicos que el Estado ofrece a las entidades para facilitar la interacción digital con los ciudadanos, como la carpeta ciudadana o la autenticación digital."
+    }
+   ]
+  },
+  {
+   "etiqueta": "Proyectos IA",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "3",
+     "titulo": "Sección III. Proyectos de IA y Big Data",
+     "icono": "🤖"
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "etapa_uso_ia",
+     "etiqueta": "¿En qué etapa se encuentra actualmente la entidad respecto al uso de Inteligencia Artificial?",
+     "numero": 24,
+     "requerido": true,
+     "opciones": [
+      "Sin iniciativas",
+      "En consulta inicial",
+      "Con proyectos piloto o pruebas en curso",
+      "Con proyectos operando formalmente",
+      "Con IA integrada institucionalmente"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "politica_gobierno_datos",
+     "etiqueta": "¿Existe en la entidad una política, directriz o lineamiento interno aprobado sobre la gestión y gobierno de sus datos?",
+     "numero": 25,
+     "requerido": true,
+     "opciones": [
+      "Sí, formalmente aprobada",
+      "En construcción",
+      "No existe",
+      "Desconoce"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "proyectos_ia_ejecucion",
+     "etiqueta": "¿La entidad tiene proyectos de IA en ejecución?",
+     "numero": 26,
+     "requerido": true,
+     "opciones": [
+      "Sí, en producción",
+      "Sí, en piloto",
+      "En planeación",
+      "No"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "num_proyectos_ia",
+     "etiqueta": "Número de proyectos de IA ejecutados o en ejecución",
+     "numero": 27,
+     "requerido": true,
+     "opciones": [
+      "0",
+      "1–3",
+      "4–10",
+      "Más de 10"
+     ]
+    },
+    {
+     "tipo": "multiple",
+     "nombre": "tipos_aplicaciones_ia",
+     "etiqueta": "¿Qué tipo de aplicaciones de Inteligencia Artificial utiliza o ha utilizado la entidad? Seleccione todas las que apliquen.",
+     "numero": 28,
+     "requerido": true,
+     "opciones": [
+      "NLP",
+      "Visión por computador",
+      "Analítica predictiva",
+      "Chatbots",
+      "ML clásico",
+      "LLMs",
+      "No utiliza",
+      "Otro"
+     ],
+     "en_linea": true,
+     "ayuda": "NLP: procesamiento de lenguaje natural, sistemas que leen, entienden o generan texto. Visión por computador: reconocimiento de imágenes o video. Analítica predictiva: predicción de comportamientos o resultados. ML: aprendizaje automático clásico. LLMs: modelos de lenguaje avanzados como ChatGPT.",
+     "otro": {
+      "valor": "Otro",
+      "etiqueta": "Si elegiste \"Otro\", indica cuál"
+     }
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "soluciones_ia_proyectadas",
+     "etiqueta": "¿Qué tipo de soluciones de IA proyecta implementar la entidad a corto plazo (1 año) y en el mediano plazo (3 años)?",
+     "numero": 29,
+     "requerido": true
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "cancelo_proyectos_ia_por_infra",
+     "etiqueta": "¿Ha cancelado o pospuesto proyectos de IA por limitaciones de infraestructura?",
+     "numero": 30,
+     "requerido": true,
+     "opciones": [
+      "Sí",
+      "No",
+      "No aplica"
+     ]
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "tiene_laboratorios_alianzas_ia",
+     "etiqueta": "¿Cuenta la entidad con laboratorios, alianzas o proyectos piloto relacionados con IA?",
+     "numero": 31,
+     "requerido": true
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "participa_redes_innovacion",
+     "etiqueta": "¿Participa la entidad en iniciativas interinstitucionales, redes de innovación, semilleros u otros espacios colaborativos?",
+     "numero": 32,
+     "requerido": true
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "proyectos_cofinanciados",
+     "etiqueta": "¿Tiene la entidad proyectos cofinanciados o de cooperación técnica con academia, sector privado o cooperación internacional?",
+     "numero": 33,
+     "requerido": true
+    }
+   ]
+  },
+  {
+   "etiqueta": "Necesidades",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "4",
+     "titulo": "Sección IV. Necesidades futuras de infraestructura",
+     "icono": "📈"
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "volumen_datos_esperado",
+     "etiqueta": "¿Qué volumen de datos espera manejar la entidad por cada solución proyectada de IA?",
+     "numero": 34,
+     "requerido": true,
+     "ayuda": "Si es posible, diferencie entre: datos para entrenar el modelo de IA, datos que el sistema procesará en operación diaria, y datos históricos que deberán conservarse."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "frecuencia_procesamiento",
+     "etiqueta": "¿Con qué frecuencia necesitaría procesamiento para estos datos?",
+     "numero": 35,
+     "requerido": true,
+     "opciones": [
+      "Tiempo real",
+      "Por lotes cada hora",
+      "Diaria",
+      "Semanal",
+      "Otra"
+     ],
+     "otro": {
+      "valor": "Otra",
+      "etiqueta": "Si elegiste \"Otra\", indica cuál"
+     }
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "estimacion_capacidad_gpu",
+     "etiqueta": "¿La entidad tiene estimaciones sobre la capacidad de procesamiento gráfico especializado que requeriría para sus proyectos de IA?",
+     "numero": 36,
+     "requerido": true,
+     "ayuda": "Si cuenta con personal técnico, puede especificar: modelo de GPU, número de núcleos CUDA y memoria de video (VRAM). Si no maneja estos términos, indique si estima necesitar equipos de alto, mediano o bajo rendimiento."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "estimacion_cpu_ram",
+     "etiqueta": "¿Qué capacidad de procesamiento y memoria RAM estima que necesitaría la entidad para sus proyectos de IA?",
+     "numero": 37,
+     "requerido": true,
+     "ayuda": "Si conoce los términos técnicos, indique la cantidad de núcleos de procesamiento (vCPU/cores) y memoria RAM en GB. Si no, describa el nivel de demanda esperada de forma aproximada."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "estimacion_almacenamiento",
+     "etiqueta": "¿Qué capacidad de almacenamiento estima necesitar para sus proyectos de IA?",
+     "numero": 38,
+     "requerido": true,
+     "ayuda": "Considere, si es posible, el espacio para: entrenamiento del modelo, operación en producción y copias de respaldo. Exprese en GB o TB según corresponda."
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "requiere_almacenamiento_alta_velocidad",
+     "etiqueta": "¿Estima que la entidad necesitará almacenamiento de alta velocidad para sus operaciones de IA, como discos de estado sólido (SSD) o sistemas de almacenamiento en caché?",
+     "numero": 39,
+     "requerido": true
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "requiere_bases_datos_especiales",
+     "etiqueta": "¿La entidad requiere tipos especiales de bases de datos para sus soluciones de IA, distintas a las bases de datos relacionales tradicionales?",
+     "numero": 40,
+     "requerido": true,
+     "ayuda": "Por ejemplo: bases de datos para búsqueda por similitud semántica (vector databases), bases de datos de grafos, bases de datos NoSQL para datos no estructurados, o bases de datos para procesamiento en tiempo real."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "nivel_velocidad_respuesta",
+     "etiqueta": "¿Qué nivel de velocidad de respuesta requieren las soluciones de IA que la entidad proyecta implementar?",
+     "numero": 41,
+     "requerido": true,
+     "ayuda": "La velocidad de respuesta se mide en milisegundos. Indique si sus procesos requieren respuesta inmediata (menos de 100 ms), rápida (100–500 ms) o pueden tolerar mayor demora."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "sla_disponibilidad_esperado",
+     "etiqueta": "¿Qué nivel de disponibilidad continua espera para los servicios de IA de la entidad? SLA (Service Level Agreement)",
+     "numero": 42,
+     "requerido": true,
+     "opciones": [
+      "99,0%",
+      "99,5%",
+      "99,9%",
+      "99,99%",
+      "No definido"
+     ]
+    },
+    {
+     "tipo": "si_no",
+     "nombre": "requiere_autoescalado",
+     "etiqueta": "¿Estima que la entidad necesitará que sus servicios de IA puedan crecer o reducirse automáticamente según la demanda, sin intervención manual?",
+     "numero": 43,
+     "requerido": true,
+     "ayuda": "Esta capacidad se conoce como escalamiento automático o auto-scaling."
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "crecimiento_demanda_esperado",
+     "etiqueta": "¿Qué crecimiento de demanda de infraestructura de IA espera en los próximos 3 años?",
+     "numero": 44,
+     "requerido": true,
+     "opciones": [
+      "Sin crecimiento",
+      "Moderado (10–30%)",
+      "Alto (31–100%)",
+      "Muy alto (>100%)",
+      "No sé"
+     ]
+    },
+    {
+     "tipo": "ranking",
+     "nombre": "ranking_prioridad",
+     "etiqueta": "Organice asignando una valoración diferente (desde 1 = más urgente, hasta 5 = menos urgente) a cada una de las siguientes necesidades.",
+     "items": [
+      {
+       "nombre": "prioridad_gpu",
+       "texto": "Mayor capacidad de GPU"
+      },
+      {
+       "nombre": "prioridad_almacenamiento",
+       "texto": "Más almacenamiento"
+      },
+      {
+       "nombre": "prioridad_conectividad",
+       "texto": "Mejor conectividad"
+      },
+      {
+       "nombre": "prioridad_talento",
+       "texto": "Talento especializado"
+      },
+      {
+       "nombre": "prioridad_herramientas",
+       "texto": "Mejores herramientas de gestión"
+      }
+     ],
+     "min": 1,
+     "max": 5,
+     "requerido": true,
+     "numero": 45,
+     "ayuda": "1 = más urgente, 5 = menos urgente. No repitas valores."
+    }
+   ]
+  },
+  {
+   "etiqueta": "Integración",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "5",
+     "titulo": "Sección V. Integración, seguridad y costos",
+     "icono": "🛡️"
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "necesidades_integracion",
+     "etiqueta": "¿Qué necesidades específicas de integración se identifican con otras plataformas o sistemas, tanto internos como externos?",
+     "numero": 46,
+     "requerido": true,
+     "ayuda": "Por ejemplo: sistemas de gestión documental, bases de datos de otras entidades, plataformas de trámites o servicios al ciudadano, entre otros."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "requerimientos_seguridad",
+     "etiqueta": "¿Cuáles son los requerimientos específicos de seguridad que la entidad considera prioritarios?",
+     "numero": 47,
+     "requerido": true,
+     "ayuda": "Considere: protección de datos mediante cifrado, control sobre quién puede acceder a la información, registro de auditoría (trazabilidad), u otros aspectos relevantes."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "restricciones_nube",
+     "etiqueta": "¿Existe alguna restricción o limitación en la entidad para el uso de servicios de computación en la nube (pública, privada o híbrida)? En caso afirmativo, descríbala.",
+     "numero": 48,
+     "requerido": true,
+     "ayuda": "Pueden ser restricciones normativas, de seguridad de la información, de soberanía de datos, presupuestales u otras."
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "inversion_proyectada",
+     "etiqueta": "¿Qué inversión proyecta la entidad para la implementación de soluciones de infraestructura de IA, diferenciando los escenarios de corto (1 año), mediano (3 años) y largo plazo (5 años)? Expresar en dólares.",
+     "numero": 49,
+     "requerido": true
+    }
+   ]
+  },
+  {
+   "etiqueta": "Barreras",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "6",
+     "titulo": "Valoración de barreras",
+     "icono": "⚖️"
+    },
+    {
+     "tipo": "leyenda",
+     "titulo": "Escala de valoración",
+     "descripcion": "Indica tu grado de acuerdo con cada afirmación, en una escala de 1 a 5.",
+     "items": [
+      {
+       "nivel": 1,
+       "etiqueta": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "nivel": 2,
+       "etiqueta": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "nivel": 3,
+       "etiqueta": "3",
+       "texto": "Neutral"
+      },
+      {
+       "nivel": 4,
+       "etiqueta": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "nivel": 5,
+       "etiqueta": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ]
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_infraestructura_suficiente",
+     "etiqueta": "La infraestructura computacional actual de mi entidad es suficiente para las necesidades de IA.",
+     "numero": 50,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_presupuesto_adecuado",
+     "etiqueta": "El presupuesto disponible para infraestructura de IA es adecuado.",
+     "numero": 51,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_contratacion_facilita",
+     "etiqueta": "Los procesos de contratación pública facilitan la adquisición de tecnología de IA.",
+     "numero": 52,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_personal_suficiente",
+     "etiqueta": "Mi entidad cuenta con personal suficiente y capacitado para operar infraestructura de IA.",
+     "numero": 53,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_marco_regulatorio_favorece_nube",
+     "etiqueta": "El marco regulatorio actual favorece la adopción de servicios en la nube para IA.",
+     "numero": 54,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_soberania_datos_obstaculo",
+     "etiqueta": "Las políticas de soberanía de datos son un obstáculo para el uso de la nube pública.",
+     "numero": 55,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_gobernanza_datos_clara",
+     "etiqueta": "Existe una gobernanza clara de datos en mi entidad que facilita los proyectos de IA.",
+     "numero": 56,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_conectividad_adecuada",
+     "etiqueta": "La conectividad disponible es adecuada para acceder a servicios de nube para IA.",
+     "numero": 57,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_ciberseguridad_suficiente",
+     "etiqueta": "Los estándares de ciberseguridad vigentes son suficientes para proteger los sistemas de IA.",
+     "numero": 58,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    },
+    {
+     "tipo": "rubrica",
+     "nombre": "likert_falta_interoperabilidad_limita",
+     "etiqueta": "La falta de interoperabilidad entre entidades limita el aprovechamiento de datos para IA.",
+     "numero": 59,
+     "requerido": true,
+     "niveles": [
+      {
+       "valor": "1",
+       "texto": "Totalmente en desacuerdo"
+      },
+      {
+       "valor": "2",
+       "texto": "En desacuerdo"
+      },
+      {
+       "valor": "3",
+       "texto": "Neutral"
+      },
+      {
+       "valor": "4",
+       "texto": "De acuerdo"
+      },
+      {
+       "valor": "5",
+       "texto": "Totalmente de acuerdo"
+      }
+     ],
+     "dimension": "barreras"
+    }
+   ]
+  },
+  {
+   "etiqueta": "Riesgos y cierre",
+   "bloques": [
+    {
+     "tipo": "seccion",
+     "numero": "7",
+     "titulo": "Sección VII. Riesgos de seguridad de los sistemas de inteligencia artificial",
+     "icono": "🔐"
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "conoce_lineamientos_mspi_ia",
+     "etiqueta": "¿La entidad conoce y aplica los Lineamientos de Seguridad y Privacidad de la Información para Sistemas de Inteligencia Artificial del MSPI expedidos por el MinTIC?",
+     "numero": 60,
+     "requerido": true,
+     "opciones": [
+      "Aplicados y verificados",
+      "Aplicados parcialmente",
+      "Conocidos, pero no aplicados",
+      "No los conoce"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "analisis_riesgos_ia_especifico",
+     "etiqueta": "¿La entidad ha realizado un análisis formal y documentado de riesgos de seguridad específicos de sus sistemas de inteligencia artificial, diferenciado del análisis de riesgos de seguridad de la información convencional?",
+     "numero": 61,
+     "requerido": true,
+     "opciones": [
+      "Sí, documentado y aprobado",
+      "En elaboración",
+      "No se ha realizado",
+      "Desconoce"
+     ]
+    },
+    {
+     "tipo": "seleccion",
+     "nombre": "clasificacion_datos_mspi",
+     "etiqueta": "¿La entidad clasifica los conjuntos de datos empleados en el entrenamiento, ajuste e inferencia de sus modelos conforme a los niveles de clasificación de la información definidos en el MSPI?",
+     "numero": 62,
+     "requerido": true,
+     "opciones": [
+      "Todos los conjuntos de datos",
+      "Algunos conjuntos de datos",
+      "Ninguno",
+      "No aplica, no procesa datos con modelos de IA"
+     ]
+    },
+    {
+     "tipo": "seccion",
+     "numero": "8",
+     "titulo": "Sección VIII. Barreras específicas",
+     "icono": "⚠️"
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "barreras_tecnologicas",
+     "etiqueta": "Principales obstáculos o barreras tecnológicas actuales para el desarrollo e implementación de soluciones de IA",
+     "numero": 63,
+     "requerido": true
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "barreras_normativas",
+     "etiqueta": "Principales obstáculos o barreras normativas actuales para el desarrollo e implementación de soluciones de IA",
+     "numero": 64,
+     "requerido": true
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "barreras_organizacionales",
+     "etiqueta": "Principales obstáculos o barreras organizacionales actuales para el desarrollo e implementación de soluciones de IA",
+     "numero": 65,
+     "requerido": true
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "barreras_financieras",
+     "etiqueta": "Principales obstáculos o barreras financieras o presupuestales actuales para el desarrollo e implementación de soluciones de IA",
+     "numero": 66,
+     "requerido": true
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "dificultades_interoperabilidad_xroad",
+     "etiqueta": "Dificultades específicas que enfrenta la entidad para adoptar el Marco de Interoperabilidad para Gobierno Digital o integrarse a la Plataforma X-Road",
+     "numero": 67,
+     "requerido": true
+    },
+    {
+     "tipo": "seccion",
+     "numero": "9",
+     "titulo": "Sección IX. Casos de éxito y recomendaciones",
+     "icono": "💡"
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "elementos_prioritarios_habilitar",
+     "etiqueta": "¿Qué elementos considera prioritarios para habilitar el desarrollo de infraestructura de IA en su entidad (políticas, arquitectura, inversión, asistencia técnica, otros)?",
+     "numero": 68,
+     "requerido": true
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "casos_exito",
+     "etiqueta": "Describa casos de éxito propios de la entidad o conocidos en el sector público donde se haya aplicado IA o Big Data, indicando objetivos, resultados alcanzados y lecciones aprendidas.",
+     "numero": 69,
+     "requerido": true
+    },
+    {
+     "tipo": "parrafo",
+     "nombre": "observaciones_adicionales",
+     "etiqueta": "Observaciones o necesidades adicionales no contempladas en este cuestionario",
+     "numero": 70,
+     "requerido": true
+    }
+   ]
+  }
+ ],
+ "cierre": {
+  "boton": "Enviar diagnóstico",
+  "titulo": "Diagnóstico registrado",
+  "mensaje": "La información de la entidad quedó registrada. Gracias por contribuir a dimensionar la infraestructura de IA del Estado."
+ },
+ "subtitulo": "Demanda actual y futura de infraestructura computacional en las entidades del Estado",
+ "calculo": {
+  "modo": "promedio",
+  "dimensiones": [
+   {
+    "clave": "barreras",
+    "nombre": "Valoración de barreras",
+    "descripcion": "Promedio de las diez afirmaciones sobre barreras (1 a 5)."
+   }
+  ]
+ },
+ "identificacion": {
+  "entidad": "nombre_entidad",
+  "correo": "correo_responsable",
+  "nombre": "nombre_responsable"
+ },
+ "duplicados": {
+  "campos": [
+   "nombre_entidad"
+  ],
+  "mensaje": "Ya existe un diagnóstico registrado para esta entidad."
+ },
+ "tablero": {
+  "graficos": [
+   "orden_entidad",
+   "sector_publico",
+   "etapa_uso_ia",
+   "modelo_tecnologico_predominante"
+  ],
+  "indicadores": [
+   {
+    "nombre": "Con área especializada en IA o datos",
+    "campo": "tiene_area_ia",
+    "contar": [
+     "1"
+    ]
+   },
+   {
+    "nombre": "Con proyectos de IA en producción",
+    "campo": "proyectos_ia_ejecucion",
+    "contar": [
+     "Sí, en producción"
+    ]
+   }
+  ]
+ }
+}

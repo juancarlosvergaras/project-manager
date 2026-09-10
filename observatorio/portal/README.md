@@ -67,6 +67,32 @@ Levanta dos aplicaciones simuladas con el conector de referencia, primero apagad
 | `/admin` | Administradores | Estado de conectores, recolección manual, usuarios y auditoría |
 | `/static/...` | Pública | Recursos estáticos |
 
+## Cuestionarios y campañas
+
+El módulo de cuestionarios permite a los administradores del portal diseñar instrumentos (pasos, secciones, preguntas de texto, opción única y múltiple, escalas, rúbricas de niveles, Sí/No, ranking, archivo adjunto, entidad pública con autocompletar, departamento y municipio, bloques condicionales), con o sin el bloque de políticas de privacidad y tratamiento de datos, publicarlos con un enlace público y aplicarlos por campañas de correo con enlace personal por destinatario, envío inmediato o programado y recordatorios a quienes no han respondido. Cada cuestionario tiene un panel de resultados con cifras, distribuciones, promedios por dimensión, filtros y exportación a hoja de cálculo, y sus promedios alimentan el cuadro de mando del Observatorio.
+
+Los tres instrumentos que el proyecto ya aplicó (Información No Verificada, Autodiagnóstico Integrado y Diagnóstico de Infraestructura Computacional) se cargan la primera vez que arranca el portal como ejemplos protegidos, tomados de `src/ejemplos/*.json`, con su estilo, sus políticas y sus reglas de cálculo. Para adaptarlos se duplican.
+
+El correo saliente se configura con las variables `SMTP_*` y `CORREO_*` del archivo `.env` (ver `.env.example`). Sin ellas el portal funciona igual, pero las campañas quedan preparadas sin enviarse y los enlaces personales se copian a mano.
+
+| Archivo | Función |
+|---|---|
+| `src/cuestionarios.js` | Definición, validación, cálculo de puntajes, página pública y persistencia |
+| `src/campanias.js` | Campañas, destinatarios, plantillas de correo, envío inmediato, programado y recordatorios |
+| `src/correo.js` | Cliente SMTP sin dependencias (TLS, STARTTLS, AUTH PLAIN y LOGIN) |
+| `src/vistas_cuestionarios.js` | Lista, editor, resultados y campañas |
+| `static/js/editor.js` | Editor visual de la definición |
+| `static/js/cuestionario.js` y `static/css/cuestionario.css` | Página pública de diligenciamiento |
+| `static/datos/` | Entidades públicas y municipios para el autocompletar |
+| `test/e2e-cuestionarios.sh` | Prueba de extremo a extremo con un servidor SMTP simulado |
+
+| Ruta | Acceso | Contenido |
+|---|---|---|
+| `/c/<clave>` | Pública | Diligenciamiento del cuestionario publicado |
+| `/c/<clave>/t/<token>` | Pública | Diligenciamiento con enlace personal de campaña |
+| `/cuestionarios` | Administradores | Lista, editor (`/nuevo`, `/<id>/editar`), resultados (`/<id>`), exportación (`/<id>/respuestas.csv`) |
+| `/cuestionarios/<id>/campanias` y `/campanias/<id>` | Administradores | Campañas de aplicación y seguimiento de envíos |
+
 ## Reversa
 
 Detener el proceso del portal devuelve todo al estado anterior. Las aplicaciones no dependen de él. Apagar la variable de activación del conector en una aplicación la desconecta del portal sin redesplegar nada.
