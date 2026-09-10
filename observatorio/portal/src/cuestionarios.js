@@ -473,9 +473,12 @@ export function guardarRespuesta({ cuestionario, datos, archivos = {}, campaniaI
   const puntajes = calcularPuntajes(d, datos);
   const idn = d.identificacion || {};
   const tomar = (k) => (idn[k] && datos[idn[k]] != null ? String(datos[idn[k]]).slice(0, 300) : null);
-  const r = db.prepare(`INSERT INTO respuestas (cuestionario_id, campania_id, destinatario_id, datos, puntajes, correo, nombre, entidad, ip, agente, enviado_en)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`)
-    .run(cuestionario.id, campaniaId, destinatarioId, JSON.stringify(datos), JSON.stringify(puntajes), tomar('correo'), tomar('nombre'), tomar('entidad'), ip, String(agente || '').slice(0, 200), enviadoEn);
+  // Periodo: el de la campaña; sin campaña, el año de la fecha de envío.
+  const campania = campaniaId ? db.prepare('SELECT periodo FROM campanias WHERE id = ?').get(campaniaId) : null;
+  const periodo = (campania && campania.periodo) || String(enviadoEn || new Date().toISOString()).slice(0, 4);
+  const r = db.prepare(`INSERT INTO respuestas (cuestionario_id, campania_id, destinatario_id, datos, puntajes, correo, nombre, entidad, ip, agente, enviado_en, periodo)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?)`)
+    .run(cuestionario.id, campaniaId, destinatarioId, JSON.stringify(datos), JSON.stringify(puntajes), tomar('correo'), tomar('nombre'), tomar('entidad'), ip, String(agente || '').slice(0, 200), enviadoEn, periodo);
   const respuestaId = Number(r.lastInsertRowid);
   // Archivos adjuntos: se guardan en disco, fuera de la base de datos, y en los datos queda la referencia.
   const nombres = Object.keys(archivos);
@@ -495,10 +498,11 @@ export function guardarRespuesta({ cuestionario, datos, archivos = {}, campaniaI
   return respuestaId;
 }
 
-export function listarRespuestas(cuestionarioId, { campaniaId = null, desde = null, hasta = null, buscar = '', limite = 5000 } = {}) {
+export function listarRespuestas(cuestionarioId, { campaniaId = null, periodo = null, desde = null, hasta = null, buscar = '', limite = 5000 } = {}) {
   let sql = 'SELECT * FROM respuestas WHERE cuestionario_id = ?';
   const params = [cuestionarioId];
   if (campaniaId) { sql += ' AND campania_id = ?'; params.push(campaniaId); }
+  if (periodo) { sql += ' AND periodo = ?'; params.push(periodo); }
   if (desde) { sql += ' AND enviado_en >= ?'; params.push(desde); }
   if (hasta) { sql += ' AND enviado_en <= ?'; params.push(hasta + ' 23:59:59'); }
   if (buscar) { sql += ' AND (lower(datos) LIKE ? OR lower(coalesce(correo, \'\')) LIKE ?)'; const b = `%${buscar.toLowerCase()}%`; params.push(b, b); }
@@ -570,11 +574,22 @@ export function encuestasHabilitadas() {
 }
 
 // Resumen de todos los cuestionarios publicados para la portada y el cuadro de mando del Observatorio.
-export function resumenParaTablero() {
+// Periodos (cortes) con respuestas o con campañas, del más reciente al más antiguo.
+export function periodosDisponibles(cuestionarioId = null) {
+  const filas = cuestionarioId
+    ? db.prepare('SELECT periodo FROM respuestas WHERE cuestionario_id = ? AND periodo IS NOT NULL UNION SELECT periodo FROM campanias WHERE cuestionario_id = ? AND periodo IS NOT NULL').all(cuestionarioId, cuestionarioId)
+    : db.prepare('SELECT periodo FROM respuestas WHERE periodo IS NOT NULL UNION SELECT periodo FROM campanias WHERE periodo IS NOT NULL').all();
+  return [...new Set(filas.map((f) => f.periodo).filter(Boolean))].sort().reverse();
+}
+
+// Con `periodo` el resumen se limita a ese corte; sin él integra todos los periodos y, además, cuenta las respuestas de cada uno.
+export function resumenParaTablero(periodo = null) {
   return listarCuestionarios().filter((c) => c.estado !== 'borrador' || c.respuestas > 0).map((c) => {
-    const filas = listarRespuestas(c.id, { limite: 100000 });
+    const filas = listarRespuestas(c.id, { limite: 100000, periodo });
     const r = resumenRespuestas(c.definicion, filas);
-    return { id: c.id, clave: c.clave, titulo: c.definicion.titulo, estado: c.estado, respuestas: r.total, ultima: c.ultima_respuesta, entidades: r.entidades, dimensiones: r.dimensiones, niveles: !!c.definicion.calculo.niveles, campanias: c.campanias };
+    const porPeriodo = {};
+    for (const f of db.prepare('SELECT periodo, COUNT(*) AS n FROM respuestas WHERE cuestionario_id = ? GROUP BY periodo ORDER BY periodo DESC').all(c.id)) porPeriodo[f.periodo || 'sin periodo'] = f.n;
+    return { id: c.id, clave: c.clave, titulo: c.definicion.titulo, estado: c.estado, respuestas: r.total, ultima: c.ultima_respuesta, entidades: r.entidades, dimensiones: r.dimensiones, niveles: !!c.definicion.calculo.niveles, campanias: c.campanias, porPeriodo, periodo };
   });
 }
 
@@ -582,11 +597,11 @@ export function resumenParaTablero() {
 export function csvDe(def, filas) {
   const d = normalizar(def);
   const campos = camposDe(d);
-  const cab = ['id', 'fecha', 'campaña', 'correo', 'nombre', 'entidad', ...campos.flatMap((c) => (c.otro ? [c.nombre, `${c.nombre}_otro`] : c.tipo === 'ranking' ? (c.items || []).map((it) => it.nombre) : [c.nombre])), ...d.calculo.dimensiones.map((x) => `puntaje_${x.clave}`), 'puntaje_total', 'puntaje_maximo'];
+  const cab = ['id', 'fecha', 'periodo', 'campaña', 'correo', 'nombre', 'entidad', ...campos.flatMap((c) => (c.otro ? [c.nombre, `${c.nombre}_otro`] : c.tipo === 'ranking' ? (c.items || []).map((it) => it.nombre) : [c.nombre])), ...d.calculo.dimensiones.map((x) => `puntaje_${x.clave}`), 'puntaje_total', 'puntaje_maximo'];
   const celda = (v) => { const s = v == null ? '' : Array.isArray(v) ? v.join(' | ') : typeof v === 'object' ? (v.archivo || JSON.stringify(v)) : String(v); return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const lineas = [cab.join(';')];
   for (const r of filas) {
-    const fila = [r.id, r.enviado_en, r.campania_id || '', r.correo || '', r.nombre || '', r.entidad || ''];
+    const fila = [r.id, r.enviado_en, r.periodo || '', r.campania_id || '', r.correo || '', r.nombre || '', r.entidad || ''];
     for (const c of campos) {
       if (c.tipo === 'ranking') { const v = r.datos[c.nombre] || {}; for (const it of c.items || []) fila.push(v[it.nombre] ?? ''); continue; }
       fila.push(r.datos[c.nombre]);

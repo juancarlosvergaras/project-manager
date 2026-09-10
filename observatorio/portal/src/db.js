@@ -122,6 +122,12 @@ CREATE TABLE IF NOT EXISTS respuestas (
 CREATE INDEX IF NOT EXISTS ix_respuestas_cuestionario ON respuestas(cuestionario_id, enviado_en DESC);
 `);
 
+// Columnas añadidas después de la primera versión del módulo de cuestionarios (bases ya creadas).
+for (const [tabla, columna, tipo] of [['campanias', 'periodo', 'TEXT'], ['respuestas', 'periodo', 'TEXT']]) {
+  if (!db.prepare(`PRAGMA table_info(${tabla})`).all().some((c) => c.name === columna)) db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${tipo}`);
+}
+db.exec('CREATE INDEX IF NOT EXISTS ix_respuestas_periodo ON respuestas(cuestionario_id, periodo)');
+
 export function auditar(evento, { usuarioId = null, app = null, detalle = null, ip = null } = {}) {
   db.prepare('INSERT INTO auditoria (evento, usuario_id, app, detalle, ip) VALUES (?, ?, ?, ?, ?)')
     .run(evento, usuarioId, app, detalle ? String(detalle).slice(0, 500) : null, ip);

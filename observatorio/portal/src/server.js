@@ -211,7 +211,7 @@ const servidor = http.createServer(async (req, res) => {
 
     if (ruta === '/escritorio') return redirigir(res, '/aplicativos');
     if (ruta === '/aplicativos') return render(V.vistaAplicativos({ ...comun(usuario), resumen: resumenTablero(), cuestionariosPublicados: C.listarCuestionarios().filter((c) => c.estado === 'publicado').length }));
-    if (ruta === '/tablero') return render(V.vistaTablero({ ...comun(usuario), resumen: resumenTablero(), indicadores: calcularIndicadores(datosCompletos()), cuestionarios: C.resumenParaTablero() }));
+    if (ruta === '/tablero') { const periodo = url.searchParams.get('periodo') || ''; return render(V.vistaTablero({ ...comun(usuario), resumen: resumenTablero(), indicadores: calcularIndicadores(datosCompletos()), cuestionarios: C.resumenParaTablero(periodo || null), periodo, periodos: C.periodosDisponibles() })); }
     if (ruta === '/cuenta') {
       const sesiones = db.prepare('SELECT * FROM sesiones WHERE usuario_id = ? ORDER BY creada_en DESC').all(usuario.id);
       return render(V.vistaCuenta({ ...comun(usuario), sesiones }));
@@ -344,16 +344,16 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
     if (!c) return render(V.vistaMensaje({ ...base, titulo: 'Cuestionario no encontrado', texto: 'El cuestionario no existe.', enlace: '/cuestionarios', textoEnlace: 'Volver a la lista' }), 404);
     const resto = m[2] || '';
     if (req.method === 'GET' && (resto === '' || resto === 'respuestas.csv')) {
-      const filtros = { buscar: q('buscar'), campania: q('campania'), desde: q('desde'), hasta: q('hasta') };
+      const filtros = { buscar: q('buscar'), campania: q('campania'), periodo: q('periodo'), desde: q('desde'), hasta: q('hasta') };
       for (const [k, v] of url.searchParams) if (k.startsWith('f_')) filtros[k] = v;
-      let filas = C.listarRespuestas(c.id, { campaniaId: filtros.campania ? Number(filtros.campania) : null, desde: filtros.desde || null, hasta: filtros.hasta || null, buscar: filtros.buscar, limite: 100000 });
+      let filas = C.listarRespuestas(c.id, { campaniaId: filtros.campania ? Number(filtros.campania) : null, periodo: filtros.periodo || null, desde: filtros.desde || null, hasta: filtros.hasta || null, buscar: filtros.buscar, limite: 100000 });
       for (const [k, v] of Object.entries(filtros)) if (k.startsWith('f_') && v) { const campo = k.slice(2); filas = filas.filter((r) => { const x = r.datos[campo]; return Array.isArray(x) ? x.map(String).includes(v) : String(x ?? '') === v; }); }
       if (resto === 'respuestas.csv') {
         res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="respuestas-${c.clave}-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store' });
         res.end(C.csvDe(c.definicion, filas));
         return true;
       }
-      return render(VC.vistaResultados({ ...base, cuestionario: c, resumen: C.resumenRespuestas(c.definicion, filas), filas, filtros, campanias: K.listarCampanias(c.id), pagina: Math.max(1, Number(q('pagina') || 1)) }));
+      return render(VC.vistaResultados({ ...base, cuestionario: c, resumen: C.resumenRespuestas(c.definicion, filas), filas, filtros, campanias: K.listarCampanias(c.id), periodos: C.periodosDisponibles(c.id), pagina: Math.max(1, Number(q('pagina') || 1)) }));
     }
     let a = /^respuestas\/(\d+)\/archivo\/([a-z0-9_]+)$/i.exec(resto);
     if (a && req.method === 'GET') {
@@ -379,7 +379,7 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
       if (!hoja.columnas.length || !hoja.filas.length) return render(VC.vistaImportar({ ...base, cuestionario: c, campanias: K.listarCampanias(c.id), error: 'El archivo no tiene una fila de encabezados seguida de datos.' }), 400);
       const token = C.tokenNuevo();
       fs.writeFileSync(path.join(C.carpetaImportaciones(), `${token}.json`), JSON.stringify({ cuestionarioId: c.id, archivo: a.nombre, columnas: hoja.columnas, filas: hoja.filas, creado: Date.now() }));
-      return render(VC.vistaImportarMapeo({ ...base, cuestionario: c, token, columnas: hoja.columnas, muestra: hoja.filas.slice(0, 5), total: hoja.filas.length, sugerencias: C.sugerirMapeo(c.definicion, hoja.columnas), destinos: C.destinosDeImportacion(c.definicion), campanias: K.listarCampanias(c.id), campaniaSeleccionada: envio.campos.campania, nuevaCampania: envio.campos.nueva_campania, archivo: a.nombre }));
+      return render(VC.vistaImportarMapeo({ ...base, cuestionario: c, token, columnas: hoja.columnas, muestra: hoja.filas.slice(0, 5), total: hoja.filas.length, sugerencias: C.sugerirMapeo(c.definicion, hoja.columnas), destinos: C.destinosDeImportacion(c.definicion), campanias: K.listarCampanias(c.id), campaniaSeleccionada: envio.campos.campania, nuevaCampania: envio.campos.nueva_campania, archivo: a.nombre, periodo: envio.campos.periodo }));
     }
     if (req.method !== 'POST') return undefined;
     let cuerpo;
@@ -395,7 +395,7 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
       if (!Object.keys(mapeo).length) return volver(`/cuestionarios/${c.id}/importar`, '', 'No se asignó ninguna columna a una pregunta.');
       let campaniaId = Number(cuerpo.campania);
       if (!campaniaId || cuerpo.campania === 'nueva') {
-        const k = K.crearCampania({ cuestionarioId: c.id, nombre: String(cuerpo.nueva_campania || `Importación ${guardado.archivo}`).trim(), asunto: 'Importación de respuestas anteriores', cuerpo: `Respuestas importadas del archivo ${guardado.archivo}.`, usuarioId: usuario.id });
+        const k = K.crearCampania({ cuestionarioId: c.id, nombre: String(cuerpo.nueva_campania || `Importación ${guardado.archivo}`).trim(), asunto: 'Importación de respuestas anteriores', cuerpo: `Respuestas importadas del archivo ${guardado.archivo}.`, usuarioId: usuario.id, periodo: cuerpo.periodo });
         db.prepare("UPDATE campanias SET estado = 'importada', ultimo_resultado = ? WHERE id = ?").run(`Importado de ${guardado.archivo}`, k.id);
         campaniaId = k.id;
       }
@@ -414,7 +414,7 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
       const programadaEn = K.aUtc(cuerpo.programada_en);
       if (cuerpo.programada_en && !programadaEn) return volver(`/cuestionarios/${c.id}/campanias`, '', 'La fecha de programación no es válida.');
       if (programadaEn && !smtpOk) return volver(`/cuestionarios/${c.id}/campanias`, '', 'No se puede programar un envío sin servidor de correo configurado.');
-      const k = K.crearCampania({ cuestionarioId: c.id, nombre: String(cuerpo.nombre || '').trim(), asunto: String(cuerpo.asunto || '').trim(), cuerpo: String(cuerpo.cuerpo || ''), programadaEn, usuarioId: usuario.id });
+      const k = K.crearCampania({ cuestionarioId: c.id, nombre: String(cuerpo.nombre || '').trim(), asunto: String(cuerpo.asunto || '').trim(), cuerpo: String(cuerpo.cuerpo || ''), programadaEn, usuarioId: usuario.id, periodo: cuerpo.periodo });
       const n = K.agregarDestinatarios(k.id, lista);
       auditar('campania_creada', { usuarioId: usuario.id, app: 'cuestionarios', detalle: `${k.nombre}: ${n} destinatarios`, ip });
       return volver(`/campanias/${k.id}`, `Campaña creada con ${n} destinatarios${programadaEn ? ', programada' : ''}.`);
@@ -440,7 +440,7 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
       if (resto === 'prueba') { await K.enviarPrueba(k.id, String(cuerpo.correo || usuario.correo).trim()); return volver(`/campanias/${k.id}`, `Correo de prueba enviado a ${cuerpo.correo || usuario.correo}.`); }
       if (resto === 'programar') { const f = K.aUtc(cuerpo.programada_en); if (!f) throw new Error('La fecha no es válida.'); if (!smtpOk) throw new Error('No se puede programar sin servidor de correo configurado.'); K.actualizarCampania(k.id, { programadaEn: f }); auditar('campania_programada', { usuarioId: usuario.id, app: 'cuestionarios', detalle: `${k.nombre}: ${f}`, ip }); return volver(`/campanias/${k.id}`, 'Campaña programada.'); }
       if (resto === 'cancelar') { K.cancelarCampania(k.id); return volver(`/campanias/${k.id}`, 'Programación cancelada.'); }
-      if (resto === 'editar') { K.actualizarCampania(k.id, { nombre: String(cuerpo.nombre || '').trim(), asunto: String(cuerpo.asunto || '').trim(), cuerpo: String(cuerpo.cuerpo || ''), programadaEn: k.programada_en }); return volver(`/campanias/${k.id}`, 'Mensaje guardado.'); }
+      if (resto === 'editar') { K.actualizarCampania(k.id, { nombre: String(cuerpo.nombre || '').trim(), asunto: String(cuerpo.asunto || '').trim(), cuerpo: String(cuerpo.cuerpo || ''), programadaEn: k.programada_en, periodo: cuerpo.periodo }); return volver(`/campanias/${k.id}`, 'Campaña guardada.'); }
       if (resto === 'destinatarios') { const n = K.agregarDestinatarios(k.id, K.interpretarLista(cuerpo.destinatarios)); return volver(`/campanias/${k.id}`, `${n} destinatarios agregados.`); }
       if (resto === 'eliminar') { K.eliminarCampania(k.id); auditar('campania_eliminada', { usuarioId: usuario.id, app: 'cuestionarios', detalle: k.nombre, ip }); return volver(`/cuestionarios/${c.id}/campanias`, `Se eliminó la campaña «${k.nombre}».`); }
       const d = /^destinatarios\/(\d+)\/quitar$/.exec(resto);

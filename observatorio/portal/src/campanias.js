@@ -42,12 +42,16 @@ export function destinatarioPorToken(token) {
 }
 
 // ---------------------------------------------------------------- creación y edición
-export function crearCampania({ cuestionarioId, nombre, asunto, cuerpo, programadaEn = null, usuarioId = null }) {
-  const r = db.prepare('INSERT INTO campanias (cuestionario_id, nombre, asunto, cuerpo, programada_en, estado, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run(cuestionarioId, nombre || 'Campaña', asunto || ASUNTO_POR_DEFECTO, cuerpo || CUERPO_POR_DEFECTO, programadaEn, programadaEn ? 'programada' : 'borrador', usuarioId);
+// El periodo (corte) agrupa las respuestas de un año o de una medición: «2026», «2026-1», etc. Por omisión, el año en curso.
+export const periodoActual = () => String(new Date().getFullYear());
+export const limpiarPeriodo = (p) => String(p || '').trim().slice(0, 40) || periodoActual();
+
+export function crearCampania({ cuestionarioId, nombre, asunto, cuerpo, programadaEn = null, usuarioId = null, periodo = null }) {
+  const r = db.prepare('INSERT INTO campanias (cuestionario_id, nombre, asunto, cuerpo, programada_en, estado, creado_por, periodo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(cuestionarioId, nombre || 'Campaña', asunto || ASUNTO_POR_DEFECTO, cuerpo || CUERPO_POR_DEFECTO, programadaEn, programadaEn ? 'programada' : 'borrador', usuarioId, limpiarPeriodo(periodo));
   return obtenerCampania(r.lastInsertRowid);
 }
-export function actualizarCampania(id, { nombre, asunto, cuerpo, programadaEn }) {
+export function actualizarCampania(id, { nombre, asunto, cuerpo, programadaEn, periodo }) {
   const k = obtenerCampania(id);
   if (!k) return null;
   // Programar vale en cualquier momento (también para una campaña ya enviada: llegará a los pendientes); solo no mientras se envía.
@@ -56,8 +60,9 @@ export function actualizarCampania(id, { nombre, asunto, cuerpo, programadaEn })
     if (programadaEn) estado = 'programada';
     else if (k.estado === 'programada') estado = k.enviada_en ? 'enviada' : 'borrador';
   }
-  db.prepare('UPDATE campanias SET nombre = ?, asunto = ?, cuerpo = ?, programada_en = ?, estado = ? WHERE id = ?')
-    .run(nombre || k.nombre, asunto || k.asunto, cuerpo || k.cuerpo, k.estado === 'enviando' ? k.programada_en : (programadaEn || null), estado, id);
+  db.prepare('UPDATE campanias SET nombre = ?, asunto = ?, cuerpo = ?, programada_en = ?, estado = ?, periodo = ? WHERE id = ?')
+    .run(nombre || k.nombre, asunto || k.asunto, cuerpo || k.cuerpo, k.estado === 'enviando' ? k.programada_en : (programadaEn || null), estado, periodo ? limpiarPeriodo(periodo) : k.periodo, id);
+  if (periodo) db.prepare('UPDATE respuestas SET periodo = ? WHERE campania_id = ?').run(limpiarPeriodo(periodo), id);
   return obtenerCampania(id);
 }
 // Quita la programación: la campaña vuelve a «enviada» si ya se envió alguna vez, o a «sin enviar».

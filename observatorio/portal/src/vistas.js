@@ -248,7 +248,7 @@ function barras(serie, etiqueta) {
   return out + '</svg>';
 }
 
-export function vistaTablero({ usuario, apps, ids, resumen, indicadores, cuestionarios = [] }) {
+export function vistaTablero({ usuario, apps, ids, resumen, indicadores, cuestionarios = [], periodo = '', periodos = [] }) {
   const r = indicadores.r1519;
   // Promedio nacional por ámbito del diagnóstico de preparación, tomado del cuestionario con niveles cuyas dimensiones usan los códigos de los ámbitos.
   const f1Prom = {};
@@ -317,8 +317,9 @@ ${indicadores.fichas || indicadores.herramientas ? `<div class="row g-3">
 </div>` : `<div class="alert alert-warning">${tieneDatos('catalogo') ? 'Los conjuntos recibidos del Catálogo de IA aún no incluyen fichas ni herramientas.' : 'Todavía no se han recolectado datos del Catálogo de IA.'}</div>`}
 
 <h2 class="mt-5">Cuestionarios del Observatorio</h2>
-<p class="text-muted">Instrumentos aplicados desde el portal, con sus respuestas y los promedios por dimensión.</p>
-${cuestionarios.length ? `<div class="row g-3">${cuestionarios.map((q) => `<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body"><h3 class="h6 text-primary mb-1">${esc(q.titulo)}</h3><p class="small text-muted mb-2">${fmt(q.respuestas)} respuestas${q.entidades ? ` · ${fmt(q.entidades)} entidades` : ''}${q.campanias ? ` · ${fmt(q.campanias)} campañas` : ''}${q.ultima ? ` · última ${esc(String(q.ultima).slice(0, 16))} UTC` : ''}</p>${Object.values(q.dimensiones || {}).map((x) => `<div class="d-flex justify-content-between small border-bottom py-1"><span>${esc(x.nombre)}</span><strong>${fmt(x.valor, 2)}${x.nivel ? ` · ${esc(x.nivel)}` : ''}</strong></div>`).join('')}${usuario.rol === 'administrador' ? `<a class="btn btn-sm btn-outline-primary mt-2" href="/cuestionarios/${q.id}">Ver resultados</a>` : ''}</div></div></div>`).join('')}</div>` : '<p class="text-muted">Todavía no hay cuestionarios con respuestas.</p>'}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3"><p class="text-muted mb-0 me-auto">Instrumentos aplicados desde el portal, con sus respuestas y los promedios por dimensión${periodo ? ` del periodo <strong>${esc(periodo)}</strong>` : ' de todos los periodos'}.</p>
+<form method="get" action="/tablero" class="d-flex align-items-center gap-2"><label class="small mb-0" for="periodo">Periodo</label><select class="form-select form-select-sm" id="periodo" name="periodo"><option value="">Todos (integrado)</option>${periodos.map((p) => `<option value="${esc(p)}"${periodo === p ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select><button class="btn btn-sm btn-outline-primary">Ver</button></form></div>
+${cuestionarios.length ? `<div class="row g-3">${cuestionarios.map((q) => `<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body"><h3 class="h6 text-primary mb-1">${esc(q.titulo)}</h3><p class="small text-muted mb-2">${fmt(q.respuestas)} respuestas${q.entidades ? ` · ${fmt(q.entidades)} entidades` : ''}${q.campanias ? ` · ${fmt(q.campanias)} campañas` : ''}${q.ultima ? ` · última ${esc(String(q.ultima).slice(0, 16))} UTC` : ''}</p>${!periodo && Object.keys(q.porPeriodo || {}).length > 1 ? `<p class="small mb-2">${Object.entries(q.porPeriodo).map(([p, n]) => `<a class="badge bg-light text-primary border text-decoration-none me-1" href="/tablero?periodo=${encodeURIComponent(p)}">${esc(p)}: ${fmt(n)}</a>`).join('')}</p>` : ''}${Object.values(q.dimensiones || {}).map((x) => `<div class="d-flex justify-content-between small border-bottom py-1"><span>${esc(x.nombre)}</span><strong>${fmt(x.valor, 2)}${x.nivel ? ` · ${esc(x.nivel)}` : ''}</strong></div>`).join('')}${usuario.rol === 'administrador' ? `<a class="btn btn-sm btn-outline-primary mt-2" href="/cuestionarios/${q.id}">Ver resultados</a>` : ''}</div></div></div>`).join('')}</div>` : '<p class="text-muted">Todavía no hay cuestionarios con respuestas.</p>'}
 
 <h2 class="mt-5">Datos recolectados</h2>
 <div class="accordion" id="acordeonDatos">

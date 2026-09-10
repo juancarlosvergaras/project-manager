@@ -1,7 +1,7 @@
 // Páginas de administración del módulo de cuestionarios: lista, editor, resultados y campañas.
 import { pagina } from './vistas.js';
 import { normalizar, camposDe, opcionesDe, textoDeOpcion, TIPOS, POLITICA_MINTIC, POLITICA_UDEC, DEFINICION_VACIA } from './cuestionarios.js';
-import { CUERPO_POR_DEFECTO, aLocal, enlaceDe } from './campanias.js';
+import { CUERPO_POR_DEFECTO, aLocal, enlaceDe, periodoActual } from './campanias.js';
 import { config } from './config.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -108,11 +108,12 @@ export function vistaCuestionariosParaTodos({ usuario, apps, ids, lista }) {
 }
 
 // ---------------------------------------------------------------- importación de respuestas anteriores
-function selectorCampania(campanias, seleccion, nuevaCampania) {
+function selectorCampania(campanias, seleccion, nuevaCampania, periodo = '') {
   return `<div class="row g-2"><div class="col-md-6"><label class="form-label small mb-1">Campaña donde quedan las respuestas</label><select class="form-select form-select-sm" name="campania">
     <option value="nueva"${seleccion === 'nueva' || !seleccion ? ' selected' : ''}>Crear una campaña nueva para esta importación</option>
     ${campanias.map((k) => `<option value="${k.id}"${String(seleccion) === String(k.id) ? ' selected' : ''}>${esc(k.nombre)} (${fmt(k.total)} destinatarios)</option>`).join('')}</select></div>
-    <div class="col-md-6"><label class="form-label small mb-1">Nombre de la campaña nueva (si aplica)</label><input class="form-control form-control-sm" name="nueva_campania" value="${esc(nuevaCampania || `Importación ${new Date().toISOString().slice(0, 10)}`)}"></div></div>`;
+    <div class="col-md-4"><label class="form-label small mb-1">Nombre de la campaña nueva (si aplica)</label><input class="form-control form-control-sm" name="nueva_campania" value="${esc(nuevaCampania || `Importación ${new Date().toISOString().slice(0, 10)}`)}"></div>
+    <div class="col-md-2"><label class="form-label small mb-1">Periodo (corte)</label><input class="form-control form-control-sm" name="periodo" value="${esc(periodo || periodoActual())}" maxlength="40"></div></div>`;
 }
 
 export function vistaImportar({ usuario, apps, ids, cuestionario, campanias, campaniaSeleccionada = '', error = '' }) {
@@ -128,7 +129,7 @@ ${error ? `<div class="alert alert-danger">${esc(error)}</div>` : ''}
 </form></div></div>` });
 }
 
-export function vistaImportarMapeo({ usuario, apps, ids, cuestionario, token, columnas, muestra, total, sugerencias, destinos, campanias, campaniaSeleccionada, nuevaCampania, archivo }) {
+export function vistaImportarMapeo({ usuario, apps, ids, cuestionario, token, columnas, muestra, total, sugerencias, destinos, campanias, campaniaSeleccionada, nuevaCampania, archivo, periodo = '' }) {
   const d = normalizar(cuestionario.definicion);
   const filas = columnas.map((col, i) => {
     const s = sugerencias[i] || {};
@@ -142,7 +143,7 @@ export function vistaImportarMapeo({ usuario, apps, ids, cuestionario, token, co
 <form method="post" action="/cuestionarios/${cuestionario.id}/importar/${esc(token)}" data-working-text="Importando...">
 <div class="card mb-3"><div class="card-header">Paso 2 de 2. Correspondencia de columnas</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead class="table-light"><tr><th style="width:28%">Columna del archivo</th><th style="width:26%">Ejemplo</th><th>Pregunta del cuestionario</th><th class="text-center">Confianza</th></tr></thead><tbody>${filas}</tbody></table></div></div></div>
 <div class="card"><div class="card-body">
-  ${selectorCampania(campanias, campaniaSeleccionada, nuevaCampania)}
+  ${selectorCampania(campanias, campaniaSeleccionada, nuevaCampania, periodo)}
   <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="omitir_duplicados" id="omitir_duplicados" value="1" checked><label class="form-check-label" for="omitir_duplicados">Omitir las filas que repitan una respuesta ya registrada según las reglas de duplicados del cuestionario (${d.duplicados.campos.length ? esc(d.duplicados.campos.join(', ')) : 'este cuestionario no tiene campos únicos definidos'})</label></div>
   <div class="d-flex gap-2 mt-3"><button class="btn btn-primary">Importar ${fmt(total)} filas</button><a class="btn btn-outline-secondary" href="/cuestionarios/${cuestionario.id}/importar">Elegir otro archivo</a></div>
 </div></div>
@@ -173,7 +174,7 @@ ${cuestionario && cuestionario.protegido ? '<div class="alert alert-info py-2 sm
 }
 
 // ---------------------------------------------------------------- resultados
-export function vistaResultados({ usuario, apps, ids, cuestionario, resumen, filas, filtros, campanias, pagina: pag = 1, porPagina = 100 }) {
+export function vistaResultados({ usuario, apps, ids, cuestionario, resumen, filas, filtros, campanias, periodos = [], pagina: pag = 1, porPagina = 100 }) {
   const d = normalizar(cuestionario.definicion);
   const campos = camposDe(d);
   const idn = d.identificacion || {};
@@ -219,8 +220,9 @@ export function vistaResultados({ usuario, apps, ids, cuestionario, resumen, fil
 </div>
 <div class="card mb-4"><div class="card-header">Filtros</div><div class="card-body"><form method="get" class="row g-2 align-items-end">
   <div class="col-md-3"><label class="form-label small mb-1">Buscar</label><input class="form-control form-control-sm" name="buscar" value="${esc(filtros.buscar || '')}" placeholder="correo, entidad, texto..."></div>
-  <div class="col-md-3"><label class="form-label small mb-1">Campaña</label><select class="form-select form-select-sm" name="campania"><option value="">Todas (incluye enlace público)</option>${campanias.map((k) => `<option value="${k.id}"${String(filtros.campania) === String(k.id) ? ' selected' : ''}>${esc(k.nombre)}</option>`).join('')}</select></div>
-  ${graficos.slice(0, 2).map((c) => `<div class="col-md-2"><label class="form-label small mb-1">${esc(c.etiqueta.slice(0, 28))}</label><select class="form-select form-select-sm" name="f_${esc(c.nombre)}"><option value="">Todos</option>${opcionesDe(c).map((o) => `<option value="${esc(o.valor)}"${filtros[`f_${c.nombre}`] === o.valor ? ' selected' : ''}>${esc(o.texto.slice(0, 40))}</option>`).join('')}</select></div>`).join('')}
+  <div class="col-md-2"><label class="form-label small mb-1">Periodo</label><select class="form-select form-select-sm" name="periodo"><option value="">Todos</option>${periodos.map((p) => `<option value="${esc(p)}"${filtros.periodo === p ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select></div>
+  <div class="col-md-3"><label class="form-label small mb-1">Campaña</label><select class="form-select form-select-sm" name="campania"><option value="">Todas (incluye enlace público)</option>${campanias.map((k) => `<option value="${k.id}"${String(filtros.campania) === String(k.id) ? ' selected' : ''}>${esc(k.nombre)}${k.periodo ? ` (${esc(k.periodo)})` : ''}</option>`).join('')}</select></div>
+  ${graficos.slice(0, 1).map((c) => `<div class="col-md-2"><label class="form-label small mb-1">${esc(c.etiqueta.slice(0, 28))}</label><select class="form-select form-select-sm" name="f_${esc(c.nombre)}"><option value="">Todos</option>${opcionesDe(c).map((o) => `<option value="${esc(o.valor)}"${filtros[`f_${c.nombre}`] === o.valor ? ' selected' : ''}>${esc(o.texto.slice(0, 40))}</option>`).join('')}</select></div>`).join('')}
   <div class="col-md-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control form-control-sm" name="desde" value="${esc(filtros.desde || '')}"></div>
   <div class="col-md-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control form-control-sm" name="hasta" value="${esc(filtros.hasta || '')}"></div>
   <div class="col-md-3 d-flex gap-2"><button class="btn btn-sm btn-primary">Aplicar filtros</button><a class="btn btn-sm btn-outline-secondary" href="/cuestionarios/${cuestionario.id}">Limpiar</a></div>
@@ -233,18 +235,19 @@ export function vistaResultados({ usuario, apps, ids, cuestionario, resumen, fil
 // ---------------------------------------------------------------- campañas
 export function vistaCampanias({ usuario, apps, ids, cuestionario, campanias, mensaje = '', error = '', smtpOk }) {
   const d = normalizar(cuestionario.definicion);
-  const filas = campanias.map((k) => `<tr><td><a class="fw-semibold" href="/campanias/${k.id}">${esc(k.nombre)}</a><div class="small text-muted">${esc(k.asunto)}</div></td><td>${badgeCampania(k.estado)}${k.estado === 'programada' && k.programada_en ? `<div class="small text-muted">${fechaCo(k.programada_en)}</div>` : ''}${k.enviada_en ? `<div class="small text-muted">${fechaCo(k.enviada_en)}</div>` : ''}</td><td class="text-end">${fmt(k.total)}</td><td class="text-end">${fmt(k.enviados)}</td><td class="text-end">${fmt(k.respondidos)}${k.enviados ? ` <span class="text-muted small">(${Math.round((k.respondidos / k.enviados) * 100)} %)</span>` : ''}</td><td class="text-end">${k.errores ? `<span class="text-danger">${fmt(k.errores)}</span>` : '0'}</td><td><a class="btn btn-sm btn-outline-primary" href="/campanias/${k.id}">Ver</a></td></tr>`).join('');
+  const filas = campanias.map((k) => `<tr><td><a class="fw-semibold" href="/campanias/${k.id}">${esc(k.nombre)}</a><div class="small text-muted">${esc(k.asunto)}</div></td><td><span class="badge bg-light text-primary border">${esc(k.periodo || '')}</span></td><td>${badgeCampania(k.estado)}${k.estado === 'programada' && k.programada_en ? `<div class="small text-muted">${fechaCo(k.programada_en)}</div>` : ''}${k.enviada_en ? `<div class="small text-muted">${fechaCo(k.enviada_en)}</div>` : ''}</td><td class="text-end">${fmt(k.total)}</td><td class="text-end">${fmt(k.enviados)}</td><td class="text-end">${fmt(k.respondidos)}${k.enviados ? ` <span class="text-muted small">(${Math.round((k.respondidos / k.enviados) * 100)} %)</span>` : ''}</td><td class="text-end">${k.errores ? `<span class="text-danger">${fmt(k.errores)}</span>` : '0'}</td><td><a class="btn btn-sm btn-outline-primary" href="/campanias/${k.id}">Ver</a></td></tr>`).join('');
   return pagina({ usuario, apps, ids, ruta: 'cuestionarios', titulo: `Campañas · ${d.titulo}`, cuerpo: `
-<div class="mintic-page-intro mb-4"><div><h1>Campañas de aplicación</h1><p><strong>${esc(d.titulo)}</strong> ${badgeEstado(cuestionario.estado)}. Cada campaña envía a una lista de correos un enlace personal al cuestionario, en el momento o en la fecha programada, y permite recordar a quienes no han respondido.</p>
+<div class="mintic-page-intro mb-4"><div><h1>Campañas de aplicación</h1><p><strong>${esc(d.titulo)}</strong> ${badgeEstado(cuestionario.estado)}. Cada campaña envía a una lista de correos un enlace personal al cuestionario, en el momento o en la fecha programada, y permite recordar a quienes no han respondido. Cada campaña pertenece a un <strong>periodo</strong> (por ejemplo «2026»): las respuestas quedan separadas por corte y el cuadro de mando las integra o las filtra por periodo.</p>
 <div class="d-flex gap-2 mt-2 flex-wrap"><a class="btn btn-sm btn-outline-primary" href="/cuestionarios/${cuestionario.id}">Resultados</a><a class="btn btn-sm btn-outline-primary" href="/cuestionarios/${cuestionario.id}/editar">Editar cuestionario</a><a class="btn btn-sm btn-outline-primary" href="/cuestionarios/${cuestionario.id}/importar">Importar respuestas anteriores (Excel o CSV)</a><a class="btn btn-sm btn-outline-secondary" href="/cuestionarios">Todos los cuestionarios</a></div></div></div>
 ${mensaje ? `<div class="alert alert-success">${esc(mensaje)}</div>` : ''}${error ? `<div class="alert alert-danger">${esc(error)}</div>` : ''}
 ${smtpOk ? '' : '<div class="alert alert-warning py-2 small"><strong>Correo sin configurar.</strong> Puede crear la campaña y obtener los enlaces personales, pero el envío automático requiere <code>SMTP_HOST</code>, <code>SMTP_USUARIO</code>, <code>SMTP_CLAVE</code> y <code>CORREO_DESDE</code> en el archivo <code>.env</code>.</div>'}
 ${cuestionario.estado !== 'publicado' ? '<div class="alert alert-warning py-2 small">El cuestionario no está publicado: las campañas no se enviarán hasta publicarlo.</div>' : ''}
-<div class="card mb-4"><div class="card-header">Campañas</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Campaña</th><th>Estado</th><th class="text-end">Destinatarios</th><th class="text-end">Enviados</th><th class="text-end">Respondieron</th><th class="text-end">Errores</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="text-muted p-3">Sin campañas todavía.</td></tr>'}</tbody></table></div></div></div>
+<div class="card mb-4"><div class="card-header">Campañas</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Campaña</th><th>Periodo</th><th>Estado</th><th class="text-end">Destinatarios</th><th class="text-end">Enviados</th><th class="text-end">Respondieron</th><th class="text-end">Errores</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="text-muted p-3">Sin campañas todavía.</td></tr>'}</tbody></table></div></div></div>
 <div class="card"><div class="card-header">Nueva campaña</div><div class="card-body"><form method="post" action="/cuestionarios/${cuestionario.id}/campanias" data-working-text="Creando...">
   <div class="row g-3">
-    <div class="col-md-4"><label class="form-label">Nombre de la campaña</label><input class="form-control" name="nombre" required placeholder="Ej. Entidades territoriales, corte septiembre"></div>
-    <div class="col-md-8"><label class="form-label">Asunto del correo</label><input class="form-control" name="asunto" required value="Invitación a responder: {{cuestionario}}"></div>
+    <div class="col-md-4"><label class="form-label">Nombre de la campaña</label><input class="form-control" name="nombre" required placeholder="Ej. Entidades territoriales 2026"></div>
+    <div class="col-md-2"><label class="form-label">Periodo (corte)</label><input class="form-control" name="periodo" value="${esc(periodoActual())}" required maxlength="40"><div class="form-text">Ej. 2026 o 2026-2. Separa las respuestas por corte.</div></div>
+    <div class="col-md-6"><label class="form-label">Asunto del correo</label><input class="form-control" name="asunto" required value="Invitación a responder: {{cuestionario}}"></div>
     <div class="col-md-6"><label class="form-label">Mensaje</label><textarea class="form-control" name="cuerpo" rows="12" required>${esc(CUERPO_POR_DEFECTO)}</textarea><div class="form-text">Variables: <code>{{nombre}}</code>, <code>{{entidad}}</code>, <code>{{correo}}</code>, <code>{{cuestionario}}</code>, <code>{{enlace}}</code>. El enlace se convierte en botón. Admite **negritas**.</div></div>
     <div class="col-md-6"><label class="form-label">Destinatarios</label><textarea class="form-control font-monospace" id="lista-destinatarios" name="destinatarios" rows="12" placeholder="correo@entidad.gov.co; Nombre Apellido; Alcaldía de Ejemplo&#10;otro@entidad.gov.co"></textarea><div class="form-text">Una persona por línea: <strong>correo</strong>, y si se tienen, nombre y entidad separados por punto y coma, coma o tabulador (se puede pegar desde Excel). <span id="contador-destinatarios" class="fw-semibold"></span></div></div>
     <div class="col-md-4"><label class="form-label">Programar el envío (hora de Colombia)</label><input type="datetime-local" class="form-control" name="programada_en"><div class="form-text">Déjelo vacío para enviar a mano desde la página de la campaña.</div></div>
@@ -259,7 +262,7 @@ export function vistaCampania({ usuario, apps, ids, cuestionario, campania: k, d
   const filas = destinatarios.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.correo)}<div class="small text-muted">${esc(x.nombre || '')}${x.entidad ? ' · ' + esc(x.entidad) : ''}</div></td><td>${badgeDestinatario(x.estado)}${x.error ? `<div class="small text-danger">${esc(x.error)}</div>` : ''}</td><td class="small text-nowrap">${x.enviado_en ? fechaCo(x.enviado_en) + (x.envios > 1 ? ` <span class="text-muted">(${x.envios} envíos)</span>` : '') : ''}</td><td class="small text-nowrap">${x.respondido_en ? fechaCo(x.respondido_en) : ''}</td><td><button class="btn btn-sm btn-outline-secondary py-0" type="button" data-copiar="${esc(enlaceDe(cuestionario.clave, x.token))}">Copiar enlace</button></td><td>${x.estado === 'respondido' ? '' : `<form method="post" action="/campanias/${k.id}/destinatarios/${x.id}/quitar" class="d-inline"><button class="btn btn-sm btn-outline-danger py-0">Quitar</button></form>`}</td></tr>`).join('');
   const puedeEnviar = smtpOk && cuestionario.estado === 'publicado' && !enviando && k.estado !== 'enviando';
   return pagina({ usuario, apps, ids, ruta: 'cuestionarios', titulo: `Campaña · ${k.nombre}`, cuerpo: `
-<div class="mintic-page-intro mb-4"><div><h1>${esc(k.nombre)}</h1><p>${badgeCampania(k.estado)} · Cuestionario <a href="/cuestionarios/${cuestionario.id}">${esc(d.titulo)}</a> ${badgeEstado(cuestionario.estado)}${k.programada_en ? ` · programada para el ${fechaCo(k.programada_en)}` : ''}${k.enviada_en ? ` · enviada el ${fechaCo(k.enviada_en)}` : ''}${k.ultimo_resultado ? ` · ${esc(k.ultimo_resultado)}` : ''}</p>
+<div class="mintic-page-intro mb-4"><div><h1>${esc(k.nombre)}</h1><p>${badgeCampania(k.estado)} · periodo <strong>${esc(k.periodo || 'sin periodo')}</strong> · Cuestionario <a href="/cuestionarios/${cuestionario.id}">${esc(d.titulo)}</a> ${badgeEstado(cuestionario.estado)}${k.programada_en ? ` · programada para el ${fechaCo(k.programada_en)}` : ''}${k.enviada_en ? ` · enviada el ${fechaCo(k.enviada_en)}` : ''}${k.ultimo_resultado ? ` · ${esc(k.ultimo_resultado)}` : ''}</p>
 <div class="d-flex gap-2 mt-2 flex-wrap"><a class="btn btn-sm btn-outline-primary" href="/cuestionarios/${cuestionario.id}/campanias">Todas las campañas</a><a class="btn btn-sm btn-outline-primary" href="/cuestionarios/${cuestionario.id}?campania=${k.id}">Respuestas de esta campaña</a><a class="btn btn-sm btn-outline-primary" href="/cuestionarios/${cuestionario.id}/importar?campania=${k.id}">Importar respuestas a esta campaña</a></div></div></div>
 ${mensaje ? `<div class="alert alert-success">${esc(mensaje)}</div>` : ''}${error ? `<div class="alert alert-danger">${esc(error)}</div>` : ''}
 ${enviando || k.estado === 'enviando' ? '<div class="alert alert-info py-2">La campaña se está enviando. Recargue la página para ver el avance.</div>' : ''}
@@ -291,7 +294,7 @@ ${enviando || k.estado === 'enviando' ? '<div class="alert alert-info py-2">La c
   </div>
   <div class="col-lg-5">
     <div class="card mb-4"><div class="card-header">Mensaje</div><div class="card-body"><form method="post" action="/campanias/${k.id}/editar">
-      <div class="mb-2"><label class="form-label small mb-1">Nombre de la campaña</label><input class="form-control form-control-sm" name="nombre" value="${esc(k.nombre)}" required></div>
+      <div class="row g-2"><div class="col-8 mb-2"><label class="form-label small mb-1">Nombre de la campaña</label><input class="form-control form-control-sm" name="nombre" value="${esc(k.nombre)}" required></div><div class="col-4 mb-2"><label class="form-label small mb-1">Periodo (corte)</label><input class="form-control form-control-sm" name="periodo" value="${esc(k.periodo || '')}" required maxlength="40"></div></div>
       <div class="mb-2"><label class="form-label small mb-1">Asunto</label><input class="form-control form-control-sm" name="asunto" value="${esc(k.asunto)}" required></div>
       <div class="mb-2"><label class="form-label small mb-1">Cuerpo</label><textarea class="form-control form-control-sm" name="cuerpo" rows="10" required>${esc(k.cuerpo)}</textarea><div class="form-text">Variables: <code>{{nombre}}</code>, <code>{{entidad}}</code>, <code>{{correo}}</code>, <code>{{cuestionario}}</code>, <code>{{enlace}}</code>.</div></div>
       <button class="btn btn-sm btn-primary">Guardar mensaje</button>

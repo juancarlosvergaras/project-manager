@@ -110,7 +110,7 @@ curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" -d "_csrf=$CSRF&estado=publ
 echo "cuestionario creado desde el editor, validado, con vista previa y publicado"
 
 paso "Campaña por correo con SMTP simulado"
-curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" --data-urlencode "_csrf=$CSRF" --data-urlencode "nombre=Piloto" --data-urlencode "asunto=Invitación: {{cuestionario}}" --data-urlencode "cuerpo=Hola {{nombre}}, responda aquí:
+curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" --data-urlencode "_csrf=$CSRF" --data-urlencode "nombre=Piloto" --data-urlencode "periodo=2026" --data-urlencode "asunto=Invitación: {{cuestionario}}" --data-urlencode "cuerpo=Hola {{nombre}}, responda aquí:
 
 {{enlace}}
 
@@ -151,6 +151,11 @@ sleep 1
 grep -q "luis@otra.gov.co" "$T/correos/003.json" || fallo "destinatario del recordatorio"
 grep -q "Recordatorio" "$T/correos/003.json" || fallo "asunto del recordatorio"
 curl -s -b "$T/p.txt" $P/cuestionarios/$NID | grep -q "Satisfacción" || fallo "resultados con la dimensión"
+curl -s -b "$T/p.txt" "$P/cuestionarios/$NID?periodo=2026" | grep -q "ana@entidad.gov.co" || fallo "la respuesta de la campaña queda en el periodo 2026"
+curl -s -b "$T/p.txt" "$P/cuestionarios/$NID?periodo=2031" | grep -q "ana@entidad.gov.co" && fallo "otro periodo no debe mostrarla"
+curl -s -b "$T/p.txt" "$P/cuestionarios/$NID/respuestas.csv" | sed -n 2p | grep -q ";2026;" || fallo "el periodo va en el CSV"
+curl -s -b "$T/p.txt" "$P/tablero?periodo=2026" | grep -q 'del periodo <strong>2026</strong>' || fallo "el cuadro de mando filtra por periodo"
+curl -s -b "$T/p.txt" $P/tablero | grep -q '<option value="2026"' || fallo "el selector de periodos del cuadro de mando"
 curl -s -b "$T/p.txt" $P/tablero | grep -q "Sondeo de prueba" || fallo "el cuadro de mando muestra el cuestionario"
 curl -s -b "$T/p.txt" $P/ | grep -q "Respuestas a los cuestionarios" || fallo "la portada del administrador cuenta las respuestas"
 echo "enlace personal prellenado y de un solo uso, duplicados bloqueados, recordatorio solo a pendientes, tablero al día"
