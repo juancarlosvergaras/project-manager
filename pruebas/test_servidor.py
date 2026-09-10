@@ -327,10 +327,11 @@ class PruebaBarraEnReposo(PruebaAislada):
                 "al terminar tiene que verse el verde",
             )
 
-            # Y pasado el momento, «te toca»: la sesion termino y te espera.
-            # Verde para siempre, no; ambar hasta que le contestes, si.
+            # Y pasado el momento sigue en verde (sostenido, sin manos libres):
+            # termino, y no te espera con el microfono abierto.
             await asyncio.sleep(0.12)
-            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA))
+            self.assertTrue(servidor.resumen_actividad()["te_toca"])
         asyncio.run(caso())
 
     def test_el_verde_dura_mas_que_los_demas_momentos(self):
@@ -359,7 +360,7 @@ class PruebaBarraEnReposo(PruebaAislada):
             self.assertEqual(simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA))
             await asyncio.sleep(0.15)
             self.assertEqual(
-                simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION),
+                simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA),
                 "se uso el plazo de los otros momentos en vez del suyo",
             )
         asyncio.run(caso())
@@ -495,18 +496,18 @@ class PruebaSemaforoPorSesion(unittest.TestCase):
         async def caso():
             servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30, milisegundos_tarea_completada=30)
             await gestor.conectar()
-            await self.evento(servidor, "Stop", "cowork")          # Cowork termino: te toca
+            await self.evento(servidor, "Stop", "cowork")          # Cowork termino: verde
             await asyncio.sleep(0.1)
-            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA))
             await self.evento(servidor, "PreToolUse", "code")      # otra sesion trabaja por detras
             await asyncio.sleep(0.02)
             self.assertEqual(
-                simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION),
-                "el trabajo de otra sesion no debe tapar que Cowork te espera",
+                simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA),
+                "el trabajo de otra sesion no debe tapar que Cowork termino",
             )
             await self.evento(servidor, "PostToolUse", "code")
             await asyncio.sleep(0.1)
-            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.TAREA_COMPLETADA))
         asyncio.run(caso())
 
     def test_contestar_a_la_sesion_apaga_el_te_toca(self):
@@ -548,6 +549,28 @@ class PruebaSemaforoPorSesion(unittest.TestCase):
                 self.assertEqual(simulado.ultimo_estado, int(EstadoIA.DETENIDO))
             finally:
                 await servidor.detener()
+        asyncio.run(caso())
+
+    def test_con_manos_libres_el_turno_terminado_es_rojo(self):
+        """Con la palanca arriba el microfono se abre al terminar: rojo, «te escucho»."""
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30, milisegundos_tarea_completada=30)
+            servidor.es_manos_libres = lambda: True
+            await gestor.conectar()
+            await self.evento(servidor, "Stop", "cowork")
+            await asyncio.sleep(0.1)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            self.assertEqual(servidor.resumen_actividad()["te_toca_por"], "turno")
+        asyncio.run(caso())
+
+    def test_un_permiso_es_rojo_aunque_no_haya_manos_libres(self):
+        async def caso():
+            servidor, gestor, simulado = self.montar(milisegundos_estado_breve=30)
+            await gestor.conectar()
+            await self.evento(servidor, "Notification", "cowork", tipo="permission_prompt")
+            await asyncio.sleep(0.1)
+            self.assertEqual(simulado.ultimo_estado, int(EstadoIA.ESPERANDO_APROBACION))
+            self.assertEqual(servidor.resumen_actividad()["te_toca_por"], "permiso")
         asyncio.run(caso())
 
     def test_te_toca_caduca(self):

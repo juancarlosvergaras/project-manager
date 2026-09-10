@@ -466,8 +466,23 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                         "agente": quien,
                     })
 
+                def palanca_arriba() -> bool:
+                    lectura = gestor.estado
+                    return bool(lectura) and lectura.palanca == 0
+
+                def manos_libres_activo() -> bool:
+                    return bool(getattr(ajustes, "manos_libres", False)) and palanca_arriba()
+
+                # El servidor enseña un turno terminado en verde, salvo que
+                # manos libres vaya a abrirte el micrófono: entonces, rojo.
+                servidor.es_manos_libres = manos_libres_activo
+
                 def al_terminar_el_dueno(quien: str) -> None:
-                    if not getattr(ajustes, "manos_libres", False):
+                    # Solo con la palanca ARRIBA. Abajo, terminar es terminar:
+                    # verde y el micrófono cerrado. Abrirlo solo con la palanca
+                    # abajo dejaba el micrófono escuchando al acabar cada
+                    # conversación, que es justo lo que el usuario no quería.
+                    if not manos_libres_activo():
                         return
                     bucle_microfono.call_soon_threadsafe(
                         lambda: bucle_microfono.create_task(

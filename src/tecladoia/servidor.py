@@ -113,6 +113,10 @@ class ServidorEnganches:
         #: turno. Lo usa el modo manos libres para abrir el micrófono. Lo
         #: instala la línea de órdenes; aquí no se sabe dictar.
         self.al_terminar_el_dueno: Optional[Callable[[str], None]] = None
+        #: Dice si manos libres está en marcha (encendido y palanca arriba).
+        #: Con él, un turno terminado se enseña en rojo («te escucho»); sin
+        #: él, en verde. Lo instala la línea de órdenes, que sabe de palancas.
+        self.es_manos_libres: Optional[Callable[[], bool]] = None
         self.ultimo_evento_en: float = 0.0
         self._bucle: Optional[asyncio.AbstractEventLoop] = None
         self._reposo: Optional[asyncio.Task] = None
@@ -214,12 +218,15 @@ class ServidorEnganches:
                 else None
             ),
             "te_toca": self._quien_espera() is not None,
+            "te_toca_por": "permiso" if self._quien_espera("permiso") else ("turno" if self._quien_espera("turno") else None),
+            "manos_libres_activo": self._manos_libres_activo(),
             "sesiones": [
                 {
                     "clave": clave,
                     "agente": s["agente"],
                     "estado": s["estado"].etiqueta,
                     "espera": s["espera"],
+                    "motivo": s.get("motivo", ""),
                     "hace_s": round(ahora - s["cuando"], 1),
                     "ruta": s.get("ruta") or "",
                     "nombre": _nombre_de_sesion(s),
@@ -500,12 +507,16 @@ class ServidorEnganches:
             self.sesiones.pop(clave, None)
             return
         # «Te toca» cuando termina el turno o pide permiso; deja de tocarte en
-        # cuanto le contestas (petición enviada) o sigue trabajando.
+        # cuanto le contestas (petición enviada) o sigue trabajando. Se guarda
+        # el motivo porque se enseñan distinto: un permiso es rojo (hay que
+        # decidir); un turno terminado es verde, salvo en manos libres, donde
+        # el micrófono se abre y el rojo dice «te escucho».
         espera = estado in (EstadoIA.TAREA_COMPLETADA, EstadoIA.ESPERANDO_APROBACION)
         self.sesiones[clave] = {
             "agente": agente_id,
             "estado": estado,
             "espera": espera,
+            "motivo": "permiso" if estado is EstadoIA.ESPERANDO_APROBACION else ("turno" if espera else ""),
             "cuando": time.monotonic(),
             "ruta": getattr(contexto, "ruta", None),
             "sesion": getattr(contexto, "sesion", None),
@@ -516,14 +527,21 @@ class ServidorEnganches:
         for k in [k for k, s in self.sesiones.items() if ahora - s["cuando"] > limite]:
             self.sesiones.pop(k, None)
 
-    def _quien_espera(self) -> Optional[str]:
-        """La clave de alguna sesión que te esté esperando, si la hay y no ha caducado."""
+    def _quien_espera(self, motivo: Optional[str] = None) -> Optional[str]:
+        """La clave de alguna sesión que te esté esperando (por ese motivo), si no ha caducado."""
         ahora = time.monotonic()
         plazo = max(0, self.ajustes.minutos_te_toca) * 60
         for clave, s in self.sesiones.items():
-            if s["espera"] and ahora - s["cuando"] < plazo:
+            if s["espera"] and ahora - s["cuando"] < plazo and (motivo is None or s.get("motivo") == motivo):
                 return clave
         return None
+
+    def _manos_libres_activo(self) -> bool:
+        """¿Está el modo manos libres en marcha (encendido y palanca arriba)? Lo dice la CLI."""
+        try:
+            return bool(self.es_manos_libres and self.es_manos_libres())
+        except Exception:  # noqa: BLE001
+            return False
 
     def _alguien_trabaja(self) -> bool:
         ahora = time.monotonic()
@@ -540,9 +558,18 @@ class ServidorEnganches:
         )
 
     def _estado_agregado(self, preferido: Optional[EstadoIA] = None) -> EstadoIA:
-        """Lo que debe enseñar la barra mirando todas las sesiones a la vez."""
-        if self._quien_espera() is not None:
+        """Lo que debe enseñar la barra mirando todas las sesiones a la vez.
+
+        Rojo («Esperando aprobación») cuando hay que decidir un permiso, o
+        cuando manos libres ha abierto el micrófono al terminar un turno y
+        te está escuchando. **Verde** cuando un turno terminó y no hay manos
+        libres: ha acabado, y no te espera con el micrófono abierto. Lo pidió
+        el usuario el 9/9/2026: «que termine en verde».
+        """
+        if self._quien_espera("permiso") is not None:
             return EstadoIA.ESPERANDO_APROBACION
+        if self._quien_espera("turno") is not None:
+            return EstadoIA.ESPERANDO_APROBACION if self._manos_libres_activo() else EstadoIA.TAREA_COMPLETADA
         if preferido is not None and preferido not in ESTADOS_TRANQUILOS and preferido not in ESTADOS_BREVES:
             return preferido
         if self._alguien_trabaja():

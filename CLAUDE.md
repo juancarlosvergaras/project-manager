@@ -536,8 +536,14 @@ turno con `Stop`, pidió permiso, o mandó una `Notification` de tipo
 o pasen `minutos_te_toca` (**3**: toda conversación termina con `Stop`, y con
 diez cada respuesta dejaba el rojo puesto), o **pulses el micrófono**, o el
 botón «Ya lo vi» del panel (`servidor.dar_por_atendido`); si ninguna espera y
-alguna trabaja, azul; si no, reposo. El verde de `Stop` se ve sus cinco segundos y **después viene el
-ámbar**, no el reposo. El panel lo enseña en el indicador «Agente», la banda
+alguna trabaja, azul; si no, reposo. **Un turno terminado se enseña en verde**, sostenido hasta que le contestes
+o pasen los minutos; el rojo («Esperando aprobación») queda para cuando hay
+que **decidir** un permiso, o para **manos libres** (encendido y palanca
+arriba), que abre el micrófono al terminar y el rojo dice «te escucho». Lo
+pidió el usuario el 9/9/2026: «que termine en verde», y que el micrófono no
+se le quede abierto al acabar una conversación. Por eso manos libres **solo
+abre con la palanca arriba** (`cli.manos_libres_activo`, que el servidor
+consulta en `es_manos_libres`). El panel lo enseña en el indicador «Agente», la banda
 «Te toca» y la tarjeta de sesiones (`resumen_actividad()["sesiones"]`).
 `PermissionRequest` nunca ha llegado desde la aplicación de escritorio (ni
 Cowork ni Code) en 3.000 líneas de registro; el «te toca» de verdad sale de

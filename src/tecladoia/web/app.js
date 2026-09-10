@@ -130,8 +130,10 @@ function pintarSesiones(e) {
     banda.className = "banda te-toca";
     const texto = $("#te-toca-texto");
     if (texto) texto.textContent = teToca
-      ? "Te toca: " + esperando.map(s => s.nombre).join(", ") + (esperando.some(s => s.estado === "Esperando aprobación") ? " (pide permiso o espera tu respuesta)" : " (terminó su turno)")
+      ? (e.te_toca_por === "permiso" ? "Te toca decidir: " : (e.manos_libres_activo ? "Te escucha (manos libres): " : "Terminó: "))
+        + esperando.map(s => s.nombre).join(", ")
       : "";
+    banda.className = "banda te-toca" + (e.te_toca_por === "turno" && !e.manos_libres_activo ? " verde" : "");
   }
   const tarjeta = $("#tarjeta-sesiones");
   const lista = $("#sesiones");
