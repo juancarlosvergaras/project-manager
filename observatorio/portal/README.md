@@ -73,6 +73,8 @@ El módulo de cuestionarios permite a los administradores del portal diseñar in
 
 Los tres instrumentos que el proyecto ya aplicó (Información No Verificada, Autodiagnóstico Integrado y Diagnóstico de Infraestructura Computacional) se cargan la primera vez que arranca el portal como ejemplos protegidos, tomados de `src/ejemplos/*.json`, con su estilo, sus políticas y sus reglas de cálculo. Para adaptarlos se duplican.
 
+Todos los enlaces (público y personales) y sus códigos QR (`/c/<clave>/qr.svg`, `/campanias/<id>/destinatarios/<id>/qr.svg`, hoja imprimible en `/campanias/<id>/qr`) se construyen en el momento con `URL_PUBLICA`: si el portal cambia de servidor o de dominio, basta actualizar esa variable y los QR y enlaces que se generen a partir de entonces apuntan al sitio nuevo (los correos ya enviados conservan la dirección con la que se enviaron). Los QR se generan en `src/qr.js`, sin servicios externos. Cada campaña pertenece a un periodo (corte), que separa las respuestas y se filtra en el cuadro de mando.
+
 El correo saliente se configura con las variables `SMTP_*` y `CORREO_*` del archivo `.env` (ver `.env.example`). Sin ellas el portal funciona igual, pero las campañas quedan preparadas sin enviarse y los enlaces personales se copian a mano.
 
 | Archivo | Función |
