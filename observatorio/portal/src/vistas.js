@@ -103,7 +103,7 @@ export function bloqueEncuestas(encuestas, { titulo = 'Encuestas habilitadas', c
       <h3 class="h6 text-primary mb-1">${esc(e.titulo)}</h3>
       <p class="small text-muted flex-grow-1 mb-2">${esc(e.subtitulo || '')}</p>
       <div class="small text-muted mb-2">${e.pasos} pasos · ${e.preguntas} preguntas${e.minutos ? ` · unos ${e.minutos} minutos` : ''}</div>
-      <a class="btn btn-primary btn-sm" href="/c/${esc(e.clave)}" target="_blank" rel="noopener">Responder la encuesta</a>
+      <div class="d-flex align-items-center gap-3"><a class="btn btn-primary btn-sm" href="/c/${esc(e.clave)}" target="_blank" rel="noopener">Responder la encuesta</a><a href="/c/${esc(e.clave)}/qr.svg?descargar=1" title="Descargar el código QR"><img class="qr-mini" src="/c/${esc(e.clave)}/qr.svg?pie=0" alt="Código QR para responder ${esc(e.titulo)}"></a></div>
     </div></div></div>`).join('');
   return `<div class="card border-primary encuestas-habilitadas ${compacto ? 'mb-4' : 'mt-4 mb-4'}"><div class="card-header d-flex justify-content-between align-items-center"><span>${esc(titulo)}</span><span class="badge bg-primary">${encuestas.length} abiertas</span></div><div class="card-body">
   <p class="mb-3">El Observatorio invita a las entidades públicas a diligenciar los instrumentos que están abiertos. Cada respuesta alimenta el cuadro de mando nacional y orienta el acompañamiento técnico del proyecto IA para el Estado. No hace falta cuenta: cada encuesta se responde con el enlace de su botón y puede compartirse dentro de la entidad.</p>

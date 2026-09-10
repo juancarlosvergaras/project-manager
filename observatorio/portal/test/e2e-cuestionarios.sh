@@ -35,7 +35,12 @@ curl -s $P/acerca > "$T/acerca.html"
 grep -q "Encuestas habilitadas" "$T/acerca.html" || fallo "recuadro de encuestas en El Observatorio"
 [ "$(grep -o 'Responder la encuesta' "$T/acerca.html" | wc -l | tr -d ' ')" = 3 ] || fallo "las tres encuestas publicadas tienen botón"
 grep -q "unos 15 a 20 minutos" "$T/acerca.html" || fallo "duración estimada tomada de la introducción"
-echo "los tres ejemplos se sirven con pasos, escalas, políticas y datos auxiliares, y las páginas públicas invitan a responderlos"
+curl -s -D "$T/qr.h" -o "$T/qr.svg" $P/c/informacion-no-verificada/qr.svg
+grep -qi "content-type: image/svg" "$T/qr.h" || fallo "tipo del QR"
+grep -q "<svg" "$T/qr.svg" && grep -q "Escanee para responder" "$T/qr.svg" || fallo "QR del enlace público"
+grep -q 'qr.svg?pie=0' "$T/acerca.html" || fallo "QR en el recuadro público"
+[ "$(curl -s -o /dev/null -w '%{http_code}' $P/c/no-existe/qr.svg)" = 404 ] || fallo "QR de cuestionario inexistente"
+echo "los tres ejemplos se sirven con pasos, escalas, políticas y datos auxiliares; las páginas públicas invitan a responderlos con enlace y QR"
 
 paso "Validación y registro de una respuesta"
 C=$(curl -s -o "$T/r1.json" -w '%{http_code}' -H 'Accept: application/json' -F correo_electronico=persona@entidad.gov.co $P/c/informacion-no-verificada/enviar)
@@ -124,6 +129,11 @@ LOC=$(grep -i '^location:' "$T/h.txt" | sed -n 1p | cut -d' ' -f2 | tr -d '\r')
 curl -s -b "$T/p.txt" "$P$LOC" > "$T/camp.html"
 grep -q "Campaña creada con 2 destinatarios" "$T/camp.html" || fallo "dos destinatarios válidos y sin repetidos"
 grep -q "Alcaldía Uno" "$T/camp.html" || fallo "entidad del destinatario"
+DID=$(grep -o "destinatarios/[0-9]*/qr.svg" "$T/camp.html" | sed -n 1p | grep -o '[0-9]*')
+curl -s -b "$T/p.txt" "$P/campanias/$KID/destinatarios/$DID/qr.svg" | grep -q "<svg" || fallo "QR del enlace personal"
+curl -s -b "$T/p.txt" "$P/campanias/$KID/qr" > "$T/hoja.html"
+[ "$(grep -o '<svg' "$T/hoja.html" | wc -l | tr -d ' ')" = 3 ] || fallo "hoja de QR con el público y los dos personales"
+curl -s -b "$T/p.txt" $P/cuestionarios/$NID/campanias | grep -q 'value="Invitación a responder: Sondeo de prueba"' || fallo "asunto prellenado con el cuestionario"
 curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" -d "_csrf=$CSRF" $P/campanias/$KID/enviar | grep -q 303 || fallo "orden de envío"
 sleep 1.5
 [ "$(ls "$T/correos" | wc -l | tr -d " ")" = 2 ] || fallo "deberían haberse enviado 2 correos ($(ls "$T/correos" | wc -l | tr -d " "))"

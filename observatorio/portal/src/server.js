@@ -12,6 +12,7 @@ import * as K from './campanias.js';
 import * as VC from './vistas_cuestionarios.js';
 import { correoConfigurado } from './correo.js';
 import { leerHoja } from './hoja.js';
+import { svgQr } from './qr.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -54,6 +55,11 @@ function html(res, cuerpo, estado = 200, csp = CSP_PORTAL) {
 }
 function json(res, obj, estado = 200) { res.writeHead(estado, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); return true; }
 function redirigir(res, a) { res.writeHead(303, { Location: a }); res.end(); return true; }
+function svg(res, contenido, nombre, descargar = false) {
+  res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...(descargar ? { 'Content-Disposition': `attachment; filename="${nombre}"` } : {}) });
+  res.end(contenido);
+  return true;
+}
 function leerCrudo(req, limite) {
   return new Promise((ok, fallo) => {
     const trozos = []; let total = 0;
@@ -154,6 +160,13 @@ const servidor = http.createServer(async (req, res) => {
         token = m[2];
       }
       return html(res, C.renderPublico({ definicion: c.definicion, clave: c.clave, token, valores, vistaPrevia }), 200, CSP_CUESTIONARIO);
+    }
+    // Código QR del enlace público (se genera con la dirección pública vigente, así que sigue a cualquier cambio de dominio).
+    m = /^\/c\/([a-z0-9-]+)\/qr\.svg$/.exec(ruta);
+    if (m && req.method === 'GET') {
+      const c = C.cuestionarioPorClave(m[1]);
+      if (!c || (c.estado !== 'publicado' && !esAdmin)) { res.writeHead(404); res.end(); return true; }
+      return svg(res, svgQr(`${config.urlPublica}/c/${c.clave}`, { pie: url.searchParams.get('pie') === '0' ? '' : 'Escanee para responder' }), `qr-${c.clave}.svg`, url.searchParams.get('descargar') === '1');
     }
     m = /^\/c\/([a-z0-9-]+)\/existe$/.exec(ruta);
     if (m && req.method === 'GET') {
@@ -431,6 +444,14 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
     const resto = m[2] || '';
     const pagina = (mensaje, error) => render(VC.vistaCampania({ ...base, cuestionario: c, campania: K.obtenerCampania(k.id), destinatarios: K.destinatariosDe(k.id), mensaje, error, previa: K.vistaPreviaCorreo(k), smtpOk, enviando: K.estaEnviando(k.id) }));
     if (req.method === 'GET' && resto === '') return pagina(q('m'), q('e'));
+    // QR de los enlaces personales: uno por destinatario o la hoja imprimible con todos.
+    const dq = /^destinatarios\/(\d+)\/qr\.svg$/.exec(resto);
+    if (dq && req.method === 'GET') {
+      const d = K.destinatariosDe(k.id).find((x) => x.id === Number(dq[1]));
+      if (!d) { res.writeHead(404); res.end(); return true; }
+      return svg(res, svgQr(K.enlaceDe(c.clave, d.token), { pie: d.entidad || d.nombre || d.correo }), `qr-${c.clave}-${d.id}.svg`, q('descargar') === '1');
+    }
+    if (resto === 'qr' && req.method === 'GET') return html(res, VC.vistaCampaniaQr({ cuestionario: c, campania: k, destinatarios: K.destinatariosDe(k.id), qrDe: (d) => svgQr(K.enlaceDe(c.clave, d.token), { escala: 4, margen: 2 }), qrPublico: svgQr(`${config.urlPublica}/c/${c.clave}`, { escala: 4, margen: 2 }) }));
     if (req.method !== 'POST') return undefined;
     let cuerpo;
     try { cuerpo = await cuerpoValidado(); } catch (e) { return pagina('', e.message); }
