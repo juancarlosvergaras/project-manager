@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'kill $(jobs -p) 2>/dev/null || true; rm -rf "$T"' EXIT
 export RUTA_BD="$T/portal.sqlite" PUERTO=8100 URL_PUBLICA=http://127.0.0.1:8100 CLAVE_SESION=clave-de-prueba-suficientemente-larga-0123456789 MINUTOS_RECOLECCION=0
-export ADMINISTRADORES=jvergaras@unicartagena.edu.co
+export ADMINISTRADORES=jvergaras@unicartagena.edu.co,jmartinez@cartagena.gov.co
 export APP_SOLUCION_NOMBRE="Solución Automatizada" APP_SOLUCION_URL=http://127.0.0.1:8101 APP_SOLUCION_CONECTOR=http://127.0.0.1:8101/observatorio-conector APP_SOLUCION_CONECTOR_PUBLICO=http://localhost:8101/observatorio-conector APP_SOLUCION_SECRETO=secreto-solucion-prueba APP_SOLUCION_ORDEN=1
 export APP_CATALOGO_NOMBRE="Catálogo de IA" APP_CATALOGO_URL=http://127.0.0.1:8102 APP_CATALOGO_CONECTOR=http://127.0.0.1:8102/observatorio-conector APP_CATALOGO_SECRETO=secreto-catalogo-prueba APP_CATALOGO_ORDEN=2
 N="node --no-warnings"
@@ -79,7 +79,8 @@ curl -s -b "$T/p.txt" http://127.0.0.1:8100/tablero | grep -q "Fichas del catál
 echo "cuatro conjuntos recolectados en solo lectura y visibles en el cuadro de mando"
 
 paso "Administración"
-curl -s -o /dev/null -w '%{http_code}' -b "$T/p.txt" http://127.0.0.1:8100/admin | grep -q 403 || fallo "un usuario común no debe ver administración"
+# El portal solo admite cuentas administradoras: una cuenta valida en la aplicacion pero sin ese rol no entra.
+curl -s -o /dev/null -w '%{http_code}' -d 'usuario=analista&clave=Ana.2026' http://127.0.0.1:8100/ingresar | grep -q 401 || fallo "una cuenta sin rol de administrador no debe entrar al portal"
 curl -s -o /dev/null -c "$T/adm.txt" -d 'usuario=jvergaras@unicartagena.edu.co&clave=Admin.2026' http://127.0.0.1:8100/ingresar
 curl -s -b "$T/adm.txt" http://127.0.0.1:8100/admin | grep -q 'badge bg-success">Activo' || fallo "el administrador debería ver los conectores activos"
 echo "el administrador ve el estado de los conectores y la auditoría"

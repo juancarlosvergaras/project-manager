@@ -50,3 +50,6 @@ body.high-contrast .mintic-page-intro, body.high-contrast .accordion-item, body.
 .editor .bloque-cuerpo { padding: 0.6rem 0.8rem 0.8rem; border-top: 1px dashed #dfe5ef; }
 .editor .agregar-bloque { padding: 0.4rem 0.2rem; }
 .editor .paso .card-header { background: #fff; }
+
+.encuestas-habilitadas .card-header { background: var(--mintic-blue); color: #fff; font-weight: 700; }
+.encuestas-habilitadas .encuesta-tarjeta { border-left: 4px solid var(--mintic-blue); }

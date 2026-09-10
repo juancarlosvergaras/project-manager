@@ -130,8 +130,10 @@ const servidor = http.createServer(async (req, res) => {
     if (ruta.startsWith('/static/')) return servirEstatico(ruta, res);
     if (ruta === '/salud') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, apps: config.apps.map((a) => a.clave) })); }
 
-    if (ruta === '/') return render(V.vistaInicio({ ...comun(usuario), indicadores: calcularIndicadores(datosCompletos()), cuestionarios: C.resumenParaTablero() }));
-    if (ruta === '/acerca') return render(V.vistaAcerca(comun(usuario)));
+    // Sin sesión, el portal muestra solo la página del Observatorio con las encuestas habilitadas; el resto es de administradores.
+    if (ruta === '/' && !usuario) return render(V.vistaAcerca({ ...comun(usuario), encuestas: C.encuestasHabilitadas() }));
+    if (ruta === '/') return render(V.vistaInicio({ ...comun(usuario), indicadores: calcularIndicadores(datosCompletos()), cuestionarios: C.resumenParaTablero(), encuestas: C.encuestasHabilitadas() }));
+    if (ruta === '/acerca') return render(V.vistaAcerca({ ...comun(usuario), encuestas: C.encuestasHabilitadas() }));
 
     // ---------------------------------------------------------------- cuestionarios: páginas públicas
     m = /^\/c\/([a-z0-9-]+)(?:\/t\/([A-Za-z0-9_-]+))?$/.exec(ruta);

@@ -44,6 +44,12 @@ export async function ingresar({ usuario, clave, ip, agente }) {
     if (!correo) { errores.push(`${app.nombre}: la aplicación no devolvió un correo para vincular la cuenta.`); continue; }
 
     const tx = db.prepare('SELECT * FROM usuarios WHERE correo = ?').get(correo);
+    // El portal es de administración: solo entran las cuentas listadas en ADMINISTRADORES o registradas por un administrador.
+    if (!config.administradores.includes(correo) && !(tx && tx.rol === 'administrador')) {
+      auditar('ingreso_no_autorizado', { detalle: `${correo} verificado en ${app.nombre} pero sin rol de administrador`, ip });
+      registrarIntento(llave);
+      return { ok: false, error: 'La clave es correcta, pero esta cuenta no está autorizada para administrar el portal. Pida a un administrador que registre su correo.' };
+    }
     let usuarioId;
     if (tx) {
       usuarioId = tx.id;

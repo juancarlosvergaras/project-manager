@@ -51,9 +51,9 @@ export function pagina({ titulo, cuerpo, usuario = null, ruta = '', apps = [], i
     <img src="/static/img/logo-mintic.png" alt="Logo MinTIC" class="mintic-lockup-logo">
     <div class="mintic-lockup-copy"><span class="mintic-kicker">Ministerio TIC</span><strong>Observatorio Nacional de Inteligencia Artificial</strong><small>Seguimiento a la adopción, la madurez y el uso responsable de la inteligencia artificial en el sector público colombiano.</small></div>
   </a>
-  <div class="mintic-site-note"><span>Proyecto IA para el Estado</span><strong>Universidad de Cartagena</strong><small>Ingreso unificado a los aplicativos del proyecto y cuadro de mando del Observatorio.</small></div>
+  <div class="mintic-site-note"><span>Proyecto IA para el Estado</span><strong>Universidad de Cartagena</strong><small>${usuario ? 'Ingreso unificado a los aplicativos del proyecto y cuadro de mando del Observatorio.' : `Medición y acompañamiento de la adopción de IA en el sector público. <a href="/ingresar">Ingreso de administradores</a>`}</small></div>
 </div></header>
-<nav class="navbar navbar-expand-lg navbar-mintic navbar-light"><div class="container">
+${usuario ? `<nav class="navbar navbar-expand-lg navbar-mintic navbar-light"><div class="container">
   <a class="navbar-brand" href="/"><span class="navbar-brand-kicker">Observatorio IA</span><span class="navbar-brand-title">Portal del Observatorio</span></a>
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Abrir navegación"><span class="navbar-toggler-icon"></span></button>
   <div class="collapse navbar-collapse" id="navbarNav">
@@ -65,7 +65,7 @@ export function pagina({ titulo, cuerpo, usuario = null, ruta = '', apps = [], i
     </ul>
     <ul class="navbar-nav">${cuenta}</ul>
   </div>
-</div></nav>
+</div></nav>` : ''}
 <main class="container page-shell mt-4 mb-5">
 ${cuerpo}
 </main>
@@ -95,10 +95,26 @@ ${cuerpo}
 </html>`;
 }
 
+
+// Recuadro público con las encuestas habilitadas, para invitar a las entidades a responderlas.
+export function bloqueEncuestas(encuestas, { titulo = 'Encuestas habilitadas', compacto = false } = {}) {
+  if (!encuestas || !encuestas.length) return '';
+  const tarjetas = encuestas.map((e) => `<div class="col-md-6 col-xl-4"><div class="card h-100 encuesta-tarjeta"><div class="card-body d-flex flex-column">
+      <h3 class="h6 text-primary mb-1">${esc(e.titulo)}</h3>
+      <p class="small text-muted flex-grow-1 mb-2">${esc(e.subtitulo || '')}</p>
+      <div class="small text-muted mb-2">${e.pasos} pasos · ${e.preguntas} preguntas${e.minutos ? ` · unos ${e.minutos} minutos` : ''}</div>
+      <a class="btn btn-primary btn-sm" href="/c/${esc(e.clave)}" target="_blank" rel="noopener">Responder la encuesta</a>
+    </div></div></div>`).join('');
+  return `<div class="card border-primary encuestas-habilitadas ${compacto ? 'mb-4' : 'mt-4 mb-4'}"><div class="card-header d-flex justify-content-between align-items-center"><span>${esc(titulo)}</span><span class="badge bg-primary">${encuestas.length} abiertas</span></div><div class="card-body">
+  <p class="mb-3">El Observatorio invita a las entidades públicas a diligenciar los instrumentos que están abiertos. Cada respuesta alimenta el cuadro de mando nacional y orienta el acompañamiento técnico del proyecto IA para el Estado. No hace falta cuenta: cada encuesta se responde con el enlace de su botón y puede compartirse dentro de la entidad.</p>
+  <div class="row g-3">${tarjetas}</div>
+</div></div>`;
+}
+
 const nivelBadge = (n) => n ? `<span class="badge nivel-${n.n}">${esc(n.nombre)}</span>` : '<span class="badge bg-secondary">Sin medición</span>';
 
 // ---------------------------------------------------------------- inicio (público)
-export function vistaInicio({ usuario, apps, indicadores, ids, cuestionarios = [] }) {
+export function vistaInicio({ usuario, apps, indicadores, ids, cuestionarios = [], encuestas = [] }) {
   const r = indicadores.r1519;
   const respuestas = cuestionarios.reduce((s, q) => s + (q.respuestas || 0), 0);
   return pagina({ usuario, apps, ids, ruta: 'inicio', titulo: 'Inicio', cuerpo: `
@@ -114,6 +130,7 @@ export function vistaInicio({ usuario, apps, indicadores, ids, cuestionarios = [
     <a class="btn btn-primary me-2" href="/acerca">Conocer el Observatorio</a>
     ${usuario ? '<a class="btn btn-outline-primary" href="/tablero">Ir al cuadro de mando</a>' : '<a class="btn btn-outline-primary" href="/ingresar">Ingresar</a>'}
   </div></div>
+  ${bloqueEncuestas(encuestas, { titulo: 'Encuestas habilitadas para las entidades', compacto: true })}
 </div></div>
 <div class="row g-4 mt-1">
   <div class="col-md-3"><div class="card h-100 border-primary"><div class="card-body text-center"><h2 class="display-6 fw-bold text-primary">${apps.length}</h2><p class="text-muted mb-0">Aplicativos conectados</p></div></div></div>
@@ -136,7 +153,7 @@ export function vistaInicio({ usuario, apps, indicadores, ids, cuestionarios = [
 }
 
 // ---------------------------------------------------------------- el Observatorio (público)
-export function vistaAcerca({ usuario, apps, ids }) {
+export function vistaAcerca({ usuario, apps, ids, encuestas = [] }) {
   return pagina({ usuario, apps, ids, ruta: 'acerca', titulo: 'El Observatorio', cuerpo: `
 <div class="mintic-page-intro mb-4">
   <div><h1>El Observatorio Nacional de Inteligencia Artificial</h1><p>Instancia del proyecto IA para el Estado, ejecutado por la Universidad de Cartagena con el Ministerio TIC, que mide de forma periódica y comparable cómo las entidades públicas colombianas se preparan, adoptan y gobiernan la inteligencia artificial.</p></div>
@@ -151,6 +168,7 @@ export function vistaAcerca({ usuario, apps, ids }) {
     <p><strong>Registro Nacional de Sistemas de IA en el Sector Público (RNAIASP).</strong> Registra cada caso de uso o solución con identificador estable, etapa y nivel de riesgo.</p>
     <p class="mb-0"><strong>Fuentes automáticas.</strong> Los aplicativos del proyecto, entre ellos la Solución Automatizada de la Resolución 1519 y el Catálogo de IA, aportan evidencia complementaria que el portal recolecta cada hora.</p></div></div></div>
 </div>
+${bloqueEncuestas(encuestas)}
 <h2 class="mt-5">Seis dimensiones de medición</h2>
 <div class="table-responsive"><table class="table table-hover align-middle mintic-section-card"><thead><tr><th>Dimensión</th><th>Pregunta que responde</th><th>Unidad principal</th><th class="text-end">Indicadores</th></tr></thead><tbody>
 ${F10.dimensiones.map((d) => `<tr><td><strong>${esc(d.codigo)}. ${esc(d.nombre)}</strong></td><td>${esc(d.pregunta)}</td><td>${esc(d.unidad)}</td><td class="text-end">${d.indicadores.length}</td></tr>`).join('')}

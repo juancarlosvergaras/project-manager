@@ -30,7 +30,12 @@ grep -q 'fonts.bunny.net' "$T/diagnostico-infraestructura.html" || fallo "tipogr
 curl -s -D - -o /dev/null $P/c/informacion-no-verificada | grep -qi "content-security-policy: .*fonts.bunny.net" || fallo "CSP de la página pública"
 [ "$(curl -s -o /dev/null -w '%{http_code}' $P/c/no-existe)" = 404 ] || fallo "cuestionario inexistente"
 [ "$(curl -s -o /dev/null -w '%{http_code}' $P/static/datos/entidades.json)" = 200 ] || fallo "datos de entidades"
-echo "los tres ejemplos se sirven con pasos, escalas, políticas y datos auxiliares"
+curl -s $P/ | grep -q "Encuestas habilitadas" || fallo "recuadro de encuestas en la portada"
+curl -s $P/acerca > "$T/acerca.html"
+grep -q "Encuestas habilitadas" "$T/acerca.html" || fallo "recuadro de encuestas en El Observatorio"
+[ "$(grep -o 'Responder la encuesta' "$T/acerca.html" | wc -l | tr -d ' ')" = 3 ] || fallo "las tres encuestas publicadas tienen botón"
+grep -q "unos 15 a 20 minutos" "$T/acerca.html" || fallo "duración estimada tomada de la introducción"
+echo "los tres ejemplos se sirven con pasos, escalas, políticas y datos auxiliares, y las páginas públicas invitan a responderlos"
 
 paso "Validación y registro de una respuesta"
 C=$(curl -s -o "$T/r1.json" -w '%{http_code}' -H 'Accept: application/json' -F correo_electronico=persona@entidad.gov.co $P/c/informacion-no-verificada/enviar)
@@ -74,13 +79,16 @@ grep -q "Pregunto a un experto" "$T/r.csv" || fallo "el texto de «Otra» está 
 grep -q "puntaje_beneficio" "$T/r.csv" || fallo "puntajes por dimensión en el CSV"
 echo "el administrador ve la lista, el panel de resultados y exporta el CSV"
 [ "$(curl -s -o /dev/null -w '%{http_code}' $P/cuestionarios)" = 303 ] || fallo "sin sesión debe redirigir"
-curl -s -o /dev/null -w '%{http_code}' -c "$T/f.txt" -d 'usuario=jmartinez&clave=Clave.2026' $P/ingresar | grep -q 303
-curl -s -b "$T/f.txt" $P/cuestionarios > "$T/lista-func.html"
-grep -q "Cuestionarios del Observatorio" "$T/lista-func.html" || fallo "un funcionario ve la lista de cuestionarios publicados"
-grep -q "Nuevo cuestionario" "$T/lista-func.html" && fallo "un funcionario no debe ver la gestión"
-[ "$(curl -s -o /dev/null -w '%{http_code}' -b "$T/f.txt" $P/cuestionarios/nuevo)" = 403 ] || fallo "un funcionario no debe gestionar cuestionarios"
-curl -s -b "$T/f.txt" $P/aplicativos | grep -q "Cuestionarios del Observatorio" || fallo "el aplicativo aparece en Aplicativos"
-echo "todos ven el aplicativo y los cuestionarios publicados; la gestión es solo para administradores"
+C=$(curl -s -o "$T/noaut.html" -w '%{http_code}' -c "$T/f.txt" -d 'usuario=jmartinez&clave=Clave.2026' $P/ingresar)
+[ "$C" = 401 ] || fallo "una cuenta sin rol de administrador no debe entrar (código $C)"
+grep -q "no está autorizada" "$T/noaut.html" || fallo "mensaje de cuenta no autorizada"
+curl -s $P/ > "$T/portada.html"
+grep -q "El Observatorio Nacional de Inteligencia Artificial" "$T/portada.html" || fallo "el público ve la página del Observatorio"
+grep -q 'class="navbar' "$T/portada.html" && fallo "el público no debe ver el menú"
+grep -q "Ingreso de administradores" "$T/portada.html" || fallo "enlace de ingreso para administradores"
+curl -s -b "$T/p.txt" $P/ | grep -q 'class="navbar' || fallo "el administrador sí ve el menú"
+curl -s -b "$T/p.txt" $P/aplicativos | grep -q "Cuestionarios del Observatorio" || fallo "el aplicativo aparece en Aplicativos"
+echo "el público solo ve El Observatorio con las encuestas; sin rol de administrador no se entra; el administrador tiene todo el menú"
 
 paso "Editor: crear un cuestionario nuevo y publicarlo"
 CSRF=$(curl -s -b "$T/p.txt" $P/cuestionarios/nuevo | grep -o '"csrf":"[^"]*"' | sed -n 1p | cut -d'"' -f4)
@@ -144,7 +152,7 @@ grep -q "luis@otra.gov.co" "$T/correos/003.json" || fallo "destinatario del reco
 grep -q "Recordatorio" "$T/correos/003.json" || fallo "asunto del recordatorio"
 curl -s -b "$T/p.txt" $P/cuestionarios/$NID | grep -q "Satisfacción" || fallo "resultados con la dimensión"
 curl -s -b "$T/p.txt" $P/tablero | grep -q "Sondeo de prueba" || fallo "el cuadro de mando muestra el cuestionario"
-curl -s $P/ | grep -q "Respuestas a los cuestionarios" || fallo "la portada cuenta las respuestas"
+curl -s -b "$T/p.txt" $P/ | grep -q "Respuestas a los cuestionarios" || fallo "la portada del administrador cuenta las respuestas"
 echo "enlace personal prellenado y de un solo uso, duplicados bloqueados, recordatorio solo a pendientes, tablero al día"
 
 paso "Programación de una campaña"
@@ -189,14 +197,16 @@ echo "archivo de Excel leído, columnas propuestas, 3 filas importadas con sus f
 paso "Gestión de cuentas desde Administración"
 curl -s -b "$T/p.txt" $P/admin > "$T/admin.html"
 grep -q "Agregar administrador" "$T/admin.html" || fallo "formulario de alta de administradores"
-UID_F=$(grep -o 'action="/admin/usuarios/[0-9]*/rol"' "$T/admin.html" | sed -n 1p | grep -o '[0-9]*')
+curl -s -b "$T/p.txt" --data-urlencode "_csrf=$CSRF" --data-urlencode "correo=jmartinez@cartagena.gov.co" $P/admin/usuarios | grep -q "quedó registrado como administrador" || fallo "alta de administrador por correo"
+curl -s -o /dev/null -w '%{http_code}' -c "$T/f.txt" -d 'usuario=jmartinez&clave=Clave.2026' $P/ingresar | grep -q 303 || fallo "la cuenta registrada ya puede entrar con su clave del aplicativo"
+curl -s -b "$T/f.txt" $P/cuestionarios | grep -q "Nuevo cuestionario" || fallo "la cuenta registrada gestiona cuestionarios"
+curl -s -b "$T/p.txt" $P/admin > "$T/admin2.html"
+UID_F=$(grep -o 'action="/admin/usuarios/[0-9]*/rol"' "$T/admin2.html" | sed -n 1p | grep -o '[0-9]*' || true)
 [ -n "$UID_F" ] || fallo "botón de rol para la otra cuenta"
-curl -s -b "$T/p.txt" -d "_csrf=$CSRF&rol=administrador" $P/admin/usuarios/$UID_F/rol | grep -q "ahora es administrador" || fallo "cambio de rol"
-curl -s -b "$T/f.txt" $P/cuestionarios | grep -q "Nuevo cuestionario" || fallo "el funcionario promovido ya gestiona cuestionarios"
-curl -s -o /dev/null -b "$T/p.txt" -d "_csrf=$CSRF&rol=usuario" $P/admin/usuarios/$UID_F/rol
+curl -s -b "$T/p.txt" -d "_csrf=$CSRF&rol=usuario" $P/admin/usuarios/$UID_F/rol | grep -q "ahora es usuario" || fallo "quitar el rol"
 curl -s -b "$T/f.txt" $P/cuestionarios | grep -q "Nuevo cuestionario" && fallo "al quitar el rol deja de gestionar"
-curl -s -b "$T/p.txt" --data-urlencode "_csrf=$CSRF" --data-urlencode "correo=nueva.admin@entidad.gov.co" $P/admin/usuarios | grep -q "quedó registrado como administrador" || fallo "cuenta administradora registrada por correo"
-curl -s -b "$T/p.txt" $P/admin | grep -q "nueva.admin@entidad.gov.co" || fallo "la cuenta nueva aparece en la lista"
-echo "roles cambiados desde Administración y cuenta administradora registrada por correo"
+curl -s -b "$T/p.txt" -d "_csrf=$CSRF&rol=administrador" $P/admin/usuarios/$UID_F/rol | grep -q "ahora es administrador" || fallo "devolver el rol"
+curl -s -b "$T/p.txt" $P/admin | grep -q "jmartinez@cartagena.gov.co" || fallo "la cuenta aparece en la lista"
+echo "administradores registrados por correo, rol quitado y devuelto desde Administración"
 
 echo; echo "TODO EN ORDEN: módulo de cuestionarios probado de extremo a extremo."

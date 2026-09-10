@@ -559,6 +559,16 @@ export function resumenRespuestas(def, filas) {
     entidades: new Set(filas.map((r) => (r.entidad || '').trim().toLowerCase()).filter(Boolean)).size };
 }
 
+// Encuestas publicadas, tal como se ofrecen en las páginas públicas del portal.
+export function encuestasHabilitadas() {
+  return listarCuestionarios().filter((c) => c.estado === 'publicado').map((c) => {
+    const d = normalizar(c.definicion);
+    const texto = d.intro.join(' ');
+    const m = /(\d+)\s*(?:-|a|y)\s*(\d+)\s*minutos/i.exec(texto) || /(\d+)\s*minutos/i.exec(texto);
+    return { clave: c.clave, titulo: d.titulo, subtitulo: d.subtitulo, pasos: d.pasos.length, preguntas: camposDe(d).length, respuestas: c.respuestas, minutos: m ? (m[2] ? `${m[1]} a ${m[2]}` : m[1]) : '' };
+  });
+}
+
 // Resumen de todos los cuestionarios publicados para la portada y el cuadro de mando del Observatorio.
 export function resumenParaTablero() {
   return listarCuestionarios().filter((c) => c.estado !== 'borrador' || c.respuestas > 0).map((c) => {
