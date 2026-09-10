@@ -367,7 +367,7 @@ ${estados.map((e) => `<tr><td><strong>${esc(e.app.nombre)}</strong></td><td><cod
     <div class="card-body border-top"><form method="post" action="/admin/usuarios" class="row g-2 align-items-end">
       <div class="col-md-7"><label class="form-label small mb-1">Agregar una cuenta administradora por correo</label><input type="email" class="form-control form-control-sm" name="correo" required placeholder="persona@entidad.gov.co"></div>
       <div class="col-md-5"><button class="btn btn-sm btn-primary">Agregar administrador</button></div>
-      <div class="col-12 form-text">La persona ingresa al portal con el usuario y la clave que tenga en cualquiera de los aplicativos conectados, siempre que esa cuenta esté registrada con este mismo correo. Si ya tiene cuenta en el portal, solo cambia su rol.</div>
+
     </form></div></div></div>
   <div class="col-lg-6"><div class="card h-100"><div class="card-header">Auditoría reciente</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Fecha</th><th>Evento</th><th>Aplicativo</th><th>Detalle</th></tr></thead><tbody>${auditoria.map((a) => `<tr><td class="small"><code>${esc(a.ocurrido_en)}</code></td><td>${esc(a.evento)}</td><td>${esc(a.app || '')}</td><td class="small text-muted">${esc(a.detalle || '')}</td></tr>`).join('')}</tbody></table></div></div></div></div>
 </div>` });
