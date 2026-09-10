@@ -260,6 +260,29 @@ const servidor = http.createServer(async (req, res) => {
     if (ruta.startsWith('/admin')) {
       if (!esAdmin) return render(V.vistaMensaje({ ...comun(usuario), titulo: 'Sin permiso', texto: 'Esta sección es solo para administradores del portal.' }), 403);
       let mensaje = '';
+      // Cuentas: cambiar el rol de una cuenta o registrar por correo una cuenta administradora.
+      let mm = /^\/admin\/usuarios\/(\d+)\/rol$/.exec(ruta);
+      if (mm && req.method === 'POST') {
+        const c = await leerCuerpo(req);
+        if (!csrfValido(usuario, c)) return redirigir(res, '/admin');
+        const objetivo = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(mm[1]));
+        const rol = c.rol === 'administrador' ? 'administrador' : 'usuario';
+        if (!objetivo) mensaje = 'La cuenta no existe.';
+        else if (objetivo.id === usuario.id && rol !== 'administrador') mensaje = 'No puede quitarse a sí mismo el rol de administrador.';
+        else { db.prepare('UPDATE usuarios SET rol = ? WHERE id = ?').run(rol, objetivo.id); auditar('rol_cambiado', { usuarioId: usuario.id, detalle: `${objetivo.correo} -> ${rol}`, ip }); mensaje = `${objetivo.correo} ahora es ${rol}.`; }
+      }
+      if (ruta === '/admin/usuarios' && req.method === 'POST') {
+        const c = await leerCuerpo(req);
+        if (!csrfValido(usuario, c)) return redirigir(res, '/admin');
+        const correo = String(c.correo || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) mensaje = 'Escriba un correo válido.';
+        else {
+          const existente = db.prepare('SELECT * FROM usuarios WHERE correo = ?').get(correo);
+          if (existente) { db.prepare("UPDATE usuarios SET rol = 'administrador' WHERE id = ?").run(existente.id); mensaje = `${correo} ya tenía cuenta; ahora es administrador.`; }
+          else { db.prepare("INSERT INTO usuarios (correo, rol) VALUES (?, 'administrador')").run(correo); mensaje = `${correo} quedó registrado como administrador. Entrará con su usuario y clave de cualquier aplicativo conectado que use ese correo.`; }
+          auditar('administrador_agregado', { usuarioId: usuario.id, detalle: correo, ip });
+        }
+      }
       if (ruta === '/admin/recolectar' && req.method === 'POST') {
         const c = await leerCuerpo(req);
         if (!csrfValido(usuario, c)) return redirigir(res, '/admin');
@@ -429,6 +452,8 @@ async function rutasCuestionarios({ req, res, ruta, url, usuario, ip, render }) 
 
 servidor.listen(config.puerto, () => {
   console.log(`Portal del Observatorio en ${config.urlPublica} (puerto ${config.puerto}). Aplicaciones: ${config.apps.map((a) => a.clave).join(', ') || 'ninguna configurada'}.`);
+  // Las cuentas listadas en ADMINISTRADORES reciben el rol aunque se hayan creado antes de estar en la lista.
+  for (const correo of config.administradores) db.prepare("UPDATE usuarios SET rol = 'administrador' WHERE correo = ? AND rol != 'administrador'").run(correo);
   const sembrados = C.sembrarEjemplos();
   if (sembrados) console.log(`Cuestionarios de ejemplo cargados: ${sembrados}.`);
   console.log(correoConfigurado() ? `Correo configurado por ${config.smtp.host}:${config.smtp.puerto} (${config.smtp.seguridad}).` : 'Correo sin configurar: las campañas no se enviarán hasta definir SMTP_HOST y CORREO_DESDE.');

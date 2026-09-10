@@ -14,6 +14,8 @@ services:
       - URL_PUBLICA=https://observatorioia.proyectoia.org
       - PUERTO=8100
       - RUTA_BD=/app/datos/portal.sqlite
+      # Cuentas con rol de administrador del portal (se sincroniza al arrancar y al ingresar).
+      - ADMINISTRADORES=jvergaras@unicartagena.edu.co,admin@mintic1519.local
       # Los conectores se alcanzan por la red local del servidor, sin salir a internet.
       - APP_SOLUCION_CONECTOR=http://host.docker.internal:8010/observatorio-conector
       - APP_CATALOGO_CONECTOR=http://host.docker.internal:8020/observatorio-conector

@@ -186,4 +186,17 @@ grep -q "Histórico Excel" "$T/camps.html" || fallo "la campaña de importación
 grep -q "Importada de archivo" "$T/camps.html" || fallo "estado de la campaña importada"
 echo "archivo de Excel leído, columnas propuestas, 3 filas importadas con sus fechas y opciones dentro de una campaña"
 
+paso "Gestión de cuentas desde Administración"
+curl -s -b "$T/p.txt" $P/admin > "$T/admin.html"
+grep -q "Agregar administrador" "$T/admin.html" || fallo "formulario de alta de administradores"
+UID_F=$(grep -o 'action="/admin/usuarios/[0-9]*/rol"' "$T/admin.html" | sed -n 1p | grep -o '[0-9]*')
+[ -n "$UID_F" ] || fallo "botón de rol para la otra cuenta"
+curl -s -b "$T/p.txt" -d "_csrf=$CSRF&rol=administrador" $P/admin/usuarios/$UID_F/rol | grep -q "ahora es administrador" || fallo "cambio de rol"
+curl -s -b "$T/f.txt" $P/cuestionarios | grep -q "Nuevo cuestionario" || fallo "el funcionario promovido ya gestiona cuestionarios"
+curl -s -o /dev/null -b "$T/p.txt" -d "_csrf=$CSRF&rol=usuario" $P/admin/usuarios/$UID_F/rol
+curl -s -b "$T/f.txt" $P/cuestionarios | grep -q "Nuevo cuestionario" && fallo "al quitar el rol deja de gestionar"
+curl -s -b "$T/p.txt" --data-urlencode "_csrf=$CSRF" --data-urlencode "correo=nueva.admin@entidad.gov.co" $P/admin/usuarios | grep -q "quedó registrado como administrador" || fallo "cuenta administradora registrada por correo"
+curl -s -b "$T/p.txt" $P/admin | grep -q "nueva.admin@entidad.gov.co" || fallo "la cuenta nueva aparece en la lista"
+echo "roles cambiados desde Administración y cuenta administradora registrada por correo"
+
 echo; echo "TODO EN ORDEN: módulo de cuestionarios probado de extremo a extremo."

@@ -48,6 +48,7 @@ export async function ingresar({ usuario, clave, ip, agente }) {
     if (tx) {
       usuarioId = tx.id;
       db.prepare('UPDATE usuarios SET nombre = COALESCE(?, nombre), ultimo_ingreso = datetime(\'now\') WHERE id = ?').run(r.nombre || null, usuarioId);
+      if (config.administradores.includes(correo) && tx.rol !== 'administrador') db.prepare("UPDATE usuarios SET rol = 'administrador' WHERE id = ?").run(usuarioId);
     } else {
       const rol = config.administradores.includes(correo) ? 'administrador' : 'usuario';
       usuarioId = db.prepare('INSERT INTO usuarios (correo, nombre, rol, ultimo_ingreso) VALUES (?, ?, ?, datetime(\'now\'))')
