@@ -8,10 +8,12 @@
   const fmt = n => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('es-CO', { maximumFractionDigits: 1 });
   const fecha = s => s ? new Date(s.length === 10 ? s + 'T12:00:00' : s.replace(' ', 'T') + 'Z').toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
-  const ICONO = { cumple: '✔', cumple_parcial: '½', no_cumple: '✖', sin_evidencia: '?', sin_valorar: '·' };
-  const COLOR = { cumple: 'var(--cumple)', cumple_parcial: 'var(--parcial)', no_cumple: 'var(--nocumple)', sin_evidencia: 'var(--sinevid)', sin_valorar: '#cfd3da' };
-  const ETIQ = { cumple: 'Cumple', cumple_parcial: 'Cumplimiento parcial', no_cumple: 'No cumple', sin_evidencia: 'Sin evidencia', sin_valorar: 'Sin valorar' };
-  const CLAVES = ['cumple', 'cumple_parcial', 'no_cumple', 'sin_evidencia'];
+  const ICONO = { cumple: '✔', cumple_parcial: '½', no_cumple: '✖', no_aplica: '∅', sin_valorar: '·' };
+  const COLOR = { cumple: '#0ca30c', cumple_parcial: '#c98500', no_cumple: '#d03b3b', no_aplica: '#6b6f78', sin_valorar: '#cfd3da' };
+  const ETIQ = { cumple: 'Cumple', cumple_parcial: 'Cumple parcialmente', no_cumple: 'No cumple', no_aplica: 'No aplica', sin_valorar: 'Sin valorar' };
+  const CLAVES = ['cumple', 'cumple_parcial', 'no_cumple', 'no_aplica'];
+  const ROL_ETIQ = { admin: 'Administrador', editor: 'Editor', auditor: 'Auditor', usuario: 'Usuario' };
+  const puede = c => !!estado.usuario && (estado.usuario.capacidades || []).includes(c);
 
   const estado = { usuario: null, config: null };
 
@@ -61,6 +63,24 @@
     return `<div class="dist">${claves.filter(k => conteo[k] > 0).map(k => `<span class="c-${k}" style="width:${100 * conteo[k] / total}%" title="${ETIQ[k]}: ${conteo[k]}"></span>`).join('')}</div>
       <div class="leyenda">${claves.filter(k => conteo[k] > 0 || k !== 'sin_valorar').map(k => `<span><i class="c-${k}"></i>${ICONO[k]} ${ETIQ[k]}: <strong>${conteo[k]}</strong> (${fmt(100 * conteo[k] / total)} %)</span>`).join('')}</div>`;
   }
+  function medidor(pct, nivel) {
+    // Medidor radial de una sola serie con el valor como número héroe.
+    const r = 54, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
+    const color = p >= 75 ? '#0ca30c' : p >= 50 ? '#2a78d6' : p >= 25 ? '#c98500' : '#d03b3b';
+    return `<svg viewBox="0 0 140 140" class="medidor" role="img" aria-label="Cumplimiento ${fmt(pct)} %">
+      <circle cx="70" cy="70" r="${r}" fill="none" stroke="#e6e9ee" stroke-width="14"/>
+      <circle cx="70" cy="70" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${(c * p / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 70 70)"/>
+      <text x="70" y="66" text-anchor="middle" font-size="26" font-weight="700" fill="#17202b">${fmt(pct)} %</text>
+      <text x="70" y="86" text-anchor="middle" font-size="10" fill="#52514e">${esc(nivel)}</text></svg>`;
+  }
+  function dona(conteo, total) {
+    const claves = [...CLAVES, 'sin_valorar'].filter(k => conteo[k] > 0);
+    const r = 40, c = 2 * Math.PI * r; let acc = 0;
+    const segs = claves.map(k => { const f = conteo[k] / total; const d = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${COLOR[k]}" stroke-width="18" stroke-dasharray="${Math.max(0, c * f - 2).toFixed(1)} ${c.toFixed(1)}" stroke-dashoffset="${(-c * acc).toFixed(1)}" transform="rotate(-90 60 60)"><title>${ETIQ[k]}: ${conteo[k]}</title></circle>`; acc += f; return d; }).join('');
+    return `<div class="dona-wrap"><svg viewBox="0 0 120 120" class="dona" role="img" aria-label="Distribución de valoraciones">${segs}<text x="60" y="57" text-anchor="middle" font-size="20" font-weight="700" fill="#17202b">${total}</text><text x="60" y="72" text-anchor="middle" font-size="9" fill="#52514e">preguntas</text></svg>
+      <div class="leyenda vertical">${[...CLAVES, 'sin_valorar'].filter(k => conteo[k] > 0 || k !== 'sin_valorar').map(k => `<span><i class="c-${k}"></i>${ICONO[k]} ${ETIQ[k]}: <strong>${conteo[k]}</strong> (${fmt(100 * conteo[k] / total)} %)</span>`).join('')}</div></div>`;
+  }
+  function semaforo(pct) { return pct >= 75 ? { t: 'Sólido', c: '#0ca30c', i: '●' } : pct >= 50 ? { t: 'En desarrollo', c: '#2a78d6', i: '●' } : pct >= 25 ? { t: 'Débil', c: '#c98500', i: '●' } : { t: 'Crítico', c: '#d03b3b', i: '●' }; }
   function lineaHistorico(serie) {
     // Evolución del cumplimiento por versión (una serie). Etiquetas directas por punto: la serie es corta.
     if (!serie.length) return '<p class="vacio">Sin versiones registradas.</p>';
@@ -143,19 +163,24 @@
 
   ruta('/', async () => {
     const { organizaciones } = await api('/api/organizaciones');
-    const puedeCrear = ['admin', 'consultor'].includes(estado.usuario.rol);
+    const rol = estado.usuario.rol;
+    const intro = { auditor: 'Seleccione la organización para alimentar el cuestionario de la versión en diligenciamiento.', usuario: 'Seleccione la organización para consultar su tablero de resultados y generar informes.' }[rol];
     app.innerHTML = `
-      <div class="fila entre"><h1>Organizaciones</h1>${puedeCrear ? '<button class="btn peq" id="b-nueva">+ Nueva organización</button>' : ''}</div>
+      <div class="fila entre"><h1>Organizaciones</h1>${puede('gestionar_organizaciones') ? '<button class="btn peq" id="b-nueva">+ Nueva organización</button>' : ''}</div>
+      ${intro ? `<p class="hint">${intro}</p>` : ''}
       ${organizaciones.length ? organizaciones.map(o => {
-        const d = o.ultimo_diagnostico;
-        return `<div class="tarjeta enlace" data-href="#/org/${o.id}">
+        const d = o.ultimo_diagnostico; const a = o.diagnostico_abierto;
+        const destino = rol === 'auditor' ? (a ? `#/diag/${a.id}/llenar` : `#/org/${o.id}`) : rol === 'usuario' ? `#/tablero/${o.id}` : `#/org/${o.id}`;
+        return `<div class="tarjeta enlace" data-href="${destino}">
           <div class="fila entre"><h2 style="margin:0">${esc(o.nombre)}</h2>${o.sigla ? `<span class="chip">${esc(o.sigla)}</span>` : ''}</div>
           <p class="hint">${[o.sector, o.ciudad].filter(Boolean).map(esc).join(' · ')}</p>
           ${d ? `<div class="progreso"><span>v${d.version_numero} · ${d.estado === 'cerrado' ? 'cerrada' : 'en diligenciamiento'}</span><div class="barra"><span style="width:${d.cumplimiento}%"></span></div><strong class="num">${fmt(d.cumplimiento)} %</strong></div>
                  <p class="hint" style="margin:.4rem 0 0">Nivel: ${esc(d.nivel)} · Brecha: ${fmt(d.brecha_total)} % · ${o.total_versiones} versión(es)</p>`
              : '<p class="hint">Sin diagnósticos todavía.</p>'}
-        </div>`; }).join('') : `<div class="tarjeta vacio">No tiene organizaciones asignadas.${puedeCrear ? ' Cree la primera con el botón superior.' : ' Solicite al administrador que lo asigne a una organización.'}</div>`}`;
-    $$('[data-href]').forEach(el => el.onclick = () => location.hash = el.dataset.href);
+          ${rol === 'auditor' ? `<div class="acciones">${a ? `<a class="btn" href="#/diag/${a.id}/llenar">Diligenciar versión ${a.version_numero}</a>` : '<span class="hint">No hay una versión en diligenciamiento. Solicite al editor que cree una.</span>'}</div>` : ''}
+          ${rol === 'usuario' ? `<div class="acciones"><a class="btn" href="#/tablero/${o.id}">Ver tablero de resultados</a></div>` : ''}
+        </div>`; }).join('') : `<div class="tarjeta vacio">No tiene organizaciones asignadas.${puede('gestionar_organizaciones') ? ' Cree la primera con el botón superior.' : ' Solicite al administrador que lo asigne a una organización.'}</div>`}`;
+    $$('[data-href]').forEach(el => el.onclick = e => { if (e.target.closest('a,button')) return; location.hash = el.dataset.href; });
     const bn = $('#b-nueva'); if (bn) bn.onclick = () => formOrganizacion();
   });
 
@@ -180,60 +205,67 @@
   }
 
   ruta('/org/:id', async ({ id }) => {
-    const [{ organizacion: o, mi_rol, diagnosticos, miembros }, { historico }] = await Promise.all([api('/api/organizaciones/' + id), api(`/api/organizaciones/${id}/historico`)]);
-    const gestor = ['admin', 'consultor'].includes(estado.usuario.rol);
+    const data = await api('/api/organizaciones/' + id);
+    const { organizacion: o, diagnosticos, miembros } = data;
+    const verInd = puede('ver_indicadores'), gestVer = puede('gestionar_versiones'), dilig = puede('diligenciar'), gestOrg = puede('gestionar_organizaciones'), gestUsu = puede('gestionar_usuarios');
+    const historico = verInd ? (await api(`/api/organizaciones/${id}/historico`)).historico : [];
     const abierto = diagnosticos.find(d => d.estado === 'en_diligenciamiento');
     app.innerHTML = `
       <div class="fila entre"><div><h1>${esc(o.nombre)}</h1><p class="hint">${[o.sigla, o.sector, o.ciudad, o.nit ? 'NIT ' + o.nit : null].filter(Boolean).map(esc).join(' · ')}</p></div>
-        ${gestor ? '<button class="btn peq sec" id="b-editar">Editar</button>' : ''}</div>
+        ${gestOrg ? '<button class="btn peq sec" id="b-editar">Editar</button>' : ''}</div>
       ${o.descripcion ? `<p>${esc(o.descripcion)}</p>` : ''}
       <div class="acciones">
-        ${mi_rol === 'editor' ? `<button class="btn" id="b-nueva-v">+ Nueva versión del diagnóstico</button>` : ''}
-        <a class="btn sec" href="#/imprimir/${o.id}">Imprimir diligenciado</a>
+        ${verInd ? `<a class="btn" href="#/tablero/${o.id}">Tablero de resultados</a>` : ''}
+        ${gestVer ? `<button class="btn ${verInd ? 'sec' : ''}" id="b-nueva-v">+ Nueva versión</button>` : ''}
+        ${dilig && abierto ? `<a class="btn ${gestVer ? 'sec' : ''}" href="#/diag/${abierto.id}/llenar">Diligenciar versión ${abierto.version_numero}</a>` : ''}
+        ${verInd ? `<a class="btn sec" href="#/imprimir/${o.id}">Imprimir diligenciado</a>` : ''}
         <a class="btn sec" href="#/imprimir-blanco?org=${encodeURIComponent(o.nombre)}">Imprimir en blanco</a>
       </div>
       <h2 style="margin-top:1.25rem">Versiones del diagnóstico</h2>
       ${diagnosticos.length ? diagnosticos.map(d => `<div class="tarjeta">
         <div class="fila entre"><h3 style="margin:0">Versión ${d.version_numero} · ${esc(d.titulo)}</h3><span class="chip ${d.estado === 'cerrado' ? 'cerrado' : 'abierto'}">${d.estado === 'cerrado' ? 'Cerrada' : 'En diligenciamiento'}</span></div>
-        <p class="hint">Fecha ${fecha(d.fecha)} · ${d.estado === 'cerrado' ? 'cerrada el ' + fecha(d.cerrado_en) : 'avance ' + fmt(d.avance_diligenciamiento) + ' %'}${d.base_version_id ? ' · derivada de una versión anterior' : ''}</p>
-        <div class="progreso"><div class="barra"><span style="width:${d.cumplimiento}%"></span></div><strong class="num">${fmt(d.cumplimiento)} %</strong></div>
-        <p class="hint" style="margin:.4rem 0 0">Nivel ${esc(d.nivel)} · brecha ${fmt(d.brecha_total)} % · ${ICONO.cumple} ${d.conteo.cumple} · ${ICONO.cumple_parcial} ${d.conteo.cumple_parcial} · ${ICONO.no_cumple} ${d.conteo.no_cumple} · ${ICONO.sin_evidencia} ${d.conteo.sin_evidencia}${d.conteo.sin_valorar ? ' · sin valorar ' + d.conteo.sin_valorar : ''}</p>
+        <p class="hint">Fecha ${fecha(d.fecha)} · ${d.total_items} preguntas · ${d.estado === 'cerrado' ? 'cerrada el ' + fecha(d.cerrado_en) : 'avance ' + fmt(d.avance_diligenciamiento) + ' %'}${d.base_version_id ? ' · derivada de una versión anterior' : ''}</p>
+        ${verInd ? `<div class="progreso"><div class="barra"><span style="width:${d.cumplimiento}%"></span></div><strong class="num">${fmt(d.cumplimiento)} %</strong></div>
+        <p class="hint" style="margin:.4rem 0 0">Nivel ${esc(d.nivel)} · brecha ${fmt(d.brecha_total)} % · ${ICONO.cumple} ${d.conteo.cumple} · ${ICONO.cumple_parcial} ${d.conteo.cumple_parcial} · ${ICONO.no_cumple} ${d.conteo.no_cumple} · ${ICONO.no_aplica} ${d.conteo.no_aplica}${d.conteo.sin_valorar ? ' · sin valorar ' + d.conteo.sin_valorar : ''}</p>` : ''}
         <div class="acciones">
-          <a class="btn ${d.estado === 'cerrado' || mi_rol !== 'editor' ? 'sec' : ''}" href="#/diag/${d.id}/llenar">${d.estado === 'cerrado' || mi_rol !== 'editor' ? 'Ver respuestas' : 'Diligenciar'}</a>
-          <a class="btn sec" href="#/diag/${d.id}">Indicadores</a>
-          <a class="btn sec" href="#/imprimir/${o.id}?v=${d.id}">Imprimir</a>
-          ${gestor ? `<button class="btn peligro" data-eliminar="${d.id}" data-ver="${d.version_numero}">Eliminar</button>` : ''}
-        </div></div>`).join('') : '<div class="tarjeta vacio">Aún no hay versiones. Cree la primera versión para aplicar el cuestionario.</div>'}
-      <div class="tarjeta"><h2>Histórico de cumplimiento</h2>${lineaHistorico(historico)}
+          ${dilig || verInd ? `<a class="btn ${d.estado === 'cerrado' || !dilig ? 'sec' : ''}" href="#/diag/${d.id}/llenar">${d.estado === 'cerrado' || !dilig ? 'Ver respuestas' : 'Diligenciar'}</a>` : ''}
+          ${verInd ? `<a class="btn sec" href="#/diag/${d.id}">Indicadores</a><a class="btn sec" href="#/informe/${d.id}">Informe</a>` : ''}
+          ${gestVer && d.estado !== 'cerrado' ? `<button class="btn suave" data-cerrar-v="${d.id}">Cerrar versión</button>` : ''}
+          ${gestVer && d.estado === 'cerrado' && !abierto ? `<button class="btn suave" data-reabrir="${d.id}">Reabrir</button>` : ''}
+          ${gestVer ? `<button class="btn peligro" data-eliminar="${d.id}" data-ver="${d.version_numero}">Eliminar</button>` : ''}
+        </div></div>`).join('') : '<div class="tarjeta vacio">Aún no hay versiones.' + (gestVer ? ' Cree la primera versión para aplicar el cuestionario.' : '') + '</div>'}
+      ${verInd ? `<div class="tarjeta"><h2>Histórico de cumplimiento</h2>${lineaHistorico(historico)}
         ${historico.length > 1 ? `<div class="tabla-scroll"><table><thead><tr><th>Versión</th><th>Fecha</th><th class="der">Cumplimiento</th><th class="der">Brecha</th><th>Nivel</th>${historico[0].por_capitulo.map(c => `<th class="der">Cap. ${c.capitulo}</th>`).join('')}</tr></thead>
-          <tbody>${historico.map(h => `<tr><td>v${h.version_numero}</td><td>${fecha(h.fecha)}</td><td class="der num">${fmt(h.cumplimiento)} %</td><td class="der num">${fmt(h.brecha_total)} %</td><td>${esc(h.nivel)}</td>${h.por_capitulo.map(c => `<td class="der num">${fmt(c.cumplimiento)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
-        ${historico.length > 1 ? `<div class="acciones"><a class="btn sec" href="#/diag/${historico[historico.length - 1].id}/comparar/${historico[historico.length - 2].id}">Comparar últimas dos versiones</a></div>` : ''}
-      </div>
-      ${gestor ? `<div class="tarjeta"><div class="fila entre"><h2 style="margin:0">Usuarios asignados</h2><button class="btn peq" id="b-miembro">+ Asignar usuario</button></div>
-        <p class="hint">Los usuarios asignados pueden diligenciar (editor) o consultar (lector) los diagnósticos de esta organización. Los administradores y consultores tienen acceso a todas las organizaciones.</p>
-        ${miembros.length ? `<table><thead><tr><th>Usuario</th><th>Rol</th><th></th></tr></thead><tbody>${miembros.map(m => `<tr><td>${esc(m.nombre)}<br><span class="hint">${esc(m.email)} · ${m.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}</span></td><td>${m.rol}</td><td class="der"><button class="btn peq peligro" data-quitar="${m.id}">Quitar</button></td></tr>`).join('')}</tbody></table>` : '<p class="hint">Ningún usuario asignado.</p>'}
+          <tbody>${historico.map(h => `<tr><td>v${h.version_numero}</td><td>${fecha(h.fecha)}</td><td class="der num">${fmt(h.cumplimiento)} %</td><td class="der num">${fmt(h.brecha_total)} %</td><td>${esc(h.nivel)}</td>${h.por_capitulo.map(c => `<td class="der num">${fmt(c.cumplimiento)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+          <div class="acciones"><a class="btn sec" href="#/diag/${historico[historico.length - 1].id}/comparar/${historico[historico.length - 2].id}">Comparar últimas dos versiones</a></div>` : ''}
+      </div>` : ''}
+      ${gestUsu ? `<div class="tarjeta"><div class="fila entre"><h2 style="margin:0">Usuarios asignados</h2><button class="btn peq" id="b-miembro">+ Asignar usuario</button></div>
+        <p class="hint">El alcance de cada usuario en esta organización lo define su rol global: editor (indicadores y versiones), auditor (diligencia) o usuario (tablero e informes). Los administradores acceden a todas.</p>
+        ${miembros.length ? `<table><thead><tr><th>Usuario</th><th>Rol</th><th></th></tr></thead><tbody>${miembros.map(m => `<tr><td>${esc(m.nombre)}<br><span class="hint">${esc(m.email)}${m.cargo ? ' · ' + esc(m.cargo) : ''} · ${m.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}</span></td><td>${ROL_ETIQ[m.rol] || m.rol}</td><td class="der"><button class="btn peq peligro" data-quitar="${m.id}">Quitar</button></td></tr>`).join('')}</tbody></table>` : '<p class="hint">Ningún usuario asignado.</p>'}
       </div>` : ''}`;
     const be = $('#b-editar'); if (be) be.onclick = () => formOrganizacion(o);
     const bv = $('#b-nueva-v'); if (bv) bv.onclick = () => {
-      if (abierto) { toast(`La versión ${abierto.version_numero} sigue en diligenciamiento. Ciérrela desde sus indicadores antes de crear otra.`, true); location.hash = `#/diag/${abierto.id}/llenar`; return; }
+      if (abierto) { toast(`La versión ${abierto.version_numero} sigue en diligenciamiento. Ciérrela antes de crear otra.`, true); return; }
       modal(`<h2>Nueva versión del diagnóstico</h2><form id="f-v">
         <label>Título</label><input name="titulo" value="Diagnóstico ISO 9001 – versión ${diagnosticos.length + 1}">
         <label>Fecha</label><input name="fecha" type="date" value="${new Date().toISOString().slice(0, 10)}">
         <label>Copiar la versión anterior</label><select name="desde_version_id">${diagnosticos.map((d, i) => `<option value="${d.id}" ${i === 0 ? 'selected' : ''}>Copiar la versión ${d.version_numero} · ${esc(d.titulo)} (${fmt(d.cumplimiento)} %)</option>`).join('')}<option value="">No copiar: empezar con el formato en blanco</option></select>
         <label>Qué copiar</label><select name="modo_copia"><option value="completa">Todo: valoraciones, evidencias, observaciones y responsables</option><option value="solo_textos">Solo evidencias, observaciones y responsables (valorar de nuevo)</option></select>
-        <p class="hint">La versión anterior se conserva intacta como registro histórico; los cambios se hacen sobre la nueva.</p>
+        <p class="hint">La versión anterior se conserva intacta como registro histórico. La nueva usa el cuestionario vigente.</p>
         <label>Notas</label><textarea name="notas" placeholder="Alcance, fuentes de información, equipo evaluador…"></textarea>
         <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Crear versión</button></div></form>`,
         (bg, cerrar) => { $('#f-v', bg).onsubmit = async e => { e.preventDefault(); try { const r = await api(`/api/organizaciones/${o.id}/diagnosticos`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); cerrar(); toast('Versión ' + r.version_numero + ' creada'); location.hash = `#/diag/${r.id}/llenar`; } catch (err) { toast(err.message, true); } }; });
     };
     const bm = $('#b-miembro'); if (bm) bm.onclick = () => modal(`<h2>Asignar usuario</h2><form id="f-m">
-        <label>Correo electrónico *</label><input name="email" type="email" required inputmode="email">
-        <label>Nombre (si el usuario aún no existe)</label><input name="nombre">
-        ${estado.config.auth.local ? '<label>Contraseña inicial (solo para crear usuario local; mínimo 8 caracteres)</label><input name="password" type="text" autocomplete="off"><p class="hint">Si el usuario ingresará por ' + esc(estado.config.auth.gestor_nombre) + ', deje la contraseña vacía.</p>' : ''}
-        <label>Rol en la organización</label><select name="rol"><option value="editor">Editor (diligencia el cuestionario)</option><option value="lector">Lector (solo consulta)</option></select>
-        <input type="hidden" name="crear" value="1">
+        <label>Correo o usuario *</label><input name="email" required inputmode="email" autocapitalize="none">
+        <p class="hint">Si el usuario ya existe (por ejemplo, sincronizado desde ${esc(estado.config.auth.gestor_nombre)}) solo se asigna. Si no existe, se crea con los datos siguientes.</p>
+        <label>Nombre (solo si es nuevo)</label><input name="nombre">
+        <label>Rol (solo si es nuevo)</label><select name="rol"><option value="editor">Editor</option><option value="auditor">Auditor</option><option value="usuario" selected>Usuario</option></select>
+        ${estado.config.auth.local ? '<label>Contraseña inicial (solo usuario local nuevo; mínimo 8 caracteres)</label><input name="password" type="text" autocomplete="off">' : ''}
         <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Asignar</button></div></form>`,
       (bg, cerrar) => { $('#f-m', bg).onsubmit = async e => { e.preventDefault(); try { await api(`/api/organizaciones/${o.id}/miembros`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); cerrar(); toast('Usuario asignado'); navegar(); } catch (err) { toast(err.message, true); } }; });
+    $$('[data-cerrar-v]').forEach(b => b.onclick = async () => { if (await confirmar('Al cerrar la versión se congelan las respuestas y queda como registro histórico. Los cambios posteriores requerirán una nueva versión.', 'Cerrar versión')) { try { await api(`/api/diagnosticos/${b.dataset.cerrarV}/cerrar`, { method: 'POST' }); toast('Versión cerrada'); navegar(); } catch (e) { toast(e.message, true); } } });
+    $$('[data-reabrir]').forEach(b => b.onclick = async () => { if (await confirmar('¿Reabrir esta versión para edición?', 'Reabrir')) { try { await api(`/api/diagnosticos/${b.dataset.reabrir}/reabrir`, { method: 'POST' }); navegar(); } catch (e) { toast(e.message, true); } } });
     $$('[data-eliminar]').forEach(b => b.onclick = async () => { if (await confirmar(`Se eliminará la versión ${b.dataset.ver} con todas sus respuestas de forma definitiva. Las demás versiones no se modifican.`, 'Eliminar versión')) { try { await api('/api/diagnosticos/' + b.dataset.eliminar, { method: 'DELETE' }); toast('Versión eliminada'); navegar(); } catch (e) { toast(e.message, true); } } });
     $$('[data-quitar]').forEach(b => b.onclick = async () => { if (await confirmar('¿Retirar este usuario de la organización?', 'Retirar')) { await api(`/api/organizaciones/${o.id}/miembros/${b.dataset.quitar}`, { method: 'DELETE' }); navegar(); } });
   });
@@ -252,15 +284,15 @@
       const idx = caps.findIndex(c => c.n === capActual);
       app.innerHTML = `
         <div class="fila entre"><div><h1 style="font-size:1.2rem">${esc(o.nombre)}</h1><p class="hint">Versión ${d.version_numero} · ${esc(d.titulo)} · ${editable ? 'en diligenciamiento' : 'solo lectura'}</p></div>
-          <a class="btn peq sec" href="#/diag/${d.id}">Indicadores</a></div>
+          ${puede('ver_indicadores') ? `<a class="btn peq sec" href="#/diag/${d.id}">Indicadores</a>` : `<a class="btn peq sec" href="#/">Organizaciones</a>`}</div>
         ${!editable ? '<div class="alerta info">Esta versión está cerrada o usted tiene acceso de solo lectura. Las respuestas se muestran sin posibilidad de edición.</div>' : ''}
         <div class="sticky-sub">
           <div class="caps">${caps.map(c => { const tot = items.filter(i => i.capitulo === c.n); const val = tot.filter(i => i.respuesta?.valoracion).length; return `<button class="cap-btn ${c.n === capActual ? 'activo' : ''}" data-cap="${c.n}">Cap. ${c.n}<small>${val}/${tot.length}</small></button>`; }).join('')}</div>
           <div class="fila entre"><h2 style="margin:0;font-size:1rem">${capActual}. ${esc(caps[idx].nombre)}</h2><label style="margin:0;display:flex;align-items:center;gap:.3rem;font-weight:500"><input type="checkbox" id="chk-pend" style="width:auto" ${soloPendientes ? 'checked' : ''}> Solo pendientes</label></div>
         </div>
         ${lista.length ? lista.map(tarjetaPregunta).join('') : '<div class="tarjeta vacio">No hay preguntas pendientes en este capítulo.</div>'}
-        <div class="nav-caps">${idx > 0 ? `<button class="btn sec" data-ir="${caps[idx - 1].n}">‹ Capítulo ${caps[idx - 1].n}</button>` : ''}${idx < caps.length - 1 ? `<button class="btn" data-ir="${caps[idx + 1].n}">Capítulo ${caps[idx + 1].n} ›</button>` : `<a class="btn" href="#/diag/${d.id}">Ver indicadores ›</a>`}</div>
-        <div class="barra-inferior no-print"><div class="progreso"><span id="p-txt">${fmt(resumen.avance_diligenciamiento)} % diligenciado</span><div class="barra fina"><span id="p-bar" style="width:${resumen.avance_diligenciamiento}%"></span></div><strong id="p-cum" class="num">${fmt(resumen.cumplimiento)} %</strong></div></div>`;
+        <div class="nav-caps">${idx > 0 ? `<button class="btn sec" data-ir="${caps[idx - 1].n}">‹ Capítulo ${caps[idx - 1].n}</button>` : ''}${idx < caps.length - 1 ? `<button class="btn" data-ir="${caps[idx + 1].n}">Capítulo ${caps[idx + 1].n} ›</button>` : (puede('ver_indicadores') ? `<a class="btn" href="#/diag/${d.id}">Ver indicadores ›</a>` : `<a class="btn" href="#/">Finalizar ›</a>`)}</div>
+        <div class="barra-inferior no-print"><div class="progreso"><span id="p-txt">${fmt(resumen.avance_diligenciamiento)} % diligenciado</span><div class="barra fina"><span id="p-bar" style="width:${resumen.avance_diligenciamiento}%"></span></div><strong id="p-cum" class="num" ${puede('ver_indicadores') ? '' : 'hidden'}>${fmt(resumen.cumplimiento)} %</strong></div></div>`;
       $$('[data-cap]').forEach(b => b.onclick = () => { capActual = Number(b.dataset.cap); pintar(); window.scrollTo(0, 0); });
       $$('[data-ir]').forEach(b => b.onclick = () => { capActual = Number(b.dataset.ir); pintar(); window.scrollTo(0, 0); });
       $('#chk-pend').onchange = e => { soloPendientes = e.target.checked; pintar(); };
@@ -315,8 +347,8 @@
   // ---------- indicadores ----------
   ruta('/diag/:id', async ({ id }) => {
     const { diagnostico: d, organizacion: o, indicadores: ind } = await api(`/api/diagnosticos/${id}/indicadores`);
-    const { diagnosticos, mi_rol } = await api('/api/organizaciones/' + o.id);
-    const gestor = ['admin', 'consultor'].includes(estado.usuario.rol);
+    const { diagnosticos } = await api('/api/organizaciones/' + o.id);
+    const gestor = puede('gestionar_versiones');
     const anterior = diagnosticos.filter(x => x.version_numero < d.version_numero).sort((a, b) => b.version_numero - a.version_numero)[0];
     let filtroCap = ''; let filtroPri = ''; let limite = 15;
     app.innerHTML = `
@@ -324,27 +356,29 @@
       ${ind.conteo.sin_valorar ? `<div class="alerta">Hay ${ind.conteo.sin_valorar} pregunta(s) sin valorar. Los indicadores las cuentan como no cumplidas hasta que se valoren.</div>` : ''}
       <div class="hero">
         <div class="stat principal"><div class="lab">Cumplimiento global ISO 9001</div><div class="val">${fmt(ind.cumplimiento)} %</div><div class="sub">Nivel de madurez: <strong>${esc(ind.nivel.nombre)}</strong>. ${esc(ind.nivel.descripcion)}</div></div>
-        <div class="stat"><div class="lab">Brecha para alcanzar ISO 9001</div><div class="val" style="color:var(--nocumple)">${fmt(ind.brecha_total)} %</div><div class="sub">${ind.items_para_cumplir} de ${ind.total_items} preguntas por cerrar</div></div>
+        <div class="stat"><div class="lab">Brecha para alcanzar ISO 9001</div><div class="val" style="color:var(--nocumple)">${fmt(ind.brecha_total)} %</div><div class="sub">${ind.items_para_cumplir} de ${ind.items_aplicables} preguntas aplicables por cerrar${ind.conteo.no_aplica ? ` · ${ind.conteo.no_aplica} no aplican` : ''}</div></div>
         <div class="stat"><div class="lab">Capítulo más crítico</div><div class="val">${ind.capitulo_critico ? 'Cap. ' + ind.capitulo_critico.capitulo : '—'}</div><div class="sub">${ind.capitulo_critico ? esc(ind.capitulo_critico.nombre) + ' · ' + fmt(ind.capitulo_critico.cumplimiento) + ' %' : ''}</div></div>
         <div class="stat"><div class="lab">Avance del diligenciamiento</div><div class="val">${fmt(ind.avance_diligenciamiento)} %</div><div class="sub">${ind.items_valorados} de ${ind.total_items} valoradas</div></div>
       </div>
       <div class="acciones">
-        <a class="btn" href="#/diag/${d.id}/llenar">${d.estado === 'cerrado' ? 'Ver respuestas' : 'Diligenciar'}</a>
+        <a class="btn" href="#/tablero/${o.id}?v=${d.id}">Tablero</a>
+        <a class="btn sec" href="#/informe/${d.id}">Informe</a>
+        ${puede('diligenciar') ? `<a class="btn sec" href="#/diag/${d.id}/llenar">${d.estado === 'cerrado' ? 'Ver respuestas' : 'Diligenciar'}</a>` : `<a class="btn sec" href="#/diag/${d.id}/llenar">Ver respuestas</a>`}
         <a class="btn sec" href="#/imprimir/${o.id}?v=${d.id}">Imprimir</a>
         <a class="btn sec" href="/api/diagnosticos/${d.id}/export.csv">Exportar CSV</a>
         ${anterior ? `<a class="btn sec" href="#/diag/${d.id}/comparar/${anterior.id}">Comparar con v${anterior.version_numero}</a>` : ''}
-        ${d.estado !== 'cerrado' && mi_rol === 'editor' ? `<button class="btn suave" id="b-cerrar">Cerrar versión</button>` : ''}
+        ${d.estado !== 'cerrado' && gestor ? `<button class="btn suave" id="b-cerrar">Cerrar versión</button>` : ''}
         ${d.estado === 'cerrado' && gestor ? `<button class="btn suave" id="b-reabrir">Reabrir versión</button>` : ''}
         ${gestor ? `<button class="btn peligro" id="b-eliminar">Eliminar versión</button>` : ''}
       </div>
       <div class="tarjeta"><h2>Distribución de valoraciones</h2>${distribucion(ind.conteo, ind.total_items)}</div>
       <div class="tarjeta"><h2>Cumplimiento por capítulo de la norma</h2><p class="hint">Toque un capítulo para ver sus preguntas pendientes.</p>${barrasCapitulo(ind.por_capitulo)}</div>
-      <div class="tarjeta"><details class="detalles"><summary style="font-size:1.15rem;color:inherit">Cumplimiento por numeral</summary><div class="tabla-scroll"><table><thead><tr><th>Numeral</th><th class="der">Preg.</th><th class="der">${ICONO.cumple}</th><th class="der">${ICONO.cumple_parcial}</th><th class="der">${ICONO.no_cumple}</th><th class="der">${ICONO.sin_evidencia}</th><th style="min-width:120px">Cumplimiento</th></tr></thead>
-        <tbody>${ind.por_numeral.map(n => `<tr><td>${esc(n.numeral)}</td><td class="der">${n.total}</td><td class="der">${n.cumple}</td><td class="der">${n.cumple_parcial}</td><td class="der">${n.no_cumple}</td><td class="der">${n.sin_evidencia}</td><td><div class="progreso"><div class="barra fina"><span style="width:${n.cumplimiento}%"></span></div><span class="num">${fmt(n.cumplimiento)} %</span></div></td></tr>`).join('')}</tbody></table></div></details></div>
+      <div class="tarjeta"><details class="detalles"><summary style="font-size:1.15rem;color:inherit">Cumplimiento por numeral</summary><div class="tabla-scroll"><table><thead><tr><th>Numeral</th><th class="der">Preg.</th><th class="der">${ICONO.cumple}</th><th class="der">${ICONO.cumple_parcial}</th><th class="der">${ICONO.no_cumple}</th><th class="der">${ICONO.no_aplica}</th><th style="min-width:120px">Cumplimiento</th></tr></thead>
+        <tbody>${ind.por_numeral.map(n => `<tr><td>${esc(n.numeral)}</td><td class="der">${n.total}</td><td class="der">${n.cumple}</td><td class="der">${n.cumple_parcial}</td><td class="der">${n.no_cumple}</td><td class="der">${n.no_aplica}</td><td><div class="progreso"><div class="barra fina"><span style="width:${n.cumplimiento}%"></span></div><span class="num">${fmt(n.cumplimiento)} %</span></div></td></tr>`).join('')}</tbody></table></div></details></div>
       <div class="tarjeta"><h2>Brecha: requisitos por cerrar</h2>
         <div class="fila"><select id="f-cap" style="width:auto;flex:1"><option value="">Todos los capítulos</option>${ind.por_capitulo.map(c => `<option value="${c.capitulo}">Cap. ${c.capitulo} · ${esc(c.nombre)}</option>`).join('')}</select>
           <select id="f-pri" style="width:auto;flex:1"><option value="">Toda prioridad</option><option value="alta">Prioridad alta</option><option value="media">Prioridad media</option></select></div>
-        <p class="hint" style="margin-top:.5rem">Prioridad alta: no cumple, sin evidencia o sin valorar. Prioridad media: cumplimiento parcial.</p>
+        <p class="hint" style="margin-top:.5rem">Prioridad alta: no cumple o sin valorar. Prioridad media: cumple parcialmente. Las preguntas marcadas "no aplica" no cuentan.</p>
         <div id="lista-brecha"></div></div>
       <div class="tarjeta"><h2>Carga por responsable</h2><div class="tabla-scroll"><table><thead><tr><th>Responsable</th><th class="der">Preguntas</th><th class="der">Pendientes</th><th class="der">Cumpl.</th></tr></thead><tbody>${ind.por_responsable.map(r => `<tr><td>${esc(r.responsable)}</td><td class="der">${r.total}</td><td class="der">${r.pendientes}</td><td class="der num">${fmt(r.cumplimiento)} %</td></tr>`).join('')}</tbody></table></div></div>
       ${d.notas ? `<div class="tarjeta"><h2>Notas de la versión</h2><p>${esc(d.notas)}</p></div>` : ''}`;
@@ -380,11 +414,107 @@
     $('#s-base').onchange = ir; $('#s-act').onchange = ir;
   });
 
+  // ---------- tablero de resultados ----------
+  function bloquesTablero(o, d, ind, historico) {
+    const crit = ind.capitulo_critico; const mejor = ind.por_capitulo.length ? ind.por_capitulo.reduce((m, c) => c.cumplimiento > m.cumplimiento ? c : m) : null;
+    const topBrecha = ind.brecha.slice(0, 8);
+    return `
+      <div class="tab-grid">
+        <div class="tarjeta tab-hero"><div class="tab-hero-med">${medidor(ind.cumplimiento, ind.nivel.nombre)}</div>
+          <div><div class="stat-lab">Cumplimiento global ISO 9001</div><p style="margin:.3rem 0 .6rem">${esc(ind.nivel.descripcion)}</p>
+            <div class="minis"><div class="mini"><strong style="color:var(--nocumple)">${fmt(ind.brecha_total)} %</strong><span>brecha</span></div><div class="mini"><strong>${ind.items_para_cumplir}</strong><span>requisitos por cerrar</span></div><div class="mini"><strong>${ind.items_aplicables}</strong><span>preguntas aplicables</span></div><div class="mini"><strong>${fmt(ind.avance_diligenciamiento)} %</strong><span>diligenciado</span></div></div></div></div>
+        <div class="tarjeta"><h2>Cómo se distribuyen las respuestas</h2>${dona(ind.conteo, ind.total_items)}</div>
+        <div class="tarjeta"><h2>Semáforo por capítulo</h2><p class="hint">Sólido ≥ 75 % · En desarrollo ≥ 50 % · Débil ≥ 25 % · Crítico &lt; 25 %</p>
+          <div class="semaforos">${ind.por_capitulo.map(c => { const sm = semaforo(c.cumplimiento); return `<div class="sem"><span class="sem-luz" style="background:${sm.c}" aria-hidden="true"></span><div><strong>Cap. ${c.capitulo} · ${esc(c.nombre)}</strong><span class="hint">${sm.t} · ${fmt(c.cumplimiento)} % · ${c.aplicables} preguntas</span></div><span class="num sem-pct">${fmt(c.cumplimiento)} %</span></div>`; }).join('')}</div></div>
+        <div class="tarjeta"><h2>Cumplimiento por capítulo</h2>${barrasCapitulo(ind.por_capitulo)}
+          <div class="grid-2" style="margin-top:.8rem">${crit ? `<div class="stat"><div class="lab">Capítulo más crítico</div><div class="val" style="font-size:1.3rem">Cap. ${crit.capitulo}</div><div class="sub">${esc(crit.nombre)} · ${fmt(crit.cumplimiento)} %</div></div>` : ''}${mejor ? `<div class="stat"><div class="lab">Capítulo más fuerte</div><div class="val" style="font-size:1.3rem">Cap. ${mejor.capitulo}</div><div class="sub">${esc(mejor.nombre)} · ${fmt(mejor.cumplimiento)} %</div></div>` : ''}</div></div>
+        ${historico && historico.length ? `<div class="tarjeta"><h2>Evolución entre versiones</h2>${lineaHistorico(historico)}</div>` : ''}
+        <div class="tarjeta"><h2>Los ${topBrecha.length} requisitos más urgentes</h2>${topBrecha.length ? `<ol class="lista-brecha">${topBrecha.map(b => `<li><span class="chip v-${b.valoracion}">${ICONO[b.valoracion ?? 'sin_valorar']} ${esc(b.etiqueta)}</span> <strong>${esc(b.numeral)}</strong> ${esc(b.pregunta)}<br><span class="hint">Responsable: ${esc(b.responsable)}</span></li>`).join('')}</ol>` : '<p class="vacio">No hay requisitos pendientes.</p>'}</div>
+        <div class="tarjeta"><h2>Carga por responsable</h2><div class="tabla-scroll"><table><thead><tr><th>Responsable</th><th class="der">Pendientes</th><th style="min-width:120px">Cumplimiento</th></tr></thead><tbody>${ind.por_responsable.slice(0, 10).map(r => `<tr><td>${esc(r.responsable)}</td><td class="der">${r.pendientes}</td><td><div class="progreso"><div class="barra fina"><span style="width:${r.cumplimiento}%"></span></div><span class="num">${fmt(r.cumplimiento)} %</span></div></td></tr>`).join('')}</tbody></table></div></div>
+      </div>`;
+  }
+  ruta('/tablero/:orgId', async ({ orgId }, q) => {
+    const { organizacion: o, diagnosticos } = await api('/api/organizaciones/' + orgId);
+    if (!diagnosticos.length) { app.innerHTML = `<h1>${esc(o.nombre)}</h1><div class="tarjeta vacio">Esta organización aún no tiene diagnósticos.</div>`; return; }
+    const sel = diagnosticos.find(d => d.id === q.v) || diagnosticos.find(d => d.estado === 'cerrado') || diagnosticos[0];
+    const [{ indicadores: ind }, { historico }] = await Promise.all([api(`/api/diagnosticos/${sel.id}/indicadores`), api(`/api/organizaciones/${orgId}/historico`)]);
+    app.innerHTML = `
+      <div class="fila entre"><div><h1 style="font-size:1.25rem">${esc(o.nombre)}</h1><p class="hint">Tablero de resultados · ${fecha(sel.fecha)} · <span class="chip ${sel.estado === 'cerrado' ? 'cerrado' : 'abierto'}">${sel.estado === 'cerrado' ? 'Versión cerrada' : 'En diligenciamiento'}</span></p></div>
+        <select id="s-ver" style="max-width:100%;width:auto">${diagnosticos.map(d => `<option value="${d.id}" ${d.id === sel.id ? 'selected' : ''}>Versión ${d.version_numero} · ${esc(d.titulo)}</option>`).join('')}</select></div>
+      ${ind.conteo.sin_valorar ? `<div class="alerta">Hay ${ind.conteo.sin_valorar} pregunta(s) sin valorar. Cuentan como no cumplidas hasta que se valoren.</div>` : ''}
+      ${bloquesTablero(o, sel, ind, historico)}
+      <div class="acciones"><a class="btn" href="#/informe/${sel.id}">Generar informe</a><a class="btn sec" href="/api/diagnosticos/${sel.id}/export.csv">Exportar CSV</a>${puede('gestionar_versiones') ? `<a class="btn sec" href="#/diag/${sel.id}">Indicadores detallados</a>` : ''}<a class="btn sec" href="#/imprimir/${o.id}?v=${sel.id}">Imprimir cuestionario</a></div>`;
+    $('#s-ver').onchange = e => location.hash = `#/tablero/${orgId}?v=${e.target.value}`;
+  });
+
+  // ---------- informe ejecutivo (imprimible a PDF) ----------
+  ruta('/informe/:id', async ({ id }) => {
+    const { diagnostico: d, organizacion: o, indicadores: ind } = await api(`/api/diagnosticos/${id}/indicadores`);
+    const [{ historico }, det] = await Promise.all([api(`/api/organizaciones/${o.id}/historico`), api('/api/diagnosticos/' + id)]);
+    const anterior = historico.filter(h => h.version_numero < d.version_numero).slice(-1)[0];
+    let comp = null; if (anterior) comp = await api(`/api/diagnosticos/${d.id}/comparar/${anterior.id}`);
+    const resp = new Map(det.items.filter(i => i.respuesta).map(i => [i.id, i.respuesta]));
+    const secciones = { detalle: true, brecha: true, respuestas: false };
+    const pintar = () => {
+      $('#hoja').innerHTML = `
+        <div class="encabezado"><h1>Informe de diagnóstico de implementación ISO 9001</h1><p class="hint">${esc(o.nombre)} · Versión ${d.version_numero} · ${esc(d.titulo)} · ${fecha(d.fecha)} · Referencia ISO 9001:2015 y Enmienda 1:2024 (instrumento propio, no oficial de ISO).</p></div>
+        <h2>1. Resumen ejecutivo</h2>
+        <p>La organización <strong>${esc(o.nombre)}</strong> alcanza un cumplimiento global de <strong>${fmt(ind.cumplimiento)} %</strong> frente a los requisitos evaluados de la norma ISO 9001, lo que la ubica en el nivel de madurez <strong>${esc(ind.nivel.nombre)}</strong>. ${esc(ind.nivel.descripcion)} La brecha para alcanzar la conformidad plena es de <strong>${fmt(ind.brecha_total)} puntos porcentuales</strong>, distribuida en ${ind.items_para_cumplir} requisitos por cerrar de ${ind.items_aplicables} aplicables${ind.conteo.no_aplica ? ` (${ind.conteo.no_aplica} preguntas se marcaron como no aplicables)` : ''}.${ind.capitulo_critico ? ` El capítulo con menor cumplimiento es el ${ind.capitulo_critico.capitulo} (${esc(ind.capitulo_critico.nombre)}) con ${fmt(ind.capitulo_critico.cumplimiento)} %.` : ''}${comp ? ` Respecto a la versión ${anterior.version_numero} (${fecha(anterior.fecha)}), el cumplimiento ${comp.comparacion.cumplimiento.delta >= 0 ? 'aumentó' : 'disminuyó'} ${fmt(Math.abs(comp.comparacion.cumplimiento.delta))} puntos porcentuales.` : ''}</p>
+        ${bloquesTablero(o, d, ind, historico)}
+        ${comp ? `<h2>2. Comparación con la versión ${anterior.version_numero}</h2>${barrasComparacion(comp.comparacion.por_capitulo)}<p class="hint" style="margin-top:.5rem">${comp.cambios.length} pregunta(s) cambiaron de valoración.</p>` : ''}
+        ${secciones.detalle ? `<h2>${comp ? 3 : 2}. Cumplimiento por numeral</h2><div class="tabla-scroll"><table><thead><tr><th>Numeral</th><th class="der">Preg.</th><th class="der">${ICONO.cumple}</th><th class="der">${ICONO.cumple_parcial}</th><th class="der">${ICONO.no_cumple}</th><th class="der">${ICONO.no_aplica}</th><th class="der">Cumpl.</th></tr></thead><tbody>${ind.por_numeral.map(n => `<tr><td>${esc(n.numeral)}</td><td class="der">${n.total}</td><td class="der">${n.cumple}</td><td class="der">${n.cumple_parcial}</td><td class="der">${n.no_cumple}</td><td class="der">${n.no_aplica}</td><td class="der num">${fmt(n.cumplimiento)} %</td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${secciones.brecha ? `<h2>${(comp ? 3 : 2) + (secciones.detalle ? 1 : 0)}. Plan de cierre de brechas</h2><div class="tabla-scroll"><table><thead><tr><th>ID</th><th>Numeral</th><th>Requisito</th><th>Valoración</th><th>Prioridad</th><th>Responsable</th><th>Acción sugerida</th></tr></thead><tbody>${ind.brecha.map(b => `<tr><td>${esc(b.codigo)}</td><td>${esc(b.numeral)}</td><td>${esc(b.pregunta)}</td><td>${ICONO[b.valoracion ?? 'sin_valorar']} ${esc(b.etiqueta)}</td><td>${b.prioridad === 'alta' ? 'Alta' : 'Media'}</td><td>${esc(b.responsable)}</td><td>${esc(b.observaciones)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${secciones.respuestas ? `<h2>Anexo. Cuestionario diligenciado</h2>${tablaImpresion(det.items, resp, false)}` : ''}
+        <p class="hint" style="margin-top:1rem">Generado el ${new Date().toLocaleString('es-CO')} desde diagnosticoiso.proyectoia.org por ${esc(estado.usuario.nombre)}.</p>`;
+    };
+    app.innerHTML = `<div class="no-print tarjeta"><div class="fila entre"><div><h2 style="margin:0">Informe</h2><p class="hint">${esc(o.nombre)} · versión ${d.version_numero}</p></div>
+        <div class="fila"><label class="chk"><input type="checkbox" id="c-det" checked> Numerales</label><label class="chk"><input type="checkbox" id="c-bre" checked> Plan de brechas</label><label class="chk"><input type="checkbox" id="c-res"> Anexo cuestionario</label><button class="btn" id="b-print">Imprimir / PDF</button><a class="btn sec" href="/api/diagnosticos/${d.id}/export.csv">CSV</a></div></div></div>
+      <div class="tarjeta impresion informe" id="hoja"></div>`;
+    pintar();
+    $('#c-det').onchange = e => { secciones.detalle = e.target.checked; pintar(); };
+    $('#c-bre').onchange = e => { secciones.brecha = e.target.checked; pintar(); };
+    $('#c-res').onchange = e => { secciones.respuestas = e.target.checked; pintar(); };
+    $('#b-print').onclick = () => window.print();
+  });
+
+  // ---------- editor del cuestionario (administrador) ----------
+  ruta('/cuestionario', async () => {
+    if (!puede('editar_instrumento')) { app.innerHTML = '<div class="tarjeta vacio">Solo el administrador puede modificar el cuestionario.</div>'; return; }
+    const { instrumento, items } = await api('/api/instrumentos/iso9001-2015-amd1-2024/items?todos=1');
+    const caps = [...new Map(items.map(i => [i.capitulo, i.capitulo_nombre])).entries()].sort((a, b) => a[0] - b[0]);
+    let filtro = '';
+    app.innerHTML = `<div class="fila entre"><div><h1>Cuestionario</h1><p class="hint">${esc(instrumento.nombre)} · ${items.filter(i => i.activo).length} preguntas vigentes</p></div><button class="btn peq" id="b-add">+ Agregar pregunta</button></div>
+      <div class="alerta info">Las preguntas agregadas o retiradas afectan las versiones en diligenciamiento y las nuevas. Las versiones cerradas conservan las preguntas con las que se evaluaron.</div>
+      <div class="tarjeta"><input id="f-q" placeholder="Filtrar por código, numeral o texto" inputmode="search"></div>
+      <div id="lista-items"></div>`;
+    const form = (it) => modal(`<h2>${it ? 'Editar' : 'Nueva'} pregunta</h2><form id="f-it">
+        <div class="grid-2"><div><label>Capítulo *</label><select name="capitulo">${caps.map(([n, nom]) => `<option value="${n}" ${it?.capitulo === n ? 'selected' : ''}>${n}. ${esc(nom)}</option>`).join('')}</select></div><div><label>Numeral ISO *</label><input name="numeral" required value="${esc(it?.numeral)}" placeholder="p. ej. 8.5.1"></div></div>
+        ${it ? '' : '<label>Código (opcional, se genera automáticamente)</label><input name="codigo" placeholder="ISO-099">'}
+        <label>Pregunta de diagnóstico *</label><textarea name="pregunta" required>${esc(it?.pregunta)}</textarea>
+        <label>Responsable sugerido de la evidencia</label><input name="responsable_sugerido" value="${esc(it?.responsable_sugerido)}">
+        <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar</button></div></form>`,
+      (bg, cerrar) => { $('#f-it', bg).onsubmit = async e => { e.preventDefault(); const body = Object.fromEntries(new FormData(e.target)); try { await api(it ? `/api/instrumentos/${instrumento.id}/items/${it.id}` : `/api/instrumentos/${instrumento.id}/items`, { method: it ? 'PUT' : 'POST', body }); cerrar(); toast('Guardado'); navegar(); } catch (err) { toast(err.message, true); } }; });
+    const pintar = () => {
+      const q = filtro.toLowerCase();
+      const l = items.filter(i => !q || i.codigo.toLowerCase().includes(q) || i.numeral.includes(q) || i.pregunta.toLowerCase().includes(q));
+      $('#lista-items').innerHTML = caps.map(([n, nom]) => { const del = l.filter(i => i.capitulo === n); if (!del.length) return ''; return `<h2 style="margin-top:1rem">${n}. ${esc(nom)} <span class="hint">(${del.filter(i => i.activo).length})</span></h2>` + del.map(i => `<div class="tarjeta" style="${i.activo ? '' : 'opacity:.55'}">
+        <div class="meta"><span class="chip">${esc(i.codigo)}</span><span class="hint">Numeral ${esc(i.numeral)}</span>${i.activo ? '' : '<span class="chip cerrado">Retirada</span>'}<span class="hint">· en ${i.versiones_en_uso} versión(es)</span></div>
+        <p style="margin:.4rem 0">${esc(i.pregunta)}</p><p class="hint">Responsable sugerido: ${esc(i.responsable_sugerido || '—')}</p>
+        <div class="acciones">${i.activo ? `<button class="btn peq sec" data-edit="${i.id}">Editar</button><button class="btn peq peligro" data-del="${i.id}">Retirar</button>` : `<button class="btn peq suave" data-res="${i.id}">Restaurar</button>`}</div></div>`).join(''); }).join('') || '<div class="tarjeta vacio">Sin resultados.</div>';
+      $$('[data-edit]').forEach(b => b.onclick = () => form(items.find(i => i.id === b.dataset.edit)));
+      $$('[data-del]').forEach(b => b.onclick = async () => { const i = items.find(x => x.id === b.dataset.del); if (await confirmar(`La pregunta ${i.codigo} se retirará del cuestionario vigente y de las versiones en diligenciamiento. Las versiones cerradas la conservan.`, 'Retirar')) { try { await api(`/api/instrumentos/${instrumento.id}/items/${i.id}`, { method: 'DELETE' }); toast('Pregunta retirada'); navegar(); } catch (e) { toast(e.message, true); } } });
+      $$('[data-res]').forEach(b => b.onclick = async () => { try { await api(`/api/instrumentos/${instrumento.id}/items/${b.dataset.res}/restaurar`, { method: 'POST' }); toast('Pregunta restaurada'); navegar(); } catch (e) { toast(e.message, true); } });
+    };
+    pintar();
+    $('#f-q').oninput = e => { filtro = e.target.value; pintar(); };
+    $('#b-add').onclick = () => form(null);
+  });
+
   // ---------- impresión ----------
   function encabezadoImpresion(titulo, o, d) {
     return `<div class="encabezado"><h1>${esc(titulo)}</h1><p class="hint">Referencia: ISO 9001:2015 y Enmienda 1:2024. Preguntas propias de aplicación. No es un instrumento oficial de ISO.</p></div>
       <div class="datos"><div><strong>Organización:</strong> ${esc(o?.nombre) || '&nbsp;'}</div><div><strong>Versión:</strong> ${d ? 'v' + d.version_numero + ' · ' + esc(d.titulo) : '&nbsp;'}</div><div><strong>Fecha:</strong> ${d ? fecha(d.fecha) : '&nbsp;'}</div><div><strong>Evaluador(es):</strong> &nbsp;</div><div><strong>Estado:</strong> ${d ? (d.estado === 'cerrado' ? 'Cerrada' : 'En diligenciamiento') : '&nbsp;'}</div><div><strong>Impreso:</strong> ${new Date().toLocaleString('es-CO')}</div></div>
-      <div class="escala"><strong>Escala de valoración:</strong> ${ICONO.cumple} Cumple (100 %) · ${ICONO.cumple_parcial} Cumplimiento parcial (50 %) · ${ICONO.no_cumple} No cumple (0 %) · ${ICONO.sin_evidencia} Sin evidencia (0 %). El cumplimiento global es el promedio ponderado de las preguntas.</div>`;
+      <div class="escala"><strong>Escala de valoración:</strong> ${ICONO.cumple} Cumple (100 %) · ${ICONO.cumple_parcial} Cumple parcialmente (50 %) · ${ICONO.no_cumple} No cumple (0 %) · ${ICONO.no_aplica} No aplica (no cuenta). El cumplimiento global es el promedio ponderado de las preguntas aplicables.</div>`;
   }
   function tablaImpresion(items, respMap, blanco) {
     let cap = null, html = '';
@@ -422,7 +552,7 @@
       const incluir = $('#chk-ind').checked;
       $('#hoja').innerHTML = encabezadoImpresion('Diagnóstico de implementación ISO 9001', o, data.diagnostico) +
         (incluir ? `<div class="resumen-imp"><div><strong>${fmt(ind.cumplimiento)} %</strong>Cumplimiento global</div><div><strong>${fmt(ind.brecha_total)} %</strong>Brecha ISO 9001</div><div><strong>${esc(ind.nivel.nombre)}</strong>Nivel de madurez</div>${ind.por_capitulo.map(c => `<div><strong>${fmt(c.cumplimiento)} %</strong>Cap. ${c.capitulo}</div>`).join('')}</div>
-          <p style="font-size:.85rem">${ICONO.cumple} Cumple: ${ind.conteo.cumple} · ${ICONO.cumple_parcial} Parcial: ${ind.conteo.cumple_parcial} · ${ICONO.no_cumple} No cumple: ${ind.conteo.no_cumple} · ${ICONO.sin_evidencia} Sin evidencia: ${ind.conteo.sin_evidencia}${ind.conteo.sin_valorar ? ' · Sin valorar: ' + ind.conteo.sin_valorar : ''}</p>` : '') +
+          <p style="font-size:.85rem">${ICONO.cumple} Cumple: ${ind.conteo.cumple} · ${ICONO.cumple_parcial} Parcial: ${ind.conteo.cumple_parcial} · ${ICONO.no_cumple} No cumple: ${ind.conteo.no_cumple} · ${ICONO.no_aplica} No aplica: ${ind.conteo.no_aplica}${ind.conteo.sin_valorar ? ' · Sin valorar: ' + ind.conteo.sin_valorar : ''}</p>` : '') +
         tablaImpresion(data.items, respMap, false);
     };
     pintar();
@@ -433,9 +563,9 @@
 
   // ---------- usuarios y perfil ----------
   ruta('/usuarios', async () => {
-    if (!['admin', 'consultor'].includes(estado.usuario.rol)) { app.innerHTML = '<div class="tarjeta vacio">Solo administradores.</div>'; return; }
+    if (!puede('gestionar_usuarios')) { app.innerHTML = '<div class="tarjeta vacio">Solo administradores.</div>'; return; }
     const { usuarios, puede_sincronizar, sincronizacion } = await api('/api/usuarios');
-    const admin = estado.usuario.rol === 'admin';
+    const admin = true;
     app.innerHTML = `<div class="fila entre"><h1>Usuarios</h1><div class="fila">${puede_sincronizar ? `<button class="btn peq suave" id="b-sync">↻ Traer usuarios de ${esc(estado.config.auth.gestor_nombre)}</button>` : ''}${admin && estado.config.auth.local ? '<button class="btn peq" id="b-nuevo">+ Usuario local</button>' : ''}</div></div>
       ${sincronizacion?.automatica ? `<div class="alerta info">Sincronización automática con ${esc(estado.config.auth.gestor_nombre)} activa${sincronizacion.ultima ? ' · última: ' + new Date(sincronizacion.ultima).toLocaleString('es-CO') + (sincronizacion.resultado ? ` · ${sincronizacion.resultado.total} usuarios` : '') : ''}${sincronizacion.error ? ' · <strong>error:</strong> ' + esc(sincronizacion.error) : ''}. Los usuarios creados en el gestor aparecen aquí sin intervención.</div>` : `<div class="alerta">La sincronización automática no está configurada. Los usuarios del gestor se crean aquí en su primer ingreso${puede_sincronizar ? ' o al pulsar "Traer usuarios"' : ''}. Configure GESTOR_USUARIOS_ARCHIVO o la cuenta de servicio en el .env.</div>`}
       <div class="tarjeta"><input id="buscar-u" placeholder="Buscar por nombre o correo" inputmode="search"></div>
@@ -444,8 +574,8 @@
       const q = ($('#buscar-u').value || '').toLowerCase();
       const l = usuarios.filter(u => !q || u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
       $('#lista-usuarios').innerHTML = l.length ? l.map(u => `<div class="tarjeta" style="${u.activo ? '' : 'opacity:.55'}">
-        <div class="fila entre"><div><strong>${esc(u.nombre)}</strong><br><span class="hint">${esc(u.email)}${u.cargo ? ' · ' + esc(u.cargo) : ''} · ${u.rol} · ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}${u.activo ? '' : ' · inactivo'}${u.origen === 'gestor' && !u.ultimo_acceso ? ' · aún no ha ingresado' : ''}</span></div></div>
-        <p class="hint" style="margin:.4rem 0 0">${['admin', 'consultor'].includes(u.rol) ? 'Acceso a todas las organizaciones por su rol global.' : (u.total_organizaciones ? `${u.total_organizaciones} organización(es): ${esc(u.organizaciones)}` : 'Sin organizaciones asignadas.')}</p>
+        <div class="fila entre"><div><strong>${esc(u.nombre)}</strong><br><span class="hint">${esc(u.email)}${u.cargo ? ' · ' + esc(u.cargo) : ''} · ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}${u.activo ? '' : ' · inactivo'}${u.origen === 'gestor' && !u.ultimo_acceso ? ' · aún no ha ingresado' : ''}</span></div></div>
+        <p class="hint" style="margin:.4rem 0 0"><strong>${ROL_ETIQ[u.rol] || u.rol}</strong>${u.rol_manual ? ' (fijado aquí)' : ''} · ${u.rol === 'admin' ? 'Acceso a todas las organizaciones.' : (u.total_organizaciones ? `${u.total_organizaciones} organización(es): ${esc(u.organizaciones)}` : 'Sin organizaciones asignadas.')}</p>
         <div class="acciones"><button class="btn peq suave" data-orgs="${u.id}">Organizaciones</button>${admin ? `<button class="btn peq sec" data-edit="${u.id}">Editar</button>` : ''}</div></div>`).join('') : '<div class="tarjeta vacio">Sin resultados.</div>';
       $$('[data-edit]').forEach(b => b.onclick = () => form(usuarios.find(u => u.id === b.dataset.edit)));
       $$('[data-orgs]').forEach(b => b.onclick = () => asignarOrganizaciones(usuarios.find(u => u.id === b.dataset.orgs)));
@@ -454,11 +584,16 @@
     const form = (u) => modal(`<h2>${u ? 'Editar' : 'Nuevo'} usuario</h2><form id="f-u">
       <label>Nombre *</label><input name="nombre" required value="${esc(u?.nombre)}">
       <label>Correo *</label><input name="email" type="email" required value="${esc(u?.email)}" ${u ? 'readonly' : ''}>
-      <label>Rol global</label><select name="rol"><option value="usuario" ${u?.rol === 'usuario' ? 'selected' : ''}>Usuario (solo organizaciones asignadas)</option><option value="consultor" ${u?.rol === 'consultor' ? 'selected' : ''}>Consultor (todas las organizaciones)</option><option value="admin" ${u?.rol === 'admin' ? 'selected' : ''}>Administrador</option></select>
+      <label>Rol</label><select name="rol">${estado.config.roles.map(r => `<option value="${r.clave}" ${(u?.rol ?? 'usuario') === r.clave ? 'selected' : ''}>${esc(r.etiqueta)}</option>`).join('')}</select>
+      <p class="hint" id="rol-desc"></p>
+      <label>Cargo</label><input name="cargo" value="${esc(u?.cargo)}">
       ${u ? `<label>Activo</label><select name="activo"><option value="1" ${u.activo ? 'selected' : ''}>Sí</option><option value="0" ${!u.activo ? 'selected' : ''}>No</option></select>` : ''}
       ${!u || u.origen === 'local' ? `<label>${u ? 'Nueva contraseña (opcional)' : 'Contraseña *'}</label><input name="password" type="text" autocomplete="off" ${u ? '' : 'required'} minlength="8">` : ''}
       <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar</button></div></form>`,
-      (bg, cerrar) => { $('#f-u', bg).onsubmit = async e => { e.preventDefault(); const body = Object.fromEntries(new FormData(e.target)); if (body.activo !== undefined) body.activo = body.activo === '1'; if (!body.password) delete body.password; try { await api(u ? '/api/usuarios/' + u.id : '/api/usuarios', { method: u ? 'PUT' : 'POST', body }); cerrar(); toast('Guardado'); navegar(); } catch (err) { toast(err.message, true); } }; });
+      (bg, cerrar) => {
+        const sel = $('select[name=rol]', bg), desc = $('#rol-desc', bg);
+        const pd = () => { desc.textContent = (estado.config.roles.find(r => r.clave === sel.value) || {}).descripcion || ''; }; pd(); sel.onchange = pd;
+        $('#f-u', bg).onsubmit = async e => { e.preventDefault(); const body = Object.fromEntries(new FormData(e.target)); if (body.activo !== undefined) body.activo = body.activo === '1'; if (!body.password) delete body.password; try { await api(u ? '/api/usuarios/' + u.id : '/api/usuarios', { method: u ? 'PUT' : 'POST', body }); cerrar(); toast('Guardado'); navegar(); } catch (err) { toast(err.message, true); } }; });
     const bn = $('#b-nuevo'); if (bn) bn.onclick = () => form(null);
     const bs = $('#b-sync'); if (bs) bs.onclick = async () => { bs.disabled = true; try { const r = await api('/api/usuarios/sincronizar', { method: 'POST' }); toast(`${r.total} usuarios del gestor: ${r.creados} nuevos, ${r.actualizados} actualizados`); navegar(); } catch (e) { toast(e.message, true); bs.disabled = false; } };
     pintarUsuarios();
@@ -467,15 +602,15 @@
   // Asignación de una o varias organizaciones a un usuario (selección múltiple con rol por organización).
   async function asignarOrganizaciones(u) {
     const { organizaciones } = await api(`/api/usuarios/${u.id}/organizaciones`);
-    const global = ['admin', 'consultor'].includes(u.rol);
+    const global = u.rol === 'admin';
+    const alcance = { editor: 'ver indicadores, crear y cerrar versiones y diligenciar', auditor: 'diligenciar el cuestionario de la versión abierta', usuario: 'consultar el tablero de resultados y generar informes' }[u.rol] || '';
     modal(`<h2>Organizaciones de ${esc(u.nombre)}</h2>
-      <p class="hint">Marque las organizaciones que este usuario podrá diligenciar o consultar. ${global ? 'Este usuario tiene acceso a todas por su rol global; la asignación solo aplicaría si cambia a rol usuario.' : ''}</p>
+      <p class="hint">Rol: <strong>${ROL_ETIQ[u.rol] || u.rol}</strong>. ${global ? 'Los administradores acceden a todas las organizaciones; la asignación no es necesaria.' : `En las organizaciones marcadas podrá ${alcance}.`}</p>
       ${organizaciones.length ? `<input id="buscar-o" placeholder="Filtrar organizaciones" inputmode="search" style="margin-bottom:.5rem">
       <div class="fila entre" style="margin-bottom:.4rem"><button type="button" class="btn peq sec" id="o-todas">Seleccionar todas</button><button type="button" class="btn peq sec" id="o-ninguna">Quitar todas</button><span class="hint" id="o-cuenta"></span></div>
       <form id="f-orgs"><div id="lista-orgs">${organizaciones.map(o => `<label class="sel-org" data-texto="${esc((o.nombre + ' ' + (o.sigla || '') + ' ' + (o.sector || '') + ' ' + (o.ciudad || '')).toLowerCase())}">
           <input type="checkbox" name="org" value="${o.id}" ${o.asignada ? 'checked' : ''}>
           <span class="sel-org-nombre"><strong>${esc(o.nombre)}</strong><span class="hint">${[o.sigla, o.sector, o.ciudad].filter(Boolean).map(esc).join(' · ')}</span></span>
-          <select name="rol-${o.id}" aria-label="Rol"><option value="editor" ${o.rol_asignado !== 'lector' ? 'selected' : ''}>Editor</option><option value="lector" ${o.rol_asignado === 'lector' ? 'selected' : ''}>Lector</option></select>
         </label>`).join('')}</div>
         <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar asignación</button></div></form>` : '<p class="vacio">Todavía no hay organizaciones creadas.</p><div class="acciones"><button class="btn sec" type="button" data-cerrar>Cerrar</button></div>'}`,
       (bg, cerrar) => {
@@ -488,7 +623,7 @@
         $('#o-ninguna', bg).onclick = () => { $$('.sel-org:not([hidden]) input[name=org]', bg).forEach(c => c.checked = false); cuenta(); };
         f.onsubmit = async e => {
           e.preventDefault();
-          const sel = $$('input[name=org]:checked', bg).map(c => ({ id: c.value, rol: f[`rol-${c.value}`].value }));
+          const sel = $$('input[name=org]:checked', bg).map(c => c.value);
           try { const r = await api(`/api/usuarios/${u.id}/organizaciones`, { method: 'PUT', body: { organizaciones: sel } }); cerrar(); toast(`${r.asignadas} organización(es) asignada(s)`); navegar(); } catch (err) { toast(err.message, true); }
         };
       });
@@ -496,7 +631,8 @@
 
   ruta('/perfil', async () => {
     const u = estado.usuario;
-    app.innerHTML = `<h1>Mi perfil</h1><div class="tarjeta"><p><strong>${esc(u.nombre)}</strong><br>${esc(u.email)}<br>Rol: ${u.rol} · Origen: ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'usuario local'}</p></div>
+    app.innerHTML = `<h1>Mi perfil</h1><div class="tarjeta"><p><strong>${esc(u.nombre)}</strong><br>${esc(u.email)}<br>Origen: ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'usuario local'}</p></div>
+      <div class="tarjeta"><h2>Su rol: ${ROL_ETIQ[u.rol] || u.rol}</h2><p>${esc((estado.config.roles.find(r => r.clave === u.rol) || {}).descripcion || '')}</p></div>
       ${u.origen === 'local' ? `<div class="tarjeta"><h2>Cambiar contraseña</h2><form id="f-pw"><label>Contraseña actual</label><input name="actual" type="password" required autocomplete="current-password"><label>Nueva contraseña (mínimo 8 caracteres)</label><input name="nueva" type="password" required minlength="8" autocomplete="new-password"><div class="acciones"><button class="btn" type="submit">Actualizar</button></div></form></div>`
         : `<div class="alerta info">Su cuenta se administra en <a href="${esc(estado.config.auth.gestor_url)}" target="_blank" rel="noopener">${esc(estado.config.auth.gestor_nombre)}</a>.</div>`}`;
     const f = $('#f-pw'); if (f) f.onsubmit = async e => { e.preventDefault(); try { await api('/api/auth/cambiar-password', { method: 'POST', body: Object.fromEntries(new FormData(f)) }); toast('Contraseña actualizada'); f.reset(); } catch (err) { toast(err.message, true); } };
@@ -505,8 +641,9 @@
   // ---------- arranque ----------
   function pintarUsuario() {
     const u = estado.usuario;
-    $('#drawer-user').innerHTML = u ? `<strong>${esc(u.nombre)}</strong><span>${esc(u.email)} · ${u.rol}</span>` : '';
-    $$('[data-admin]').forEach(a => a.hidden = !u || !['admin', 'consultor'].includes(u.rol));
+    $('#drawer-user').innerHTML = u ? `<strong>${esc(u.nombre)}</strong><span>${esc(u.email)} · ${ROL_ETIQ[u.rol] || u.rol}</span>` : '';
+    $$('[data-admin]').forEach(a => a.hidden = !puede('gestionar_usuarios'));
+    $$('[data-instrumento]').forEach(a => a.hidden = !puede('editar_instrumento'));
     $('#btn-menu').hidden = !u;
   }
   function abrirMenu(abrir) { $('#drawer').hidden = !abrir; }

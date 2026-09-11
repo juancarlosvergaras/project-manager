@@ -40,7 +40,7 @@ test('el caso HUC viene precargado con 98 respuestas y sus indicadores', async (
   const ind = await call(`/api/diagnosticos/${huc.ultimo_diagnostico.id}/indicadores`);
   assert.equal(ind.data.indicadores.total_items, 98);
   assert.equal(ind.data.indicadores.cumplimiento, 13.8);
-  assert.deepEqual(ind.data.indicadores.conteo, { cumple: 0, cumple_parcial: 27, no_cumple: 9, sin_evidencia: 62, sin_valorar: 0 });
+  assert.deepEqual(ind.data.indicadores.conteo, { cumple: 0, cumple_parcial: 27, no_cumple: 71, no_aplica: 0, sin_valorar: 0 });
   const det = await call(`/api/diagnosticos/${huc.ultimo_diagnostico.id}`);
   assert.equal(det.data.items.filter(i => i.respuesta?.estado_origen === 'Antecedente por verificar').length, 15);
   assert.equal(det.data.editable, false);
@@ -97,24 +97,57 @@ test('asignación de una o varias organizaciones desde el usuario', async () => 
   const antes = await call(`/api/usuarios/${ev.id}/organizaciones`);
   assert.ok(antes.data.organizaciones.length >= 4);
   assert.equal(antes.data.organizaciones.filter(o => o.asignada).length, 1);
-  const put = await call(`/api/usuarios/${ev.id}/organizaciones`, { method: 'PUT', body: { organizaciones: [{ id: o1.data.id, rol: 'editor' }, { id: o2.data.id, rol: 'lector' }] } });
+  const put = await call(`/api/usuarios/${ev.id}/organizaciones`, { method: 'PUT', body: { organizaciones: [{ id: o1.data.id }, o2.data.id] } });
   assert.equal(put.status, 200); assert.equal(put.data.asignadas, 2);
   const despues = await call(`/api/usuarios/${ev.id}/organizaciones`);
-  const asignadas = despues.data.organizaciones.filter(o => o.asignada);
-  assert.deepEqual(asignadas.map(o => o.sigla).sort(), ['ALC', 'CLI'], 'reemplaza la asignación anterior');
-  assert.equal(asignadas.find(o => o.sigla === 'CLI').rol_asignado, 'lector');
+  assert.deepEqual(despues.data.organizaciones.filter(o => o.asignada).map(o => o.sigla).sort(), ['ALC', 'CLI'], 'reemplaza la asignación anterior');
   const invalida = await call(`/api/usuarios/${ev.id}/organizaciones`, { method: 'PUT', body: { organizaciones: ['no-existe'] } });
   assert.equal(invalida.status, 400);
+  // cambio de rol a auditor: solo diligencia, no ve indicadores
+  await call(`/api/usuarios/${ev.id}`, { method: 'PUT', body: { rol: 'auditor' } });
   const adminCookie = cookie; cookie = '';
   await call('/api/auth/local/login', { method: 'POST', body: { email: 'evaluador@prueba.org', password: 'clave-evaluador' } });
   const mias = await call('/api/organizaciones');
   assert.deepEqual(mias.data.organizaciones.map(o => o.sigla).sort(), ['ALC', 'CLI']);
-  assert.equal(mias.data.organizaciones.find(o => o.sigla === 'CLI').mi_rol, 'lector');
+  const v = await call(`/api/organizaciones/${o1.data.id}/diagnosticos`, { method: 'POST', body: {} });
+  assert.equal(v.status, 403, 'un auditor no crea versiones');
   cookie = adminCookie;
+});
+
+test('el administrador edita el cuestionario y las versiones cerradas no cambian', async () => {
+  const { data: org } = await call('/api/organizaciones');
+  const huc = org.organizaciones.find(o => o.sigla === 'HUC');
+  const cerrado = await call(`/api/diagnosticos/${huc.ultimo_diagnostico.id}`);
+  assert.equal(cerrado.data.items.length, 98);
+  const nueva = await call('/api/instrumentos/iso9001-2015-amd1-2024/items', { method: 'POST', body: { capitulo: 4, numeral: '4.4.1', pregunta: '¿Pregunta nueva de prueba?', responsable_sugerido: 'Calidad' } });
+  assert.equal(nueva.status, 201); assert.equal(nueva.data.codigo, 'ISO-099');
+  const mala = await call('/api/instrumentos/iso9001-2015-amd1-2024/items', { method: 'POST', body: { capitulo: 5, numeral: '4.1', pregunta: 'x' } });
+  assert.equal(mala.status, 400);
+  const items = await call('/api/instrumentos/iso9001-2015-amd1-2024/items');
+  assert.equal(items.data.items.length, 99);
+  const primera = items.data.items[0];
+  const quitar = await call(`/api/instrumentos/iso9001-2015-amd1-2024/items/${primera.id}`, { method: 'DELETE' });
+  assert.equal(quitar.status, 200);
+  assert.equal((await call('/api/instrumentos/iso9001-2015-amd1-2024/items')).data.items.length, 98);
+  assert.equal((await call(`/api/diagnosticos/${huc.ultimo_diagnostico.id}`)).data.items.length, 98, 'la versión cerrada conserva sus 98 preguntas originales');
+  // Nueva versión: usa el cuestionario vigente (98 = 99 - 1 retirada)
+  const v2 = await call(`/api/organizaciones/${huc.id}/diagnosticos`, { method: 'POST', body: { desde_version_id: huc.ultimo_diagnostico.id } });
+  const det = await call(`/api/diagnosticos/${v2.data.id}`);
+  assert.equal(det.data.items.length, 98);
+  assert.ok(det.data.items.some(i => i.codigo === 'ISO-099'));
+  assert.ok(!det.data.items.some(i => i.id === primera.id));
+  // Restaurar la pregunta: vuelve a la versión abierta
+  await call(`/api/instrumentos/iso9001-2015-amd1-2024/items/${primera.id}/restaurar`, { method: 'POST' });
+  assert.equal((await call(`/api/diagnosticos/${v2.data.id}`)).data.items.length, 99);
+  // "No aplica" sale del denominador
+  const it = det.data.items.find(i => i.codigo === 'ISO-099');
+  const r = await call(`/api/diagnosticos/${v2.data.id}/respuestas/${it.id}`, { method: 'PUT', body: { valoracion: 'no_aplica' } });
+  assert.equal(r.status, 200); assert.equal(r.data.resumen.conteo.no_aplica, 1);
+  await call(`/api/diagnosticos/${v2.data.id}`, { method: 'DELETE' });
 });
 
 test('el formato en blanco es público', async () => {
   cookie = '';
   const r = await call('/api/instrumentos/iso9001-2015-amd1-2024/items');
-  assert.equal(r.status, 200); assert.equal(r.data.items.length, 98);
+  assert.equal(r.status, 200); assert.ok(r.data.items.length >= 98);
 });

@@ -7,19 +7,36 @@ import { randomUUID } from 'node:crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Escala de valoración. "No aplica" no suma ni resta: se excluye del denominador del cumplimiento.
 export const VALORACIONES = {
-  cumple:         { etiqueta: 'Cumple',               peso: 1.0, orden: 1 },
-  cumple_parcial: { etiqueta: 'Cumplimiento parcial', peso: 0.5, orden: 2 },
-  no_cumple:      { etiqueta: 'No cumple',            peso: 0.0, orden: 3 },
-  sin_evidencia:  { etiqueta: 'Sin evidencia',        peso: 0.0, orden: 4 },
+  cumple:         { etiqueta: 'Cumple',              peso: 1.0, orden: 1, aplica: true },
+  cumple_parcial: { etiqueta: 'Cumple parcialmente', peso: 0.5, orden: 2, aplica: true },
+  no_cumple:      { etiqueta: 'No cumple',           peso: 0.0, orden: 3, aplica: true },
+  no_aplica:      { etiqueta: 'No aplica',           peso: 0.0, orden: 4, aplica: false },
 };
+
+// Roles globales de la herramienta y sus capacidades.
+export const ROLES = {
+  admin:   { etiqueta: 'Administrador', descripcion: 'Todo: organizaciones, usuarios, cuestionario, versiones e indicadores de todas las organizaciones.' },
+  editor:  { etiqueta: 'Editor',        descripcion: 'En sus organizaciones: ve indicadores e históricos, crea, cierra y elimina versiones y diligencia el cuestionario. No modifica el cuestionario.' },
+  auditor: { etiqueta: 'Auditor',       descripcion: 'En sus organizaciones: ve la versión en diligenciamiento y la alimenta con valoraciones y textos.' },
+  usuario: { etiqueta: 'Usuario',       descripcion: 'En sus organizaciones: consulta el tablero de resultados y genera informes.' },
+};
+export const CAPACIDADES = {
+  admin:   ['ver_indicadores', 'diligenciar', 'gestionar_versiones', 'gestionar_organizaciones', 'gestionar_usuarios', 'editar_instrumento', 'ver_todas'],
+  editor:  ['ver_indicadores', 'diligenciar', 'gestionar_versiones'],
+  auditor: ['diligenciar'],
+  usuario: ['ver_indicadores'],
+};
+export function puede(usuario, capacidad) { return !!usuario && (CAPACIDADES[usuario.rol] || []).includes(capacidad); }
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS usuarios (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE COLLATE NOCASE,
   nombre TEXT NOT NULL,
-  rol TEXT NOT NULL DEFAULT 'usuario',            -- admin | consultor | usuario
+  rol TEXT NOT NULL DEFAULT 'usuario',            -- admin | editor | auditor | usuario
+  rol_manual INTEGER NOT NULL DEFAULT 0,          -- 1: el rol lo fijó un administrador aquí y no se sincroniza desde el gestor
   origen TEXT NOT NULL DEFAULT 'local',           -- local | gestor
   gestor_id TEXT,
   password_hash TEXT,
@@ -74,7 +91,16 @@ CREATE TABLE IF NOT EXISTS instrumento_items (
   pregunta TEXT NOT NULL,
   responsable_sugerido TEXT,
   orden INTEGER NOT NULL,
+  activo INTEGER NOT NULL DEFAULT 1,
+  creado_en TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (instrumento_id, codigo)
+);
+-- Preguntas que componen cada versión (instantánea): al quitar o agregar preguntas del cuestionario,
+-- las versiones cerradas conservan las suyas y las abiertas y nuevas usan el cuestionario vigente.
+CREATE TABLE IF NOT EXISTS diagnostico_items (
+  diagnostico_id TEXT NOT NULL REFERENCES diagnosticos(id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL REFERENCES instrumento_items(id),
+  PRIMARY KEY (diagnostico_id, item_id)
 );
 CREATE TABLE IF NOT EXISTS diagnosticos (
   id TEXT PRIMARY KEY,
@@ -95,7 +121,7 @@ CREATE TABLE IF NOT EXISTS diagnosticos (
 CREATE TABLE IF NOT EXISTS respuestas (
   diagnostico_id TEXT NOT NULL REFERENCES diagnosticos(id) ON DELETE CASCADE,
   item_id TEXT NOT NULL REFERENCES instrumento_items(id),
-  valoracion TEXT,                                -- cumple | cumple_parcial | no_cumple | sin_evidencia | NULL
+  valoracion TEXT,                                -- cumple | cumple_parcial | no_cumple | no_aplica | NULL
   estado_origen TEXT,
   evidencia TEXT,
   observaciones TEXT,
@@ -145,6 +171,19 @@ function migrar(db) {
   const colsU = db.prepare('PRAGMA table_info(usuarios)').all().map(c => c.name);
   if (!colsU.includes('cargo')) db.exec('ALTER TABLE usuarios ADD COLUMN cargo TEXT');
   if (!colsU.includes('sincronizado_en')) db.exec('ALTER TABLE usuarios ADD COLUMN sincronizado_en TEXT');
+  if (!colsU.includes('rol_manual')) db.exec('ALTER TABLE usuarios ADD COLUMN rol_manual INTEGER NOT NULL DEFAULT 0');
+  const colsI = db.prepare('PRAGMA table_info(instrumento_items)').all().map(c => c.name);
+  if (!colsI.includes('activo')) db.exec('ALTER TABLE instrumento_items ADD COLUMN activo INTEGER NOT NULL DEFAULT 1');
+  if (!colsI.includes('creado_en')) db.exec("ALTER TABLE instrumento_items ADD COLUMN creado_en TEXT NOT NULL DEFAULT ''");
+  // Rol "consultor" (modelo anterior) pasa a "editor"
+  db.exec("UPDATE usuarios SET rol = 'editor' WHERE rol = 'consultor'");
+  // Escala anterior: "sin_evidencia" (sin evidencia verificable) equivale a "no cumple"; se conserva la etiqueta de origen
+  db.exec("UPDATE respuestas SET estado_origen = COALESCE(estado_origen, 'Sin evidencia'), valoracion = 'no_cumple' WHERE valoracion = 'sin_evidencia'");
+  db.exec("UPDATE organizacion_miembros SET rol = (SELECT rol FROM usuarios u WHERE u.id = organizacion_miembros.usuario_id) WHERE rol NOT IN ('editor','auditor','usuario') OR rol IS NULL");
+  // Instantánea de preguntas para versiones creadas antes de existir diagnostico_items
+  db.exec(`INSERT OR IGNORE INTO diagnostico_items (diagnostico_id, item_id)
+           SELECT d.id, i.id FROM diagnosticos d JOIN instrumento_items i ON i.instrumento_id = d.instrumento_id
+           WHERE NOT EXISTS (SELECT 1 FROM diagnostico_items x WHERE x.diagnostico_id = d.id)`);
 }
 
 // ---------- Datos semilla ----------
@@ -197,8 +236,10 @@ export function seedCasoHuc(db) {
     for (const r of caso.respuestas) {
       const it = item.get(inst.id, r.codigo);
       if (!it) continue;
-      ins.run(diagId, it.id, r.valoracion, r.estado_origen ?? null, r.evidencia ?? null, r.observaciones ?? null, r.responsable ?? null);
+      const val = r.valoracion === 'sin_evidencia' ? 'no_cumple' : r.valoracion;
+      ins.run(diagId, it.id, val, r.estado_origen ?? null, r.evidencia ?? null, r.observaciones ?? null, r.responsable ?? null);
     }
+    db.prepare('INSERT OR IGNORE INTO diagnostico_items (diagnostico_id, item_id) SELECT ?, id FROM instrumento_items WHERE instrumento_id = ?').run(diagId, inst.id);
     db.exec('COMMIT');
   } catch (e) { db.exec('ROLLBACK'); throw e; }
   return orgId;

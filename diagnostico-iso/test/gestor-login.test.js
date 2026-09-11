@@ -77,7 +77,7 @@ test('trae el listado de usuarios del gestor con la sesión del administrador', 
   const ana = data.usuarios.find(u => u.email === 'ana@mintic1519.local');
   assert.ok(ana); assert.equal(ana.rol, 'usuario'); assert.equal(ana.cargo, 'Calidad'); assert.equal(ana.origen, 'gestor');
   const luis = data.usuarios.find(u => u.email === 'luis@mintic1519.local');
-  assert.equal(luis.rol, 'consultor'); assert.equal(luis.activo, 0);
+  assert.equal(luis.rol, 'editor'); assert.equal(luis.activo, 0);
   assert.equal(data.puede_sincronizar, true);
 });
 

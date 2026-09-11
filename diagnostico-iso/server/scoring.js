@@ -18,34 +18,35 @@ export function nivelMadurez(pct) {
  * respuestas: Map itemId -> {valoracion, evidencia, observaciones, responsable, estado_origen}
  */
 export function calcularIndicadores(items, respuestas) {
-  const conteo = { cumple: 0, cumple_parcial: 0, no_cumple: 0, sin_evidencia: 0, sin_valorar: 0 };
+  const conteo = { cumple: 0, cumple_parcial: 0, no_cumple: 0, no_aplica: 0, sin_valorar: 0 };
   const capitulos = new Map();
   const numerales = new Map();
   const responsables = new Map();
-  let puntos = 0;
+  let puntos = 0, aplicables = 0;
   const brecha = [];
 
   for (const it of items) {
     const r = respuestas.get(it.id) ?? {};
     const v = r.valoracion && VALORACIONES[r.valoracion] ? r.valoracion : null;
+    const aplica = !v || VALORACIONES[v].aplica;       // "no aplica" sale del denominador
     const peso = v ? VALORACIONES[v].peso : 0;
     if (v) conteo[v]++; else conteo.sin_valorar++;
-    puntos += peso;
+    if (aplica) { puntos += peso; aplicables++; }
 
-    const cap = capitulos.get(it.capitulo) ?? { capitulo: it.capitulo, nombre: it.capitulo_nombre, total: 0, puntos: 0, cumple: 0, cumple_parcial: 0, no_cumple: 0, sin_evidencia: 0, sin_valorar: 0 };
-    cap.total++; cap.puntos += peso; cap[v ?? 'sin_valorar']++;
+    const cap = capitulos.get(it.capitulo) ?? { capitulo: it.capitulo, nombre: it.capitulo_nombre, total: 0, aplicables: 0, puntos: 0, cumple: 0, cumple_parcial: 0, no_cumple: 0, no_aplica: 0, sin_valorar: 0 };
+    cap.total++; cap[v ?? 'sin_valorar']++; if (aplica) { cap.puntos += peso; cap.aplicables++; }
     capitulos.set(it.capitulo, cap);
 
-    const num = numerales.get(it.numeral) ?? { numeral: it.numeral, capitulo: it.capitulo, total: 0, puntos: 0, cumple: 0, cumple_parcial: 0, no_cumple: 0, sin_evidencia: 0, sin_valorar: 0 };
-    num.total++; num.puntos += peso; num[v ?? 'sin_valorar']++;
+    const num = numerales.get(it.numeral) ?? { numeral: it.numeral, capitulo: it.capitulo, total: 0, aplicables: 0, puntos: 0, cumple: 0, cumple_parcial: 0, no_cumple: 0, no_aplica: 0, sin_valorar: 0 };
+    num.total++; num[v ?? 'sin_valorar']++; if (aplica) { num.puntos += peso; num.aplicables++; }
     numerales.set(it.numeral, num);
 
     const resp = (r.responsable || it.responsable_sugerido || 'Sin asignar').trim();
-    const rs = responsables.get(resp) ?? { responsable: resp, total: 0, puntos: 0, pendientes: 0 };
-    rs.total++; rs.puntos += peso; if (peso < 1) rs.pendientes++;
+    const rs = responsables.get(resp) ?? { responsable: resp, total: 0, aplicables: 0, puntos: 0, pendientes: 0 };
+    rs.total++; if (aplica) { rs.puntos += peso; rs.aplicables++; if (peso < 1) rs.pendientes++; }
     responsables.set(resp, rs);
 
-    if (peso < 1) {
+    if (aplica && peso < 1) {
       brecha.push({
         item_id: it.id, codigo: it.codigo, capitulo: it.capitulo, numeral: it.numeral, pregunta: it.pregunta,
         valoracion: v, etiqueta: v ? VALORACIONES[v].etiqueta : 'Sin valorar',
@@ -56,14 +57,15 @@ export function calcularIndicadores(items, respuestas) {
   }
 
   const total = items.length;
-  const pct = total ? round(100 * puntos / total) : 0;
-  const porCapitulo = [...capitulos.values()].sort((a, b) => a.capitulo - b.capitulo).map(c => ({ ...c, cumplimiento: c.total ? round(100 * c.puntos / c.total) : 0, brecha: c.total ? round(100 - 100 * c.puntos / c.total) : 0 }));
-  const porNumeral = [...numerales.values()].sort((a, b) => cmpNumeral(a.numeral, b.numeral)).map(n => ({ ...n, cumplimiento: n.total ? round(100 * n.puntos / n.total) : 0 }));
-  const porResponsable = [...responsables.values()].map(r => ({ ...r, cumplimiento: r.total ? round(100 * r.puntos / r.total) : 0 })).sort((a, b) => b.pendientes - a.pendientes);
+  const pct = aplicables ? round(100 * puntos / aplicables) : 0;
+  const porCapitulo = [...capitulos.values()].sort((a, b) => a.capitulo - b.capitulo).map(c => ({ ...c, cumplimiento: c.aplicables ? round(100 * c.puntos / c.aplicables) : 0, brecha: c.aplicables ? round(100 - 100 * c.puntos / c.aplicables) : 0 }));
+  const porNumeral = [...numerales.values()].sort((a, b) => cmpNumeral(a.numeral, b.numeral)).map(n => ({ ...n, cumplimiento: n.aplicables ? round(100 * n.puntos / n.aplicables) : 0 }));
+  const porResponsable = [...responsables.values()].map(r => ({ ...r, cumplimiento: r.aplicables ? round(100 * r.puntos / r.aplicables) : 0 })).sort((a, b) => b.pendientes - a.pendientes);
   const valorados = total - conteo.sin_valorar;
 
   return {
     total_items: total,
+    items_aplicables: aplicables,
     items_valorados: valorados,
     avance_diligenciamiento: total ? round(100 * valorados / total) : 0,
     cumplimiento: pct,
@@ -77,7 +79,7 @@ export function calcularIndicadores(items, respuestas) {
     capitulo_critico: porCapitulo.length ? porCapitulo.reduce((m, c) => c.cumplimiento < m.cumplimiento ? c : m) : null,
     brecha: brecha.sort((a, b) => (a.prioridad === b.prioridad ? 0 : a.prioridad === 'alta' ? -1 : 1) || a.capitulo - b.capitulo || cmpNumeral(a.numeral, b.numeral)),
     items_para_cumplir: brecha.length,
-    puntos_faltantes: round(total - puntos, 1),
+    puntos_faltantes: round(aplicables - puntos, 1),
   };
 }
 

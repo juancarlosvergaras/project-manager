@@ -7,11 +7,13 @@ Herramienta en línea para aplicar, versionar y analizar el diagnóstico de impl
 - **Organizaciones**. Creación y administración de organizaciones (nombre, sigla, NIT, sector, ciudad, contacto).
 - **Asignación de organizaciones a usuarios**. Desde la pantalla de Usuarios se asignan a cada usuario una o varias de las organizaciones creadas mediante selección múltiple con filtro, con rol de editor o lector por organización, al estilo de la asignación de proyectos del gestor. También es posible asignar un usuario desde la propia organización.
 - **Cuestionario**. Instrumento de 98 preguntas propias de aplicación, organizadas por capítulo (4 a 10) y numeral de la norma, con responsable sugerido de la evidencia.
-- **Escala de valoración**. Cumple (100 %), Cumplimiento parcial (50 %), No cumple (0 %) y Sin evidencia (0 %). Cada respuesta admite evidencia, observaciones y responsable.
+- **Escala de valoración**. Cumple (100 %), Cumple parcialmente (50 %), No cumple (0 %) y No aplica (excluida del cálculo). Cada respuesta admite evidencia, observaciones y responsable.
+- **Cuestionario editable**. El administrador agrega, edita, retira y restaura preguntas. Las versiones cerradas conservan las preguntas con las que se evaluaron; las abiertas y las nuevas usan el cuestionario vigente.
+- **Tablero e informes**. Tablero visual con medidor de cumplimiento, distribución de respuestas, semáforo por capítulo, evolución entre versiones y requisitos más urgentes, e informe ejecutivo imprimible a PDF con resumen, comparación con la versión anterior, cumplimiento por numeral y plan de cierre de brechas.
 - **Versiones e histórico**. Cada aplicación del cuestionario es una versión numerada de la organización. Una versión se cierra para congelarla y una nueva puede partir en blanco o heredar de una anterior (con o sin valoraciones). El histórico muestra la evolución del cumplimiento por versión y permite comparar dos versiones ítem a ítem.
 - **Indicadores**. Cumplimiento global, brecha para alcanzar ISO 9001, nivel de madurez, capítulo crítico, distribución de valoraciones, cumplimiento por capítulo y por numeral, lista priorizada de requisitos por cerrar y carga por responsable. Exportación a CSV.
 - **Impresión**. Formato en blanco (sin sesión) y formato diligenciado con filtro de versión, ambos optimizados para A4 horizontal.
-- **Caso precargado**. Diagnóstico documental del Hospital Universitario del Caribe (98 respuestas, versión 1 cerrada), tomado del instrumento en Excel aportado. Las categorías originales (Evidencia parcial, Sin evidencia aportada, Brecha documental, Antecedente por verificar) se conservan en cada respuesta como estado de origen.
+- **Caso precargado**. Diagnóstico documental del Hospital Universitario del Caribe (98 respuestas, versión 1 cerrada), tomado del instrumento en Excel aportado. Las categorías originales (Evidencia parcial, Sin evidencia aportada, Brecha documental, Antecedente por verificar) se conservan en cada respuesta como estado de origen; las tres últimas se valoran como No cumple.
 - **Aplicación instalable**. Manifiesto PWA para agregarla a la pantalla de inicio del teléfono.
 
 ## Arquitectura
@@ -116,11 +118,16 @@ El código fuente de app.proyectoia.org no forma parte de este repositorio, por 
 
 ## Roles y permisos
 
-| Rol global | Alcance |
+El rol es global por usuario y el alcance lo dan las organizaciones asignadas (una o varias). Los administradores acceden a todas.
+
+| Rol | Alcance |
 |---|---|
-| admin | Todo: organizaciones, usuarios, versiones, eliminación y reapertura |
-| consultor | Crea y edita organizaciones, asigna usuarios, diligencia y cierra versiones de cualquier organización, reabre versiones |
-| usuario | Solo las organizaciones asignadas, como editor (diligencia y cierra) o lector (consulta e imprime) |
+| Administrador | Organizaciones, usuarios y asignaciones, cuestionario (agregar, editar y retirar preguntas), versiones, diligenciamiento, indicadores, tablero e informes de todas las organizaciones |
+| Editor | En sus organizaciones: tablero, indicadores, históricos, comparaciones e informes; crea, cierra, reabre y elimina versiones; diligencia el cuestionario. No modifica el cuestionario |
+| Auditor | En sus organizaciones: ve la versión en diligenciamiento y la alimenta con valoraciones, evidencias, observaciones y responsables |
+| Usuario | En sus organizaciones: tablero de resultados, informes y exportación |
+
+Los usuarios del gestor reciben el rol según `GESTOR_ADMIN_ROLES`, `GESTOR_EDITOR_ROLES` y `GESTOR_AUDITOR_ROLES` (el resto entra como usuario). Si el administrador cambia el rol de un usuario en esta herramienta, ese rol se conserva aunque el gestor lo sincronice.
 
 ## API principal
 
@@ -130,6 +137,7 @@ El código fuente de app.proyectoia.org no forma parte de este repositorio, por 
 | `POST /api/auth/local/login`, `POST /api/auth/logout` | Sesión local |
 | `GET /api/organizaciones`, `POST /api/organizaciones`, `PUT /api/organizaciones/:id` | Organizaciones |
 | `POST /api/organizaciones/:id/miembros`, `DELETE …/miembros/:usuarioId` | Asignación de un usuario desde la organización |
+| `POST /api/instrumentos/:id/items`, `PUT …/items/:itemId`, `DELETE …/items/:itemId`, `POST …/items/:itemId/restaurar` | Edición del cuestionario (administrador) |
 | `GET /api/usuarios/:id/organizaciones`, `PUT /api/usuarios/:id/organizaciones` | Organizaciones asignadas a un usuario; el PUT recibe `{ organizaciones: [{ id, rol }] }` y reemplaza la asignación |
 | `POST /api/organizaciones/:id/diagnosticos` | Nueva versión (opcional `desde_version_id` y `modo_copia`) |
 | `GET /api/organizaciones/:id/historico` | Serie histórica de cumplimiento por versión |
@@ -143,7 +151,7 @@ El código fuente de app.proyectoia.org no forma parte de este repositorio, por 
 
 ## Método de cálculo
 
-El cumplimiento global es el promedio de los pesos de las preguntas (Cumple 1, Cumplimiento parcial 0,5, No cumple 0, Sin evidencia 0, Sin valorar 0). La brecha es el complemento a 100. Los niveles de madurez son Inicial (menos de 25 %), Básico (25 a 49,9 %), En desarrollo (50 a 74,9 %), Avanzado (75 a 89,9 %) y Listo para certificación (90 % o más). La lista de brecha prioriza como alta las preguntas con No cumple, Sin evidencia o sin valorar y como media las de Cumplimiento parcial.
+El cumplimiento global es el promedio de los pesos de las preguntas aplicables (Cumple 1, Cumple parcialmente 0,5, No cumple 0, Sin valorar 0). Las preguntas marcadas No aplica salen del denominador. La brecha es el complemento a 100. Los niveles de madurez son Inicial (menos de 25 %), Básico (25 a 49,9 %), En desarrollo (50 a 74,9 %), Avanzado (75 a 89,9 %) y Listo para certificación (90 % o más). La lista de brecha prioriza como alta las preguntas con No cumple o sin valorar y como media las de Cumple parcialmente.
 
 ## Importar un diagnóstico desde Excel
 

@@ -13,7 +13,7 @@
 //      b) Firma JWT local: GESTOR_JWT_SECRET (HS256) o GESTOR_JWT_PUBLIC_KEY (RS256), con reclamos sub/email/name/role.
 //   4) Alternativa por cookie compartida en el dominio .proyectoia.org: GESTOR_SESSION_COOKIE + GESTOR_USERINFO_URL.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual, createVerify, createHash } from 'node:crypto';
-import { getDb, log } from './db.js';
+import { getDb, log, puede } from './db.js';
 import { HttpError } from './router.js';
 
 const MODE = (process.env.AUTH_MODE || 'mixto').toLowerCase();
@@ -107,6 +107,12 @@ export function requiereRol(...roles) {
   return (ctx) => {
     requiereSesion(ctx);
     if (!roles.includes(ctx.usuario.rol)) throw new HttpError(403, 'No tiene permisos para esta acción');
+  };
+}
+export function requiereCapacidad(capacidad) {
+  return (ctx) => {
+    requiereSesion(ctx);
+    if (!puede(ctx.usuario, capacidad)) throw new HttpError(403, 'Su rol no permite esta acción');
   };
 }
 
@@ -356,13 +362,16 @@ function normalizarPerfil(p) {
   const id = String(p.id ?? p.sub ?? p.user_id ?? p.usuario_id ?? '');
   const email = String(p.email ?? p.correo ?? p.usuario ?? p.username ?? p.login ?? '').trim();
   const nombre = String(p.nombre ?? p.name ?? p.nombre_completo ?? p.full_name ?? email.split('@')[0] ?? 'Usuario').trim();
-  const rolesAdmin = (process.env.GESTOR_ADMIN_ROLES || 'admin,administrador,superadmin').split(',').map(s => s.trim().toLowerCase());
-  const rolesConsultor = (process.env.GESTOR_CONSULTOR_ROLES || 'consultor,auditor,gestor,docente').split(',').map(s => s.trim().toLowerCase());
+  const lista = (v, def) => (process.env[v] || def).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const rolesAdmin = lista('GESTOR_ADMIN_ROLES', 'admin,administrador,superadmin');
+  const rolesEditor = lista('GESTOR_EDITOR_ROLES', (process.env.GESTOR_CONSULTOR_ROLES || 'editor,consultor,gestor,coordinador,docente'));
+  const rolesAuditor = lista('GESTOR_AUDITOR_ROLES', 'auditor,evaluador,calidad');
   const rolesRaw = [].concat(p.rol ?? p.role ?? p.roles ?? p.perfil ?? []).map(x => String(typeof x === 'object' ? (x.name ?? x.nombre ?? '') : x).toLowerCase());
   let rol = 'usuario';
   if (rolesRaw.some(r => rolesAdmin.includes(r))) rol = 'admin';
-  else if (rolesRaw.some(r => rolesConsultor.includes(r))) rol = 'consultor';
-  if (!email) throw new HttpError(401, 'El perfil recibido de ' + authConfig.gestorNombre + ' no incluye correo electrónico');
+  else if (rolesRaw.some(r => rolesEditor.includes(r))) rol = 'editor';
+  else if (rolesRaw.some(r => rolesAuditor.includes(r))) rol = 'auditor';
+  if (!email) throw new HttpError(401, 'El perfil recibido de ' + authConfig.gestorNombre + ' no incluye correo ni usuario');
   return { gestor_id: id || createHash('sha1').update(email).digest('hex'), email, nombre, rol };
 }
 
@@ -376,8 +385,8 @@ export function upsertUsuarioGestor(perfil, { desdeSincronizacion = false } = {}
     u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
     log(id, 'usuario.creado_desde_gestor', 'usuario', id, { email: p.email, rol: p.rol });
   } else {
-    // Se sincronizan nombre y rol con el gestor salvo que el rol local sea admin asignado manualmente.
-    const rol = (u.origen === 'local' && u.rol === 'admin') ? u.rol : p.rol;
+    // Se sincronizan nombre y rol con el gestor, salvo que un administrador haya fijado el rol aquí (rol_manual).
+    const rol = (u.rol_manual || (u.origen === 'local' && u.rol === 'admin')) ? u.rol : p.rol;
     db.prepare('UPDATE usuarios SET nombre = ?, rol = ?, origen = ?, gestor_id = ? WHERE id = ?').run(p.nombre, rol, 'gestor', p.gestor_id, u.id);
     u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(u.id);
   }

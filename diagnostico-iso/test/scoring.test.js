@@ -9,16 +9,18 @@ const items = [
   { id: 'd', codigo: 'ISO-004', capitulo: 5, capitulo_nombre: 'Liderazgo', numeral: '5.1.2', pregunta: 'P4', responsable_sugerido: 'Gerencia', orden: 4 },
 ];
 
-test('pondera cumple=1, parcial=0.5, no cumple y sin evidencia=0', () => {
-  const r = new Map([['a', { valoracion: 'cumple' }], ['b', { valoracion: 'cumple_parcial' }], ['c', { valoracion: 'no_cumple' }], ['d', { valoracion: 'sin_evidencia' }]]);
+test('pondera cumple=1, parcial=0.5, no cumple=0 y excluye no aplica del denominador', () => {
+  const r = new Map([['a', { valoracion: 'cumple' }], ['b', { valoracion: 'cumple_parcial' }], ['c', { valoracion: 'no_cumple' }], ['d', { valoracion: 'no_aplica' }]]);
   const ind = calcularIndicadores(items, r);
-  assert.equal(ind.cumplimiento, 37.5);
-  assert.equal(ind.brecha_total, 62.5);
+  assert.equal(ind.items_aplicables, 3);
+  assert.equal(ind.cumplimiento, 50);
+  assert.equal(ind.brecha_total, 50);
   assert.equal(ind.avance_diligenciamiento, 100);
-  assert.equal(ind.items_para_cumplir, 3);
+  assert.equal(ind.items_para_cumplir, 2);
   assert.deepEqual(ind.por_capitulo.map(c => c.cumplimiento), [75, 0]);
   assert.equal(ind.capitulo_critico.capitulo, 5);
-  assert.equal(ind.nivel.nombre, 'Básico');
+  assert.equal(ind.nivel.nombre, 'En desarrollo');
+  assert.equal(ind.conteo.no_aplica, 1);
 });
 
 test('las preguntas sin valorar cuentan como brecha y reducen el avance', () => {
