@@ -25,6 +25,7 @@ if (!SECRET) throw new Error('SESSION_SECRET es obligatorio en producción');
 export const authConfig = {
   mode: MODE,
   gestorHabilitado: MODE !== 'local' && !!process.env.GESTOR_LOGIN_URL,
+  gestorCredenciales: MODE !== 'local' && !!process.env.GESTOR_LOGIN_API,
   localHabilitado: MODE !== 'gestor',
   gestorNombre: process.env.GESTOR_NOMBRE || 'Gestor ProyectoIA',
   gestorUrl: process.env.GESTOR_URL || 'https://gestor.proyectoia.org',
@@ -109,11 +110,66 @@ export function requiereRol(...roles) {
 }
 
 // ---------- inicio de sesión local ----------
+export async function loginConCredenciales(email, password) {
+  email = String(email || '').trim(); password = String(password || '');
+  if (!email || !password) throw new HttpError(400, 'Ingrese correo y contraseña');
+  // 1) Usuarios del gestor de proyectos (validación delegada)
+  if (authConfig.gestorCredenciales) {
+    const u = await loginDelegadoGestor(email, password);
+    if (u) return u;
+  }
+  // 2) Usuarios locales de esta herramienta
+  if (authConfig.localHabilitado) {
+    const u = getDb().prepare('SELECT * FROM usuarios WHERE email = ? AND activo = 1 AND password_hash IS NOT NULL').get(email);
+    if (u && verifyPassword(password, u.password_hash)) return u;
+  }
+  if (!authConfig.localHabilitado && !authConfig.gestorCredenciales) throw new HttpError(403, 'El acceso con contraseña está deshabilitado. Use el ingreso por ' + authConfig.gestorNombre + '.');
+  throw new HttpError(401, 'Correo o contraseña incorrectos');
+}
 export function loginLocal(email, password) {
   if (!authConfig.localHabilitado) throw new HttpError(403, 'El acceso local está deshabilitado. Use el ingreso por ' + authConfig.gestorNombre + '.');
   const u = getDb().prepare('SELECT * FROM usuarios WHERE email = ? AND activo = 1').get(String(email || '').trim());
   if (!u || !verifyPassword(String(password || ''), u.password_hash)) throw new HttpError(401, 'Correo o contraseña incorrectos');
   return u;
+}
+
+// ---------- validación delegada: el gestor comprueba correo y contraseña ----------
+// GESTOR_LOGIN_API  = https://gestor.proyectoia.org/api/login   (POST JSON con las credenciales)
+// GESTOR_SESION_API = https://gestor.proyectoia.org/api/sesion  (GET con la cookie devuelta; responde el perfil)
+// Los nombres de campo se envían con varios alias (email/correo/usuario, password/clave/contrasena) para
+// acoplarse al gestor sin modificarlo. GESTOR_LOGIN_CAMPOS permite fijarlos: "correo,clave".
+function cuerpoCredenciales(email, password) {
+  const fijos = (process.env.GESTOR_LOGIN_CAMPOS || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (fijos.length === 2) return { [fijos[0]]: email, [fijos[1]]: password };
+  return { email, correo: email, usuario: email, username: email, password, clave: password, contrasena: password, contraseña: password };
+}
+export async function loginDelegadoGestor(email, password) {
+  const loginUrl = process.env.GESTOR_LOGIN_API;
+  if (!loginUrl) return null;
+  let r;
+  try {
+    r = await fetch(loginUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(cuerpoCredenciales(email, password)), signal: AbortSignal.timeout(8000), redirect: 'manual' });
+  } catch (e) { throw new HttpError(503, authConfig.gestorNombre + ' no respondió: ' + e.message); }
+  if (r.status === 401 || r.status === 403 || r.status === 400) return null;      // credenciales rechazadas
+  if (!r.ok && r.status !== 302) throw new HttpError(502, authConfig.gestorNombre + ' respondió HTTP ' + r.status);
+  let perfil = {};
+  try { perfil = await r.json(); } catch { }
+  perfil = perfil.usuario ?? perfil.user ?? perfil.data ?? perfil;
+  if (perfil && typeof perfil === 'object' && perfil.ok === false) return null;
+  const cookies = (typeof r.headers.getSetCookie === 'function' ? r.headers.getSetCookie() : [r.headers.get('set-cookie')].filter(Boolean)).map(c => c.split(';')[0]).join('; ');
+  const token = perfil.token ?? perfil.access_token ?? perfil.jwt ?? null;
+  const sesionUrl = process.env.GESTOR_SESION_API;
+  if (sesionUrl && (cookies || token)) {
+    try {
+      const headers = { Accept: 'application/json' };
+      if (cookies) headers.Cookie = cookies;
+      if (token) headers.Authorization = 'Bearer ' + token;
+      const s2 = await fetch(sesionUrl, { headers, signal: AbortSignal.timeout(8000) });
+      if (s2.ok) { const j = await s2.json(); perfil = { ...perfil, ...(j.usuario ?? j.user ?? j.data ?? j) }; }
+    } catch { }
+  }
+  if (!perfil.email && !perfil.correo) perfil.email = email;   // el gestor validó, el correo es el ingresado
+  return upsertUsuarioGestor(perfil);
 }
 
 // Usuario administrador inicial en modo local (ADMIN_EMAIL / ADMIN_PASSWORD).

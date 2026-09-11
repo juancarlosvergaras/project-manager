@@ -56,7 +56,7 @@ function str(v, max = 4000) { if (v === undefined || v === null) return null; co
 
 // ---------- sesión ----------
 api.get('/api/config', (ctx) => ctx.json({
-  auth: { modo: auth.authConfig.mode, gestor: auth.authConfig.gestorHabilitado, local: auth.authConfig.localHabilitado, gestor_nombre: auth.authConfig.gestorNombre, gestor_url: auth.authConfig.gestorUrl, app_url: auth.authConfig.appUrl },
+  auth: { modo: auth.authConfig.mode, gestor: auth.authConfig.gestorHabilitado, local: auth.authConfig.localHabilitado || auth.authConfig.gestorCredenciales, credenciales_gestor: auth.authConfig.gestorCredenciales, gestor_nombre: auth.authConfig.gestorNombre, gestor_url: auth.authConfig.gestorUrl, app_url: auth.authConfig.appUrl },
   valoraciones: Object.entries(VALORACIONES).map(([clave, v]) => ({ clave, ...v })),
   niveles: NIVELES,
 }));
@@ -65,9 +65,9 @@ api.get('/api/me', (ctx) => ctx.json({ usuario: ctx.usuario }));
 
 api.post('/api/auth/local/login', async (ctx) => {
   const b = await ctx.body();
-  const u = auth.loginLocal(b.email, b.password);
+  const u = await auth.loginConCredenciales(b.email, b.password);
   auth.crearSesion(ctx.res, ctx.req, u.id);
-  log(u.id, 'sesion.inicio_local', 'usuario', u.id);
+  log(u.id, u.origen === 'gestor' ? 'sesion.inicio_gestor' : 'sesion.inicio_local', 'usuario', u.id);
   const { password_hash, ...usuario } = u;
   ctx.json({ usuario });
 });

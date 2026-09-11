@@ -66,13 +66,19 @@ ADMIN_PASSWORD=$CLAVE
 ADMIN_NOMBRE=Administrador
 GESTOR_NOMBRE=Gestor ProyectoIA
 GESTOR_URL=https://gestor.proyectoia.org
-# Complete estas variables cuando defina el contrato con gestor.proyectoia.org (ver README)
+# Validación delegada de credenciales en el gestor (los usuarios entran con su correo y clave del gestor)
+GESTOR_LOGIN_API=https://gestor.proyectoia.org/api/login
+GESTOR_SESION_API=https://gestor.proyectoia.org/api/sesion
+GESTOR_LOGIN_CAMPOS=
+# Alternativas por token/SSO (ver README)
 GESTOR_LOGIN_URL=
 GESTOR_USERINFO_URL=
 GESTOR_JWT_SECRET=
 APP_PROYECTOIA_URL=https://app.proyectoia.org
 ENV
   echo "   Usuario inicial: admin@proyectoia.org   Contraseña: $CLAVE   (guárdela; también está en $APP/.env)"
+else
+  grep -q '^GESTOR_LOGIN_API=' "$APP/.env" || printf 'GESTOR_LOGIN_API=https://gestor.proyectoia.org/api/login\nGESTOR_SESION_API=https://gestor.proyectoia.org/api/sesion\n' >> "$APP/.env"
 fi
 
 # 4. Servicio launchd (arranca al iniciar sesión y se reinicia si falla)

@@ -88,7 +88,13 @@ Copia de seguridad: basta con copiar el archivo SQLite indicado en `DB_PATH` (co
 
 ## Integración con el sistema de usuarios de gestor.proyectoia.org
 
-La herramienta no almacena contraseñas de los usuarios del gestor. Los reconoce por un token que el gestor emite y los crea localmente en su primer ingreso, sincronizando nombre y rol en cada acceso. El contrato es configurable por variables de entorno para adaptarse a lo que el gestor ya exponga.
+La herramienta no almacena contraseñas de los usuarios del gestor. Los crea localmente en su primer ingreso y sincroniza nombre y rol en cada acceso. Hay dos mecanismos, configurables por variables de entorno.
+
+### Mecanismo 1 (activo por defecto): validación delegada de credenciales
+
+El usuario escribe en el formulario de esta herramienta el mismo correo y contraseña del gestor. La herramienta envía las credenciales a `GESTOR_LOGIN_API` (por defecto `https://gestor.proyectoia.org/api/login`), y si el gestor las acepta consulta `GESTOR_SESION_API` (`/api/sesion`) con la cookie devuelta para obtener nombre y rol. No requiere cambios en el gestor. Los campos se envían con varios alias (`email`, `correo`, `usuario`, `password`, `clave`, `contrasena`); si el gestor exige nombres concretos se fijan con `GESTOR_LOGIN_CAMPOS=correo,clave`. Si el correo no existe en el gestor, se intenta con los usuarios locales de la herramienta.
+
+### Mecanismo 2 (opcional): ingreso único por token
 
 Flujo:
 

@@ -120,8 +120,9 @@
     app.innerHTML = `<div class="login">
       <div class="logo"><img src="/icono.svg" width="64" height="64" alt=""><h1>Diagnóstico ISO 9001</h1><p class="hint">Instrumento de diagnóstico de implementación ISO 9001:2015 + Enmienda 1:2024</p></div>
       ${a.gestor ? `<a class="btn bloque" href="/auth/gestor/login${q.next ? '?next=' + encodeURIComponent('/#' + q.next) : ''}">Ingresar con ${esc(a.gestor_nombre)}</a>` : ''}
-      ${a.gestor && a.local ? '<div class="sep">o con usuario de esta herramienta</div>' : ''}
+      ${a.gestor && a.local ? '<div class="sep">o con correo y contraseña</div>' : ''}
       ${a.local ? `<form id="f-login" class="tarjeta">
+        ${a.credenciales_gestor ? `<p class="hint" style="margin-top:0">Use el mismo correo y contraseña de ${esc(a.gestor_nombre)}.</p>` : ''}
         <label>Correo electrónico</label><input name="email" type="email" autocomplete="username" required inputmode="email">
         <label>Contraseña</label><input name="password" type="password" autocomplete="current-password" required>
         <div class="acciones"><button class="btn bloque" type="submit">Ingresar</button></div></form>` : ''}
