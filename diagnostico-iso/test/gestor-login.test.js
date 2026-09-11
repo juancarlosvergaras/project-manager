@@ -49,7 +49,7 @@ before(async () => {
       res.writeHead(404); res.end();
     });
   }).listen(GPORT);
-  proc = spawn(process.execPath, ['--no-warnings=ExperimentalWarning', 'server/index.js'], { cwd: root, env: { ...process.env, PORT: String(PORT), AUTH_MODE: 'mixto', DB_PATH: ':memory:', SESSION_SECRET: 'prueba', ADMIN_PASSWORD: 'clave-prueba-123', GESTOR_LOGIN_API: `http://127.0.0.1:${GPORT}/api/login`, GESTOR_SESION_API: `http://127.0.0.1:${GPORT}/api/sesion` }, stdio: ['ignore', 'pipe', 'pipe'] });
+  proc = spawn(process.execPath, ['--no-warnings=ExperimentalWarning', 'server/index.js'], { cwd: root, env: { ...process.env, PORT: String(PORT), AUTH_MODE: 'mixto', DB_PATH: ':memory:', SESSION_SECRET: 'prueba', ADMIN_PASSWORD: 'clave-prueba-123', GESTOR_LOGIN_API: `http://127.0.0.1:${GPORT}/api/login`, GESTOR_SESION_API: `http://127.0.0.1:${GPORT}/api/sesion`, GESTOR_USUARIOS_API: `http://127.0.0.1:${GPORT}/api/usuarios` }, stdio: ['ignore', 'pipe', 'pipe'] });
   await new Promise((res, rej) => { proc.stdout.on('data', d => { if (String(d).includes('escuchando')) res(); }); proc.stderr.on('data', d => process.stderr.write(d)); proc.on('exit', c => rej(new Error('servidor terminó ' + c))); });
 });
 after(() => { proc.kill(); gestor.close(); });

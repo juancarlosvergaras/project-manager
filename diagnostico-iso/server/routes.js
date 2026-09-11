@@ -365,7 +365,7 @@ api.post('/api/diagnosticos/:id/reabrir', auth.requiereRol('admin', 'consultor')
   log(ctx.usuario.id, 'diagnostico.reabierto', 'diagnostico', d.id);
   ctx.json({ ok: true });
 });
-api.delete('/api/diagnosticos/:id', auth.requiereRol('admin'), (ctx) => {
+api.delete('/api/diagnosticos/:id', auth.requiereRol('admin', 'consultor'), (ctx) => {
   const d = diagOr404(ctx.params.id);
   db().prepare('DELETE FROM diagnosticos WHERE id = ?').run(d.id);
   log(ctx.usuario.id, 'diagnostico.eliminado', 'diagnostico', d.id, { organizacion: d.organizacion_id, version: d.version_numero });

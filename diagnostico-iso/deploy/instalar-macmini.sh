@@ -85,6 +85,7 @@ GESTOR_URL=https://gestor.proyectoia.org
 # Validación delegada de credenciales en el gestor (los usuarios entran con su correo y clave del gestor)
 GESTOR_LOGIN_API=https://gestor.proyectoia.org/api/login
 GESTOR_SESION_API=https://gestor.proyectoia.org/api/sesion
+GESTOR_USUARIOS_API=https://gestor.proyectoia.org/api/usuarios
 GESTOR_LOGIN_CAMPOS=
 # Alternativas por token/SSO (ver README)
 GESTOR_LOGIN_URL=
@@ -94,7 +95,8 @@ APP_PROYECTOIA_URL=https://app.proyectoia.org
 ENV
   echo "   Usuario inicial: admin@proyectoia.org   Contraseña: $CLAVE   (guárdela; también está en $APP/.env)"
 else
-  grep -q '^GESTOR_LOGIN_API=' "$APP/.env" || printf 'GESTOR_LOGIN_API=https://gestor.proyectoia.org/api/login\nGESTOR_SESION_API=https://gestor.proyectoia.org/api/sesion\n' >> "$APP/.env"
+  grep -q '^GESTOR_USUARIOS_API=' "$APP/.env" || printf 'GESTOR_USUARIOS_API=https://gestor.proyectoia.org/api/usuarios\n' >> "$APP/.env"
+  grep -q '^GESTOR_LOGIN_API=' "$APP/.env" || printf 'GESTOR_LOGIN_API=https://gestor.proyectoia.org/api/login\nGESTOR_SESION_API=https://gestor.proyectoia.org/api/sesion\nGESTOR_USUARIOS_API=https://gestor.proyectoia.org/api/usuarios\n' >> "$APP/.env"
 fi
 
 # 4. Servicio launchd (arranca al iniciar sesión y se reinicia si falla)

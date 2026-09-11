@@ -202,6 +202,7 @@
           <a class="btn ${d.estado === 'cerrado' || mi_rol !== 'editor' ? 'sec' : ''}" href="#/diag/${d.id}/llenar">${d.estado === 'cerrado' || mi_rol !== 'editor' ? 'Ver respuestas' : 'Diligenciar'}</a>
           <a class="btn sec" href="#/diag/${d.id}">Indicadores</a>
           <a class="btn sec" href="#/imprimir/${o.id}?v=${d.id}">Imprimir</a>
+          ${gestor ? `<button class="btn peligro" data-eliminar="${d.id}" data-ver="${d.version_numero}">Eliminar</button>` : ''}
         </div></div>`).join('') : '<div class="tarjeta vacio">Aún no hay versiones. Cree la primera versión para aplicar el cuestionario.</div>'}
       <div class="tarjeta"><h2>Histórico de cumplimiento</h2>${lineaHistorico(historico)}
         ${historico.length > 1 ? `<div class="tabla-scroll"><table><thead><tr><th>Versión</th><th>Fecha</th><th class="der">Cumplimiento</th><th class="der">Brecha</th><th>Nivel</th>${historico[0].por_capitulo.map(c => `<th class="der">Cap. ${c.capitulo}</th>`).join('')}</tr></thead>
@@ -218,8 +219,9 @@
       modal(`<h2>Nueva versión del diagnóstico</h2><form id="f-v">
         <label>Título</label><input name="titulo" value="Diagnóstico ISO 9001 – versión ${diagnosticos.length + 1}">
         <label>Fecha</label><input name="fecha" type="date" value="${new Date().toISOString().slice(0, 10)}">
-        <label>Partir de una versión anterior</label><select name="desde_version_id"><option value="">Formato en blanco</option>${diagnosticos.map(d => `<option value="${d.id}">Versión ${d.version_numero} · ${esc(d.titulo)} (${fmt(d.cumplimiento)} %)</option>`).join('')}</select>
-        <label>Qué copiar de la versión base</label><select name="modo_copia"><option value="completa">Valoraciones, evidencias, observaciones y responsables</option><option value="solo_textos">Solo evidencias, observaciones y responsables (valorar de nuevo)</option></select>
+        <label>Copiar la versión anterior</label><select name="desde_version_id">${diagnosticos.map((d, i) => `<option value="${d.id}" ${i === 0 ? 'selected' : ''}>Copiar la versión ${d.version_numero} · ${esc(d.titulo)} (${fmt(d.cumplimiento)} %)</option>`).join('')}<option value="">No copiar: empezar con el formato en blanco</option></select>
+        <label>Qué copiar</label><select name="modo_copia"><option value="completa">Todo: valoraciones, evidencias, observaciones y responsables</option><option value="solo_textos">Solo evidencias, observaciones y responsables (valorar de nuevo)</option></select>
+        <p class="hint">La versión anterior se conserva intacta como registro histórico; los cambios se hacen sobre la nueva.</p>
         <label>Notas</label><textarea name="notas" placeholder="Alcance, fuentes de información, equipo evaluador…"></textarea>
         <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Crear versión</button></div></form>`,
         (bg, cerrar) => { $('#f-v', bg).onsubmit = async e => { e.preventDefault(); try { const r = await api(`/api/organizaciones/${o.id}/diagnosticos`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); cerrar(); toast('Versión ' + r.version_numero + ' creada'); location.hash = `#/diag/${r.id}/llenar`; } catch (err) { toast(err.message, true); } }; });
@@ -232,6 +234,7 @@
         <input type="hidden" name="crear" value="1">
         <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Asignar</button></div></form>`,
       (bg, cerrar) => { $('#f-m', bg).onsubmit = async e => { e.preventDefault(); try { await api(`/api/organizaciones/${o.id}/miembros`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); cerrar(); toast('Usuario asignado'); navegar(); } catch (err) { toast(err.message, true); } }; });
+    $$('[data-eliminar]').forEach(b => b.onclick = async () => { if (await confirmar(`Se eliminará la versión ${b.dataset.ver} con todas sus respuestas de forma definitiva. Las demás versiones no se modifican.`, 'Eliminar versión')) { try { await api('/api/diagnosticos/' + b.dataset.eliminar, { method: 'DELETE' }); toast('Versión eliminada'); navegar(); } catch (e) { toast(e.message, true); } } });
     $$('[data-quitar]').forEach(b => b.onclick = async () => { if (await confirmar('¿Retirar este usuario de la organización?', 'Retirar')) { await api(`/api/organizaciones/${o.id}/miembros/${b.dataset.quitar}`, { method: 'DELETE' }); navegar(); } });
   });
 
@@ -332,7 +335,7 @@
         ${anterior ? `<a class="btn sec" href="#/diag/${d.id}/comparar/${anterior.id}">Comparar con v${anterior.version_numero}</a>` : ''}
         ${d.estado !== 'cerrado' && mi_rol === 'editor' ? `<button class="btn suave" id="b-cerrar">Cerrar versión</button>` : ''}
         ${d.estado === 'cerrado' && gestor ? `<button class="btn suave" id="b-reabrir">Reabrir versión</button>` : ''}
-        ${estado.usuario.rol === 'admin' ? `<button class="btn peligro" id="b-eliminar">Eliminar versión</button>` : ''}
+        ${gestor ? `<button class="btn peligro" id="b-eliminar">Eliminar versión</button>` : ''}
       </div>
       <div class="tarjeta"><h2>Distribución de valoraciones</h2>${distribucion(ind.conteo, ind.total_items)}</div>
       <div class="tarjeta"><h2>Cumplimiento por capítulo de la norma</h2><p class="hint">Toque un capítulo para ver sus preguntas pendientes.</p>${barrasCapitulo(ind.por_capitulo)}</div>
