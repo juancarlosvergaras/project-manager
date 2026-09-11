@@ -1,0 +1,803 @@
+{
+ "organizacion": {
+  "nombre": "Hospital Universitario del Caribe",
+  "sigla": "HUC",
+  "sector": "Salud",
+  "ciudad": "Cartagena de Indias",
+  "pais": "Colombia",
+  "descripcion": "Empresa Social del Estado de tercer nivel de complejidad. Caso de diagnóstico documental de implementación ISO 9001 aportado como referencia."
+ },
+ "diagnostico": {
+  "titulo": "Diagnóstico documental inicial de implementación ISO 9001",
+  "fecha": "2026-09-01",
+  "notas": "Referencia: ISO 9001:2015 y Enmienda 1:2024. Valoración documental inicial a partir de los insumos aportados (REPS, informes de hospitalización, actas INVIMA, matrices y libro de planes). Las categorías originales del instrumento (Evidencia parcial, Sin evidencia aportada, Brecha documental, Antecedente por verificar) se conservan en cada respuesta como estado de origen.",
+  "estado": "cerrado",
+  "instrumento": "iso9001-2015-amd1-2024"
+ },
+ "respuestas": [
+  {
+   "codigo": "ISO-001",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "REPS e informe de hospitalización aportan datos del contexto, sin demostrar un análisis integral.",
+   "observaciones": "REVISAR: cómo se analizan demanda, capacidad, financiación, infraestructura y cambios del entorno. INCLUIR: análisis vigente con fecha, responsables y decisiones derivadas.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-002",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: última actualización y cambios incorporados durante 2026. INCLUIR: registro de revisión, cambios relevantes y su efecto sobre procesos y riesgos.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-003",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: decisión sobre relevancia para agua, energía, temperatura, acceso y continuidad. INCLUIR: fundamento de la decisión y controles si resulta relevante. No exigir un programa ambiental por defecto.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-004",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "La constancia REPS y las visitas evidencian relación con autoridades.",
+   "observaciones": "REVISAR: pacientes, familias, trabajadores, aseguradores, proveedores, autoridades y relación docencia-servicio cuando aplique. INCLUIR: requisitos relevantes, responsables y mecanismo de actualización.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-005",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: cómo detectan cambios de requisitos y compromisos de continuidad. INCLUIR: revisión de requisitos y decisiones, incluidos los climáticos pertinentes.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-006",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "El REPS identifica sede y portafolio, pero no sustituye el alcance del SGC.",
+   "observaciones": "REVISAR: concordancia entre operación, REPS y alcance ISO. INCLUIR: alcance documentado y disponible, con servicios, sedes y límites. Confirmar si existe un certificado ISO vigente y su alcance.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-007",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: justificaciones, especialmente diseño de servicios y procesos contratados. INCLUIR: fundamento de cada no aplicabilidad y aprobación del alcance. No excluir 8.3 ni 8.4 automáticamente.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-008",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: recorrido del paciente e interfaces entre hospitalización, farmacia, diagnóstico y apoyos. INCLUIR: descripción de procesos e interacción con entradas y salidas. Un mapa sin explicación no basta.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-009",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Se identifican responsables en informes y hallazgos operativos.",
+   "observaciones": "REVISAR: asignación efectiva, métodos de control, indicadores y recursos por proceso. INCLUIR: fichas o registros equivalentes y evidencia de seguimiento.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-010",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Se describen mejoras físicas y recomendaciones de seguimiento.",
+   "observaciones": "REVISAR: resultados antes y después y decisiones ante desvíos. INCLUIR: evaluaciones de proceso, cambios y resultados de mejora.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-011",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "Matriz con criterios sin estado, discrepancias y planes sin diligenciar.",
+   "observaciones": "REVISAR: registros oficiales alternativos y acceso a procedimientos vigentes. INCLUIR: registros operativos verificables, fuentes y control de versiones; conciliar el libro recibido.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-012",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: decisiones de dirección vinculadas a resultados de calidad y prioridades institucionales. INCLUIR: actas, seguimiento y rendición de cuentas. El nombramiento por sí solo no demuestra este requisito.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-013",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Los insumos describen intervenciones y reuniones, sin expediente completo de decisiones.",
+   "observaciones": "REVISAR: recursos para hallazgos críticos, acompañamiento a responsables y comunicación sobre calidad. INCLUIR: autorizaciones, recursos, seguimiento y ejemplos de participación.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-014",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "REPS reciente con dos observaciones y seguimiento INVIMA.",
+   "observaciones": "REVISAR: sistema de actualización y evaluación de requisitos asistenciales, contractuales y regulatorios. INCLUIR: responsables, obligaciones aplicables y seguimiento de observaciones REPS.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-015",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: decisiones sobre seguridad, oportunidad, trato y continuidad sustentadas en resultados. INCLUIR: riesgos, satisfacción y medidas adoptadas con seguimiento.",
+   "responsable": "Gerencia, Calidad y atención al usuario"
+  },
+  {
+   "codigo": "ISO-016",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: coherencia con contexto, estrategia y alcance del hospital. INCLUIR: política aprobada y vigente con compromisos y marco para objetivos.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-017",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: comprensión mediante entrevistas en dos procesos y acceso de interesados pertinentes. INCLUIR: versión vigente y evidencia de comunicación y aplicación. Una lista de asistencia no prueba comprensión.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-018",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "INVIMA observó funciones de reenvase y el acta indicó correcciones durante la visita.",
+   "observaciones": "REVISAR: funciones vigentes y quién ejecuta, supervisa, informa resultados y preserva el SGC ante cambios. INCLUIR: manual corregido, asignaciones y comunicación. Confirmar sostenibilidad del cierre INVIMA.",
+   "responsable": "Gerencia, Talento Humano y dirección técnica de farmacia"
+  },
+  {
+   "codigo": "ISO-019",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Informes identifican problemas operativos; no se aportó evaluación integral.",
+   "observaciones": "REVISAR: riesgos preventivos además de problemas ya ocurridos, y oportunidades de mejora. INCLUIR: riesgos por proceso, criterios de valoración y oportunidades priorizadas.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-020",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "Planes del libro sin diligenciar; la reunión plantea mejoras generales.",
+   "observaciones": "REVISAR: registro oficial de acciones, controles temporales y evaluación de resultados. INCLUIR: responsables, recursos, plazos, integración operativa y evidencia de eficacia.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-021",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: metas sobre conformidad, satisfacción y desempeño por nivel pertinente. INCLUIR: objetivos documentados con indicador, meta, responsable y periodo.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-022",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: resultados recientes y decisiones frente a metas incumplidas. INCLUIR: tableros, comunicaciones y registros de actualización.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-023",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: conexión entre metas, presupuesto y actividades. INCLUIR: plan por objetivo y evaluación de resultados con fuente del indicador.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-024",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "En mayo se reportó mantenimiento de áreas estériles y observación sobre notificación.",
+   "observaciones": "REVISAR: planificación de suspensión, tercerización y eventual reinicio. INCLUIR: evaluación de impacto, responsables, recursos, comunicaciones y aceptación del cambio. El acta mantuvo concepto favorable tras correcciones.",
+   "responsable": "Dirección técnica de farmacia, gerencia y Calidad"
+  },
+  {
+   "codigo": "ISO-025",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "REPS presenta capacidad declarada; informe refiere faltantes y mejoras.",
+   "observaciones": "REVISAR: brechas entre capacidad declarada, demanda y recursos reales. INCLUIR: evaluación de necesidades, recursos disponibles y decisiones de contratación o inversión.",
+   "responsable": "Gerencia y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-026",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "El informe afirma disponibilidad de personal sin aportar soportes completos.",
+   "observaciones": "REVISAR: cobertura de turnos, ausencias y contingencias con responsable técnico. INCLUIR: criterios de suficiencia, programación y registros reales. El auditor no define dotación clínica mínima.",
+   "responsable": "Talento Humano y dirección asistencial"
+  },
+  {
+   "codigo": "ISO-027",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Se reportaron salidas bloqueadas, humedad y fallas en llamados de enfermería.",
+   "observaciones": "REVISAR: salidas del piso 4, humedad y llamados de pisos señalados. INCLUIR: órdenes de trabajo, pruebas funcionales y seguimiento de recurrencia. Confirmar estado actual.",
+   "responsable": "Mantenimiento, SST y Enfermería"
+  },
+  {
+   "codigo": "ISO-028",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Matriz reporta faltantes en carros de paro; informe presenta diferencias por piso.",
+   "observaciones": "REVISAR: inventario por piso y disponibilidad demostrada por personal competente, sistemas y contingencias. INCLUIR: inventario, mantenimiento, listas de chequeo y pruebas de aceptación.",
+   "responsable": "Ingeniería biomédica, Enfermería y sistemas"
+  },
+  {
+   "codigo": "ISO-029",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Hospitalización reportó humedad y palomas; INVIMA observó temperatura en almacenamiento.",
+   "observaciones": "REVISAR: condiciones actuales y seguimiento posterior a correcciones. INCLUIR: registros ambientales, control de plagas, limpieza y acciones frente a desvíos.",
+   "responsable": "Mantenimiento, SST, Enfermería y farmacia"
+  },
+  {
+   "codigo": "ISO-030",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: comunicación entre turnos, carga de trabajo, trato y factores que generan errores. INCLUIR: evaluaciones pertinentes y acciones, sin incorporar datos sensibles innecesarios.",
+   "responsable": "Talento Humano, SST y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-031",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "INVIMA observó ausencia de verificación de balanza y potenciómetro y calificación de neveras.",
+   "observaciones": "REVISAR: adecuación del instrumento y estado de control con especialista. INCLUIR: fichas, verificaciones, calificaciones y registros pertinentes. Diferenciar equipo, sensor y condiciones de uso.",
+   "responsable": "Ingeniería biomédica y dirección técnica de farmacia"
+  },
+  {
+   "codigo": "ISO-032",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: qué instrumentos requieren calibración o verificación, periodicidad y protección contra ajustes. INCLUIR: certificados, identificación y fundamento de referencia cuando no existan patrones reconocidos.",
+   "responsable": "Ingeniería biomédica y responsables técnicos"
+  },
+  {
+   "codigo": "ISO-033",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: un caso fuera de tolerancia o procedimiento para detectarlo. INCLUIR: evaluación de resultados afectados y decisiones técnicas sobre equipos y servicios. El auditor verifica trazabilidad, no interpreta tolerancias clínicas.",
+   "responsable": "Ingeniería biomédica y responsables técnicos"
+  },
+  {
+   "codigo": "ISO-034",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: acceso a protocolos, experiencia crítica, relevo de personal y actualización. INCLUIR: mecanismos para conservar conocimiento y adquirir el faltante. No exigir una plataforma específica.",
+   "responsable": "Talento Humano, Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-035",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Informe afirma personal capacitado; INVIMA observó responsabilidades en farmacia y reportó corrección.",
+   "observaciones": "REVISAR: perfiles y cinco expedientes asociados a tareas observadas, incluidos contratistas. INCLUIR: títulos y habilitación de ejercicio cuando corresponda, experiencia y asignación vigente de tareas.",
+   "responsable": "Talento Humano y dirección técnica de farmacia"
+  },
+  {
+   "codigo": "ISO-036",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Acta propone continuar capacitación sin evidencias de eficacia.",
+   "observaciones": "REVISAR: necesidad detectada, formación realizada y desempeño posterior. INCLUIR: evaluación práctica o equivalente y registros de competencia. La asistencia por sí sola no prueba capacidad.",
+   "responsable": "Talento Humano y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-037",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: entrevistar personal de hospitalización, farmacia y apoyo con preguntas sobre su trabajo. INCLUIR: evidencias de comprensión y acciones frente a desconocimiento.",
+   "responsable": "Calidad y personal operativo"
+  },
+  {
+   "codigo": "ISO-038",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Existe acta de socialización de hallazgos del 31 de marzo de 2026.",
+   "observaciones": "REVISAR: comunicaciones de resultados, fallas, cambios y requisitos externos. INCLUIR: esquema de comunicación y registros de recepción y escalamiento.",
+   "responsable": "Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-039",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Se recibieron REPS, autoevaluación, matriz, acta y documentos de inspección.",
+   "observaciones": "REVISAR: inventario de documentación y registros necesarios según procesos y riesgos. INCLUIR: información faltante del sistema. No exigir manual de calidad ni procedimientos con nombres predeterminados.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-040",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "Informe conserva campos de plantilla, paginación incorrecta y diferencia entre nombre y fecha interna.",
+   "observaciones": "REVISAR: versión oficial del informe y aprobación real. INCLUIR: fecha de evaluación, código, versión, revisión y aprobación. Corregir campos XX y referencias de comité incompletas conservando trazabilidad.",
+   "responsable": "Calidad y gestión documental"
+  },
+  {
+   "codigo": "ISO-041",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: acceso en estación de enfermería y farmacia, perfiles de sistemas y copias de respaldo. INCLUIR: controles de disponibilidad, integridad, confidencialidad y recuperación.",
+   "responsable": "Gestión documental y sistemas"
+  },
+  {
+   "codigo": "ISO-042",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "Matriz con discrepancias y PDF INVIMA con páginas repetidas y desordenadas.",
+   "observaciones": "REVISAR: expediente oficial, vigencia, archivo y recuperación. INCLUIR: reglas de control, versiones, retención y protección frente a modificaciones no intencionales.",
+   "responsable": "Gestión documental y Calidad"
+  },
+  {
+   "codigo": "ISO-043",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "REPS e inspecciones aportados; no se demostró control de actualización.",
+   "observaciones": "REVISAR: normas aplicables, instrucciones de fabricante, requisitos de aseguradores y decisiones de autoridades. INCLUIR: identificación de documentos externos, responsable y actualización.",
+   "responsable": "Calidad, jurídica y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-044",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Autoevaluación contiene criterios sectoriales y hallazgos, sin planeación operativa completa.",
+   "observaciones": "REVISAR: programación, capacidad y controles de atención y apoyos. INCLUIR: criterios de operación y aceptación, recursos necesarios y registros de ejecución.",
+   "responsable": "Dirección asistencial y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-045",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Mantenimiento de áreas estériles y recepción externa de mezclas en mayo.",
+   "observaciones": "REVISAR: contingencia, continuidad y evaluación de efectos de suspensiones. INCLUIR: planes, autorizaciones, criterios de recepción y supervisión de procesos externos.",
+   "responsable": "Dirección asistencial, farmacia y contratación"
+  },
+  {
+   "codigo": "ISO-046",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: información accesible, canales, cambios de agenda y respuestas. INCLUIR: portafolio comunicado, registros de solicitudes, quejas y respuesta al usuario.",
+   "responsable": "Atención al usuario y admisiones"
+  },
+  {
+   "codigo": "ISO-047",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: información sobre pertenencias, documentación, interrupciones y reprogramaciones. INCLUIR: comunicaciones y registros de aceptación o entrega cuando corresponda.",
+   "responsable": "Atención al usuario y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-048",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "REPS identifica servicios y capacidad, con dos observaciones de información incompleta.",
+   "observaciones": "REVISAR: requisitos por servicio y correspondencia con oferta. INCLUIR: requisitos actualizados, soportes REPS y gestión de observaciones sobre acto de creación y centro poblado.",
+   "responsable": "Calidad, contratación y dirección asistencial"
+  },
+  {
+   "codigo": "ISO-049",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: aceptación de convenios, programación, capacidad y cambios de requisitos. INCLUIR: revisión de requisitos expresos, necesarios y aplicables, y resolución de diferencias. No convertir controles administrativos en barreras indebidas a la atención.",
+   "responsable": "Contratación, admisiones y dirección asistencial"
+  },
+  {
+   "codigo": "ISO-050",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: muestra de convenio o servicio modificado. INCLUIR: resultado de revisión, requisitos nuevos y aprobación por responsables.",
+   "responsable": "Contratación y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-051",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: último cambio de portafolio, contrato o servicio. INCLUIR: actualización documental, comunicación y comprobación de que se aplicó.",
+   "responsable": "Calidad, contratación y dirección asistencial"
+  },
+  {
+   "codigo": "ISO-052",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: creación o rediseño de servicios y rutas propias, más allá de ejecutar protocolos existentes. INCLUIR: proceso de diseño o justificación fundada de no aplicabilidad en el alcance.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-053",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: un servicio nuevo o rediseñado si aplica. INCLUIR: plan con etapas, revisiones, verificación, validación, responsables, usuarios involucrados y documentación necesaria.",
+   "responsable": "Dirección asistencial y responsables del diseño"
+  },
+  {
+   "codigo": "ISO-054",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: necesidades, desempeño esperado, experiencia previa, obligaciones, compromisos y consecuencias de fallas. INCLUIR: entradas aprobadas, conflictos resueltos y registros.",
+   "responsable": "Responsables del diseño y Calidad"
+  },
+  {
+   "codigo": "ISO-055",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: controles diferenciados de revisión, verificación contra entradas y validación del uso previsto. INCLUIR: pruebas, responsables, resultados y acciones. El especialista evalúa aspectos clínicos.",
+   "responsable": "Responsables del diseño y expertos técnicos"
+  },
+  {
+   "codigo": "ISO-056",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: correspondencia con entradas y necesidades de operación. INCLUIR: especificaciones, recursos, controles, criterios de aceptación y características esenciales aprobadas.",
+   "responsable": "Responsables del diseño y líderes operativos"
+  },
+  {
+   "codigo": "ISO-057",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: cambios del servicio diseñado y efectos sobre usuarios y procesos. INCLUIR: cambio, revisión, autorización y acciones para evitar efectos adversos.",
+   "responsable": "Responsables del diseño y Calidad"
+  },
+  {
+   "codigo": "ISO-058",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "INVIMA documentó recepción de preparaciones de Gestión Pharma y contrato.",
+   "observaciones": "REVISAR: universo de procesos contratados, incluidas mezclas, limpieza y mantenimiento. INCLUIR: listado, alcance de responsabilidad y controles exigidos.",
+   "responsable": "Contratación, farmacia y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-059",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Acta refiere contrato y resolución del proveedor, sin evaluación integral aportada.",
+   "observaciones": "REVISAR: desempeño de proveedor de mezclas y un proveedor crítico adicional. INCLUIR: criterios, resultados de evaluación, seguimiento y acciones ante bajo desempeño.",
+   "responsable": "Contratación y supervisores"
+  },
+  {
+   "codigo": "ISO-060",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Se presentaron recepciones técnicas de preparaciones externas durante inspección.",
+   "observaciones": "REVISAR: temperatura, integridad, identificación, trazabilidad y aceptación según el producto. INCLUIR: controles de recepción, verificación y gestión de rechazos y contingencias.",
+   "responsable": "Farmacia, almacén y supervisores"
+  },
+  {
+   "codigo": "ISO-061",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: especificaciones contractuales y su suficiencia antes de comunicar. INCLUIR: requisitos de aceptación, competencia, interacción, supervisión y verificaciones en proveedor cuando correspondan.",
+   "responsable": "Contratación y supervisores"
+  },
+  {
+   "codigo": "ISO-062",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Informe refiere protocolos, sin aportar su contenido y control completo.",
+   "observaciones": "REVISAR: documento vigente en punto de uso y correspondencia con práctica. INCLUIR: instrucciones, criterios y registros de ejecución en hospitalización y farmacia.",
+   "responsable": "Enfermería, dirección asistencial y farmacia"
+  },
+  {
+   "codigo": "ISO-063",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Hallazgos sobre dotación, equipos y funciones del personal.",
+   "observaciones": "REVISAR: disponibilidad real y controles por turno, con demostración del especialista. INCLUIR: criterios, programación, chequeos y registros de control. Confirmar estado actual de los antecedentes.",
+   "responsable": "Enfermería, farmacia e ingeniería biomédica"
+  },
+  {
+   "codigo": "ISO-064",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: identificación de procesos como esterilización o preparación estéril, cuando aplique. INCLUIR: criterios, validaciones, revalidaciones y aceptación técnica. El auditor verifica expediente y responsables, no valida el proceso clínico.",
+   "responsable": "Esterilización y dirección técnica de farmacia"
+  },
+  {
+   "codigo": "ISO-065",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "INVIMA observó despeje de línea e identificación de limpieza y reportó correcciones.",
+   "observaciones": "REVISAR: demostración de despeje de línea, identificación y controles de error en el proceso. INCLUIR: procedimientos aplicados, registros, autorizaciones y seguimiento de eficacia.",
+   "responsable": "Farmacia y líderes asistenciales"
+  },
+  {
+   "codigo": "ISO-066",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Acta INVIMA registró problemas de identificación de área y equipo, con corrección durante visita.",
+   "observaciones": "REVISAR: identificación y estado de preparado, muestra o equipo en una trayectoria. INCLUIR: criterios de identificación y registros de su aplicación sostenida.",
+   "responsable": "Enfermería, farmacia y laboratorio"
+  },
+  {
+   "codigo": "ISO-067",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Acta INVIMA refiere paquetes técnicos y recepción de preparaciones.",
+   "observaciones": "REVISAR: un lote o preparación desde origen hasta destino. INCLUIR: identificadores, registros, responsables y recuperación de trazabilidad; usar datos anonimizados.",
+   "responsable": "Farmacia y responsables de registros"
+  },
+  {
+   "codigo": "ISO-068",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: pertenencias, equipos en préstamo y datos personales. INCLUIR: identificación, verificación, custodia, devolución y registros de comunicación de pérdida o daño si ocurrió.",
+   "responsable": "Enfermería, gestión documental y sistemas"
+  },
+  {
+   "codigo": "ISO-069",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "INVIMA observó excursiones de temperatura y cadena de frío y reportó correcciones.",
+   "observaciones": "REVISAR: almacenamiento actual, transporte y gestión de productos expuestos. INCLUIR: temperaturas, controles de empaque, lotes afectados, aceptación o disposición y seguimiento.",
+   "responsable": "Farmacia y almacén"
+  },
+  {
+   "codigo": "ISO-070",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "TODOS SERVICIOS I212 dice No cumple y J212 afirma disponibilidad de accesorios.",
+   "observaciones": "REVISAR: flujo y contenedores reales para precisar la condición. INCLUIR: estado corregido con fundamento, registro del hallazgo y evidencia de control.",
+   "responsable": "Enfermería, limpieza y esterilización"
+  },
+  {
+   "codigo": "ISO-071",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: instrucciones de egreso, pendientes diagnósticos, seguimiento y reclamos posteriores según servicio. INCLUIR: criterios, información entregada y registros de seguimiento y respuesta.",
+   "responsable": "Dirección asistencial y atención al usuario"
+  },
+  {
+   "codigo": "ISO-072",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Acta de mayo describe mantenimiento y suspensión de áreas estériles.",
+   "observaciones": "REVISAR: cambios posteriores a mayo y eventual reinicio. INCLUIR: revisión, autorizador, impacto, medidas y notificaciones pertinentes. El concepto favorable no demuestra por sí solo reinicio operativo.",
+   "responsable": "Farmacia, gerencia y Calidad"
+  },
+  {
+   "codigo": "ISO-073",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Acta menciona recepción técnica de preparaciones externas.",
+   "observaciones": "REVISAR: liberación de preparados, resultados y etapas asistenciales por responsables autorizados. INCLUIR: criterios y comprobaciones. Cualquier excepción debe atender las autorizaciones y requisitos aplicables.",
+   "responsable": "Farmacia, laboratorio y dirección asistencial"
+  },
+  {
+   "codigo": "ISO-074",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: tres registros recientes de liberación o aceptación. INCLUIR: resultado de comprobación, fecha e identificación de quien autoriza. No incorporar datos identificables de pacientes al instrumento.",
+   "responsable": "Responsables de liberación y registros"
+  },
+  {
+   "codigo": "ISO-075",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Acta INVIMA describió condiciones que podían afectar preservación e identificación.",
+   "observaciones": "REVISAR: segregación, bloqueo y decisión ante producto, muestra o servicio no conforme, incluso detectado después. INCLUIR: criterios, registros y acciones proporcionadas al efecto.",
+   "responsable": "Farmacia, laboratorio y Calidad"
+  },
+  {
+   "codigo": "ISO-076",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: un rechazo o desviación reciente y quién decidió su tratamiento. INCLUIR: corrección, contención, información al interesado, verificación posterior y concesión cuando sea admisible. No usar concesiones para omitir obligaciones aplicables.",
+   "responsable": "Líderes de proceso y Calidad"
+  },
+  {
+   "codigo": "ISO-077",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: registro oficial y vinculación con el lote o servicio afectado. INCLUIR: descripción, acciones, decisión, responsable y soporte de disposición.",
+   "responsable": "Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-078",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "El libro tiene criterios sin estado, resúmenes inconsistentes y errores almacenados.",
+   "observaciones": "REVISAR: método y fuentes de indicadores, no solo el resumen del libro. INCLUIR: fichas, datos, validaciones, frecuencias y responsables. Conciliar detalle y resumen antes de usar resultados.",
+   "responsable": "Calidad y responsables de indicadores"
+  },
+  {
+   "codigo": "ISO-079",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Existen autoevaluación e inspecciones con resultados parciales.",
+   "observaciones": "REVISAR: evaluación integral y resultados comparables por periodo y proceso. INCLUIR: datos consolidados confiables, análisis y decisiones sobre eficacia del sistema.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-080",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: encuestas, quejas, felicitaciones y otros mecanismos apropiados. INCLUIR: método, cobertura, resultados, sesgos, análisis y acciones. Una encuesta aislada no basta.",
+   "responsable": "Atención al usuario y Calidad"
+  },
+  {
+   "codigo": "ISO-081",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: tendencias y comparaciones usadas para tomar decisiones. INCLUIR: análisis sobre conformidad, satisfacción, desempeño del SGC y cumplimiento de planes, con fuentes verificables.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-082",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Hay recomendaciones, sin soporte completo de análisis consolidado.",
+   "observaciones": "REVISAR: desempeño de proveedores, controles de riesgos y prioridades de mejora. INCLUIR: análisis de resultados y decisiones con responsables y seguimiento.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-083",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Autoevaluación 3100 revisa aspectos sectoriales; no demuestra auditoría integral ISO.",
+   "observaciones": "REVISAR: alcance y criterios de auditorías del SGC. INCLUIR: programa e informes que cubran requisitos propios e ISO y funcionamiento del sistema.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-084",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: priorización de hospitalización y farmacia, frecuencia, métodos, responsabilidades y criterios. INCLUIR: programa y planes de auditoría con alcance y criterios definidos.",
+   "responsable": "Calidad y responsable de auditorías"
+  },
+  {
+   "codigo": "ISO-085",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: selección de auditores y conflictos de interés; apoyo técnico para auditor no sanitario. INCLUIR: competencia, asignación, informes y destinatarios.",
+   "responsable": "Calidad y responsable de auditorías"
+  },
+  {
+   "codigo": "ISO-086",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "Planes recibidos sin acciones y socialización sin seguimiento detallado.",
+   "observaciones": "REVISAR: registro oficial de hallazgos de auditoría, respuestas y verificación. INCLUIR: informes, planes, cierres y evidencias de eficacia, con fechas y responsables.",
+   "responsable": "Calidad y líderes auditados"
+  },
+  {
+   "codigo": "ISO-087",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: última revisión y periodicidad definida. INCLUIR: registro de revisión por la dirección. La socialización de hallazgos no equivale por sí sola a esta revisión.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-088",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: acciones de revisiones previas y cambios relevantes. INCLUIR: estado de acciones, contexto actualizado y efecto sobre el SGC.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-089",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: presencia y análisis de cada entrada, evitando un acta solo narrativa. INCLUIR: datos y tendencias, evaluaciones y explicaciones de desviaciones.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-090",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: suficiencia de recursos frente a los hallazgos y resultados de controles. INCLUIR: evaluación de recursos, riesgos y oportunidades y propuestas sustentadas.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-091",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: decisiones concretas y seguimiento posterior. INCLUIR: acciones, responsables, fechas, recursos y registro de resultados de la revisión.",
+   "responsable": "Calidad y gerencia"
+  },
+  {
+   "codigo": "ISO-092",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Informe describe mejoras en habitaciones y propuestas operativas.",
+   "observaciones": "REVISAR: priorización por impacto en usuarios, corrección de efectos no deseados y necesidades futuras. INCLUIR: decisiones, proyectos y resultados de mejora.",
+   "responsable": "Gerencia, Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-093",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Antecedente por verificar",
+   "evidencia": "Hallazgos de hospitalización y correcciones reconocidas en acta INVIMA.",
+   "observaciones": "REVISAR: contención, corrección y evaluación de consecuencias en una muestra crítica. INCLUIR: medidas iniciales, fechas, responsables y registros de atención del problema.",
+   "responsable": "Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-094",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: causa de fallas repetidas de llamados, humedad y conservación de productos. INCLUIR: análisis causal basado en evidencia y revisión de casos similares. No confundir causa con repetición del hallazgo.",
+   "responsable": "Calidad, Mantenimiento y farmacia"
+  },
+  {
+   "codigo": "ISO-095",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "No se aportó cierre eficaz de hospitalización en planes del libro. INVIMA sí reconoce correcciones durante visita.",
+   "observaciones": "REVISAR: pruebas posteriores y ausencia de recurrencia según periodo apropiado. INCLUIR: acción, responsable, fecha, prueba de eficacia y aprobación de cierre. Separar corrección inmediata de acción sobre la causa.",
+   "responsable": "Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-096",
+   "valoracion": "sin_evidencia",
+   "estado_origen": "Sin evidencia aportada",
+   "evidencia": "No se identificó soporte suficiente en los insumos revisados.",
+   "observaciones": "REVISAR: cambios a procedimientos, recursos, funciones y riesgos derivados de hallazgos. INCLUIR: versiones actualizadas, comunicaciones y valoración posterior.",
+   "responsable": "Calidad y líderes de proceso"
+  },
+  {
+   "codigo": "ISO-097",
+   "valoracion": "no_cumple",
+   "estado_origen": "Brecha documental",
+   "evidencia": "Planes del libro vacíos y registros con trazabilidad insuficiente.",
+   "observaciones": "REVISAR: expediente completo de tres cierres y su ubicación oficial. INCLUIR: hecho, requisito, evidencia inicial, acciones, resultados y responsables.",
+   "responsable": "Calidad"
+  },
+  {
+   "codigo": "ISO-098",
+   "valoracion": "cumple_parcial",
+   "estado_origen": "Evidencia parcial",
+   "evidencia": "Se reportan mejoras puntuales, sin demostración de un ciclo integral sostenido.",
+   "observaciones": "REVISAR: vínculo entre datos, revisión directiva y mejoras sostenidas. INCLUIR: resultados antes y después, aprendizaje y decisiones sobre necesidades y oportunidades.",
+   "responsable": "Calidad y gerencia"
+  }
+ ]
+}

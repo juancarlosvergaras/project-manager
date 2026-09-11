@@ -1,0 +1,14 @@
+services:
+  diagnostico-iso:
+    build: .
+    container_name: diagnostico-iso
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/diagnostico.sqlite
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - diagnostico-data:/data
+volumes:
+  diagnostico-data:

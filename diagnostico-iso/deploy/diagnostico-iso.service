@@ -1,0 +1,16 @@
+# /etc/systemd/system/diagnostico-iso.service
+[Unit]
+Description=Diagnóstico ISO 9001 (diagnosticoiso.proyectoia.org)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/diagnostico-iso
+EnvironmentFile=/opt/diagnostico-iso/.env
+ExecStart=/usr/bin/node --no-warnings=ExperimentalWarning server/index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

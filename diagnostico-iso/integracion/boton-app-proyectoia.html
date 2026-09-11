@@ -1,0 +1,29 @@
+<!--
+  Botón de acceso a la herramienta de diagnóstico ISO 9001 para app.proyectoia.org.
+  Pegue este bloque en la vista del panel principal (junto a los demás accesos a herramientas).
+
+  Dos formas de enlazar:
+    1) Enlace simple: la herramienta pide sesión al usuario (por el gestor o de forma local).
+    2) Enlace con token: si app.proyectoia.org ya conoce el token del gestor del usuario, se lo entrega
+       en el parámetro ?token=… y la herramienta canjea ese token por su propia sesión sin volver a pedir clave.
+       Sustituya {{TOKEN_GESTOR}} por la variable de plantilla que use app.proyectoia.org.
+-->
+<style>
+  .btn-diagnostico-iso { display: inline-flex; align-items: center; gap: .6rem; padding: .75rem 1.1rem; border-radius: 12px;
+    background: #1b4f8a; color: #fff; text-decoration: none; font-weight: 600; font-family: inherit; box-shadow: 0 2px 8px rgba(27,79,138,.25); }
+  .btn-diagnostico-iso:hover { background: #143b68; }
+  .btn-diagnostico-iso svg { width: 26px; height: 26px; flex: none; }
+  .btn-diagnostico-iso small { display: block; font-weight: 400; font-size: .78rem; opacity: .85; }
+</style>
+
+<!-- Opción 1: enlace simple -->
+<a class="btn-diagnostico-iso" href="https://diagnosticoiso.proyectoia.org/" rel="noopener">
+  <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#fff" opacity=".15"/><path d="M18 34l9 9 19-21" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <span>Diagnóstico ISO 9001<small>Cuestionario, indicadores y brecha de implementación</small></span>
+</a>
+
+<!-- Opción 2: enlace con token del gestor (descomente y ajuste la variable de plantilla)
+<a class="btn-diagnostico-iso" href="https://diagnosticoiso.proyectoia.org/?token={{TOKEN_GESTOR}}" rel="noopener">
+  ...
+</a>
+-->

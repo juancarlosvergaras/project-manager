@@ -1,0 +1,10 @@
+{
+  "name": "Diagnóstico ISO 9001 · ProyectoIA",
+  "short_name": "Diagnóstico ISO",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#1b4f8a",
+  "lang": "es",
+  "icons": [{ "src": "/icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

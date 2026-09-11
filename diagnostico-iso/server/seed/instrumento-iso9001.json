@@ -1,0 +1,890 @@
+{
+ "clave": "iso9001-2015-amd1-2024",
+ "nombre": "Instrumento de diagnóstico ISO 9001:2015 + Enmienda 1:2024",
+ "version": "1.0",
+ "descripcion": "Preguntas propias de aplicación derivadas de la norma ISO 9001:2015 y su Enmienda 1:2024. No es un instrumento oficial de ISO.",
+ "items": [
+  {
+   "codigo": "ISO-001",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.1",
+   "pregunta": "¿Identificaron los asuntos internos y externos que pueden afectar la calidad de los servicios?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 1
+  },
+  {
+   "codigo": "ISO-002",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.1",
+   "pregunta": "¿Revisan y actualizan el contexto cuando cambian las condiciones de la organización?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 2
+  },
+  {
+   "codigo": "ISO-003",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.1",
+   "pregunta": "¿Determinaron si el cambio climático es relevante para el SGC?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 3
+  },
+  {
+   "codigo": "ISO-004",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.2",
+   "pregunta": "¿Identificaron las partes interesadas y los requisitos relevantes para la calidad?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 4
+  },
+  {
+   "codigo": "ISO-005",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.2",
+   "pregunta": "¿Actualizan los requisitos de partes interesadas y consideran los relacionados con el clima cuando existan?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 5
+  },
+  {
+   "codigo": "ISO-006",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.3",
+   "pregunta": "¿El alcance del SGC precisa sedes, servicios y límites y se mantiene documentado?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 6
+  },
+  {
+   "codigo": "ISO-007",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.3",
+   "pregunta": "¿Justificaron cualquier requisito declarado no aplicable sin afectar su responsabilidad por la calidad?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 7
+  },
+  {
+   "codigo": "ISO-008",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.4.1",
+   "pregunta": "¿Están definidos los procesos, sus entradas, salidas, secuencia e interacciones?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 8
+  },
+  {
+   "codigo": "ISO-009",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.4.1",
+   "pregunta": "¿Cada proceso tiene responsable, recursos, criterios, indicadores y controles de riesgos?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 9
+  },
+  {
+   "codigo": "ISO-010",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.4.1",
+   "pregunta": "¿Evalúan resultados de procesos y realizan cambios para mejorarlos?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 10
+  },
+  {
+   "codigo": "ISO-011",
+   "capitulo": 4,
+   "capitulo_nombre": "Contexto de la organización",
+   "numeral": "4.4.2",
+   "pregunta": "¿Conservan información suficiente para operar y demostrar que los procesos se ejecutan según lo previsto?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 11
+  },
+  {
+   "codigo": "ISO-012",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.1.1",
+   "pregunta": "¿La dirección asume responsabilidad por la eficacia del SGC y lo integra en la gestión de la organización?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 12
+  },
+  {
+   "codigo": "ISO-013",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.1.1",
+   "pregunta": "¿La dirección promueve el enfoque por procesos, los riesgos, la participación y la mejora y asegura recursos?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 13
+  },
+  {
+   "codigo": "ISO-014",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.1.2",
+   "pregunta": "¿La dirección asegura comprensión y cumplimiento de requisitos del cliente y requisitos aplicables?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 14
+  },
+  {
+   "codigo": "ISO-015",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.1.2",
+   "pregunta": "¿Controlan riesgos que afectan la conformidad del servicio y mantienen el enfoque en la satisfacción?",
+   "responsable_sugerido": "Gerencia, Calidad y atención al usuario",
+   "orden": 15
+  },
+  {
+   "codigo": "ISO-016",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.2.1",
+   "pregunta": "¿La política de calidad es pertinente y orienta objetivos, cumplimiento de requisitos y mejora?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 16
+  },
+  {
+   "codigo": "ISO-017",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.2.2",
+   "pregunta": "¿La política está disponible, se comunica y el personal comprende cómo aplicarla?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 17
+  },
+  {
+   "codigo": "ISO-018",
+   "capitulo": 5,
+   "capitulo_nombre": "Liderazgo",
+   "numeral": "5.3",
+   "pregunta": "¿Están asignadas y comunicadas las responsabilidades para procesos, conformidad y resultados del SGC?",
+   "responsable_sugerido": "Gerencia, Talento Humano y dirección técnica de farmacia",
+   "orden": 18
+  },
+  {
+   "codigo": "ISO-019",
+   "capitulo": 6,
+   "capitulo_nombre": "Planificación",
+   "numeral": "6.1.1",
+   "pregunta": "¿Identifican riesgos y oportunidades a partir del contexto y requisitos de interesados?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 19
+  },
+  {
+   "codigo": "ISO-020",
+   "capitulo": 6,
+   "capitulo_nombre": "Planificación",
+   "numeral": "6.1.2",
+   "pregunta": "¿Planifican acciones proporcionales al riesgo, las integran a procesos y evalúan su eficacia?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 20
+  },
+  {
+   "codigo": "ISO-021",
+   "capitulo": 6,
+   "capitulo_nombre": "Planificación",
+   "numeral": "6.2.1",
+   "pregunta": "¿Existen objetivos de calidad medibles, coherentes con la política y relevantes para los procesos?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 21
+  },
+  {
+   "codigo": "ISO-022",
+   "capitulo": 6,
+   "capitulo_nombre": "Planificación",
+   "numeral": "6.2.1",
+   "pregunta": "¿Monitorean, comunican y actualizan los objetivos de calidad?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 22
+  },
+  {
+   "codigo": "ISO-023",
+   "capitulo": 6,
+   "capitulo_nombre": "Planificación",
+   "numeral": "6.2.2",
+   "pregunta": "¿Cada objetivo tiene acciones, recursos, responsable, plazo y método de evaluación?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 23
+  },
+  {
+   "codigo": "ISO-024",
+   "capitulo": 6,
+   "capitulo_nombre": "Planificación",
+   "numeral": "6.3",
+   "pregunta": "¿Los cambios se planifican considerando propósito, consecuencias, integridad del SGC, recursos y responsabilidades?",
+   "responsable_sugerido": "Dirección técnica de farmacia, gerencia y Calidad",
+   "orden": 24
+  },
+  {
+   "codigo": "ISO-025",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.1",
+   "pregunta": "¿Determinan recursos internos y externos necesarios, considerando capacidad y limitaciones?",
+   "responsable_sugerido": "Gerencia y líderes de proceso",
+   "orden": 25
+  },
+  {
+   "codigo": "ISO-026",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.2",
+   "pregunta": "¿Disponen de personas suficientes para operar y controlar los procesos?",
+   "responsable_sugerido": "Talento Humano y dirección asistencial",
+   "orden": 26
+  },
+  {
+   "codigo": "ISO-027",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.3",
+   "pregunta": "¿Mantienen infraestructura, instalaciones y sistemas necesarios para prestar el servicio?",
+   "responsable_sugerido": "Mantenimiento, SST y Enfermería",
+   "orden": 27
+  },
+  {
+   "codigo": "ISO-028",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.3",
+   "pregunta": "¿Los equipos y sistemas de información son suficientes, están disponibles y se mantienen?",
+   "responsable_sugerido": "Ingeniería biomédica, Enfermería y sistemas",
+   "orden": 28
+  },
+  {
+   "codigo": "ISO-029",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.4",
+   "pregunta": "¿Controlan las condiciones físicas del ambiente necesarias para prestar servicios conformes?",
+   "responsable_sugerido": "Mantenimiento, SST, Enfermería y farmacia",
+   "orden": 29
+  },
+  {
+   "codigo": "ISO-030",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.4",
+   "pregunta": "¿Gestionan factores humanos y sociales del ambiente que pueden afectar el servicio?",
+   "responsable_sugerido": "Talento Humano, SST y líderes de proceso",
+   "orden": 30
+  },
+  {
+   "codigo": "ISO-031",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.5.1",
+   "pregunta": "¿Los recursos de seguimiento y medición son adecuados y se mantiene evidencia de su aptitud?",
+   "responsable_sugerido": "Ingeniería biomédica y dirección técnica de farmacia",
+   "orden": 31
+  },
+  {
+   "codigo": "ISO-032",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.5.2",
+   "pregunta": "¿Aseguran trazabilidad de mediciones cuando se requiere, identificación y protección de instrumentos?",
+   "responsable_sugerido": "Ingeniería biomédica y responsables técnicos",
+   "orden": 32
+  },
+  {
+   "codigo": "ISO-033",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.5.2",
+   "pregunta": "¿Evalúan resultados previos y toman acciones cuando un instrumento no es apto?",
+   "responsable_sugerido": "Ingeniería biomédica y responsables técnicos",
+   "orden": 33
+  },
+  {
+   "codigo": "ISO-034",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.1.6",
+   "pregunta": "¿Determinan, conservan y comparten el conocimiento necesario para operar y afrontar cambios?",
+   "responsable_sugerido": "Talento Humano, Calidad y líderes de proceso",
+   "orden": 34
+  },
+  {
+   "codigo": "ISO-035",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.2",
+   "pregunta": "¿Definen competencias y verifican educación, formación o experiencia para cada función?",
+   "responsable_sugerido": "Talento Humano y dirección técnica de farmacia",
+   "orden": 35
+  },
+  {
+   "codigo": "ISO-036",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.2",
+   "pregunta": "¿Cierran brechas de competencia y evalúan la eficacia de las acciones de formación?",
+   "responsable_sugerido": "Talento Humano y líderes de proceso",
+   "orden": 36
+  },
+  {
+   "codigo": "ISO-037",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.3",
+   "pregunta": "¿El personal conoce la política, objetivos pertinentes, su contribución y consecuencias de incumplir?",
+   "responsable_sugerido": "Calidad y personal operativo",
+   "orden": 37
+  },
+  {
+   "codigo": "ISO-038",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.4",
+   "pregunta": "¿Definen qué comunican, cuándo, con quién, cómo y quién es responsable?",
+   "responsable_sugerido": "Calidad y líderes de proceso",
+   "orden": 38
+  },
+  {
+   "codigo": "ISO-039",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.5.1",
+   "pregunta": "¿La documentación cubre lo requerido y lo necesario para la eficacia del SGC?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 39
+  },
+  {
+   "codigo": "ISO-040",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.5.2",
+   "pregunta": "¿Identifican fecha, autor, versión y formato y revisan y aprueban los documentos antes de usarlos?",
+   "responsable_sugerido": "Calidad y gestión documental",
+   "orden": 40
+  },
+  {
+   "codigo": "ISO-041",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.5.3.1",
+   "pregunta": "¿La información está disponible donde se necesita y protegida contra pérdida, uso indebido o alteración?",
+   "responsable_sugerido": "Gestión documental y sistemas",
+   "orden": 41
+  },
+  {
+   "codigo": "ISO-042",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.5.3.2",
+   "pregunta": "¿Controlan distribución, acceso, recuperación, conservación, cambios, retención y disposición de registros?",
+   "responsable_sugerido": "Gestión documental y Calidad",
+   "orden": 42
+  },
+  {
+   "codigo": "ISO-043",
+   "capitulo": 7,
+   "capitulo_nombre": "Apoyo",
+   "numeral": "7.5.3.2",
+   "pregunta": "¿Identifican y controlan documentos externos necesarios para operar?",
+   "responsable_sugerido": "Calidad, jurídica y líderes de proceso",
+   "orden": 43
+  },
+  {
+   "codigo": "ISO-044",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.1",
+   "pregunta": "¿Planifican procesos operativos con requisitos, recursos y criterios de aceptación?",
+   "responsable_sugerido": "Dirección asistencial y líderes de proceso",
+   "orden": 44
+  },
+  {
+   "codigo": "ISO-045",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.1",
+   "pregunta": "¿Controlan cambios operativos, consecuencias de cambios no previstos y procesos contratados?",
+   "responsable_sugerido": "Dirección asistencial, farmacia y contratación",
+   "orden": 45
+  },
+  {
+   "codigo": "ISO-046",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.2.1",
+   "pregunta": "¿Informan al usuario sobre servicios y gestionan solicitudes, cambios, quejas y retroalimentación?",
+   "responsable_sugerido": "Atención al usuario y admisiones",
+   "orden": 46
+  },
+  {
+   "codigo": "ISO-047",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.2.1",
+   "pregunta": "¿Comunican el manejo de bienes del usuario y las contingencias pertinentes?",
+   "responsable_sugerido": "Atención al usuario y líderes de proceso",
+   "orden": 47
+  },
+  {
+   "codigo": "ISO-048",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.2.2",
+   "pregunta": "¿Determinan los requisitos del servicio, incluidos los aplicables y los que la organización considera necesarios?",
+   "responsable_sugerido": "Calidad, contratación y dirección asistencial",
+   "orden": 48
+  },
+  {
+   "codigo": "ISO-049",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.2.3.1",
+   "pregunta": "¿Revisan antes de comprometerse que pueden cumplir los requisitos del servicio y resuelven diferencias?",
+   "responsable_sugerido": "Contratación, admisiones y dirección asistencial",
+   "orden": 49
+  },
+  {
+   "codigo": "ISO-050",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.2.3.2",
+   "pregunta": "¿Conservan resultados de revisión de requisitos y requisitos nuevos?",
+   "responsable_sugerido": "Contratación y líderes de proceso",
+   "orden": 50
+  },
+  {
+   "codigo": "ISO-051",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.2.4",
+   "pregunta": "¿Actualizan documentos e informan al personal cuando cambian los requisitos del servicio?",
+   "responsable_sugerido": "Calidad, contratación y dirección asistencial",
+   "orden": 51
+  },
+  {
+   "codigo": "ISO-052",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.3.1",
+   "pregunta": "¿Determinaron si diseñan o desarrollan servicios y establecieron un proceso adecuado?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 52
+  },
+  {
+   "codigo": "ISO-053",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.3.2",
+   "pregunta": "¿Planifican etapas, responsabilidades, recursos, interfaces, participación y controles del diseño?",
+   "responsable_sugerido": "Dirección asistencial y responsables del diseño",
+   "orden": 53
+  },
+  {
+   "codigo": "ISO-054",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.3.3",
+   "pregunta": "¿Definen entradas completas y coherentes para diseñar servicios y resuelven requisitos contradictorios?",
+   "responsable_sugerido": "Responsables del diseño y Calidad",
+   "orden": 54
+  },
+  {
+   "codigo": "ISO-055",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.3.4",
+   "pregunta": "¿Revisan, verifican y validan el diseño y gestionan los problemas detectados?",
+   "responsable_sugerido": "Responsables del diseño y expertos técnicos",
+   "orden": 55
+  },
+  {
+   "codigo": "ISO-056",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.3.5",
+   "pregunta": "¿Las salidas del diseño permiten operar, controlar y aceptar el servicio de manera segura?",
+   "responsable_sugerido": "Responsables del diseño y líderes operativos",
+   "orden": 56
+  },
+  {
+   "codigo": "ISO-057",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.3.6",
+   "pregunta": "¿Identifican, revisan y controlan cambios del diseño evitando efectos adversos?",
+   "responsable_sugerido": "Responsables del diseño y Calidad",
+   "orden": 57
+  },
+  {
+   "codigo": "ISO-058",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.4.1",
+   "pregunta": "¿Identifican y controlan proveedores y procesos externos que afectan la calidad?",
+   "responsable_sugerido": "Contratación, farmacia y líderes de proceso",
+   "orden": 58
+  },
+  {
+   "codigo": "ISO-059",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.4.1",
+   "pregunta": "¿Seleccionan, evalúan, monitorean y reevalúan proveedores con criterios definidos?",
+   "responsable_sugerido": "Contratación y supervisores",
+   "orden": 59
+  },
+  {
+   "codigo": "ISO-060",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.4.2",
+   "pregunta": "¿Los controles sobre lo externo se ajustan a su impacto y aseguran conformidad de lo recibido?",
+   "responsable_sugerido": "Farmacia, almacén y supervisores",
+   "orden": 60
+  },
+  {
+   "codigo": "ISO-061",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.4.3",
+   "pregunta": "¿Comunican a proveedores requisitos claros de producto, proceso, competencia, aprobación y seguimiento?",
+   "responsable_sugerido": "Contratación y supervisores",
+   "orden": 61
+  },
+  {
+   "codigo": "ISO-062",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.1",
+   "pregunta": "¿La prestación se realiza con instrucciones y características del servicio disponibles y resultados definidos?",
+   "responsable_sugerido": "Enfermería, dirección asistencial y farmacia",
+   "orden": 62
+  },
+  {
+   "codigo": "ISO-063",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.1",
+   "pregunta": "¿Controlan la operación con recursos adecuados, personal competente y mediciones en etapas pertinentes?",
+   "responsable_sugerido": "Enfermería, farmacia e ingeniería biomédica",
+   "orden": 63
+  },
+  {
+   "codigo": "ISO-064",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.1",
+   "pregunta": "¿Validan y revalidan procesos cuyos resultados no pueden comprobarse completamente después?",
+   "responsable_sugerido": "Esterilización y dirección técnica de farmacia",
+   "orden": 64
+  },
+  {
+   "codigo": "ISO-065",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.1",
+   "pregunta": "¿Previenen errores humanos y controlan liberación, entrega y actividades posteriores?",
+   "responsable_sugerido": "Farmacia y líderes asistenciales",
+   "orden": 65
+  },
+  {
+   "codigo": "ISO-066",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.2",
+   "pregunta": "¿Identifican usuarios, productos, muestras y su estado durante la prestación?",
+   "responsable_sugerido": "Enfermería, farmacia y laboratorio",
+   "orden": 66
+  },
+  {
+   "codigo": "ISO-067",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.2",
+   "pregunta": "¿Aseguran identificación única y registros de trazabilidad cuando se requieren?",
+   "responsable_sugerido": "Farmacia y responsables de registros",
+   "orden": 67
+  },
+  {
+   "codigo": "ISO-068",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.3",
+   "pregunta": "¿Protegen y registran la propiedad del usuario o proveedor y reportan pérdida o daño?",
+   "responsable_sugerido": "Enfermería, gestión documental y sistemas",
+   "orden": 68
+  },
+  {
+   "codigo": "ISO-069",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.4",
+   "pregunta": "¿Preservan productos y salidas durante manejo, almacenamiento, transporte y entrega?",
+   "responsable_sugerido": "Farmacia y almacén",
+   "orden": 69
+  },
+  {
+   "codigo": "ISO-070",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.4",
+   "pregunta": "¿Protegen elementos limpios y sucios y evitan contaminación durante el traslado?",
+   "responsable_sugerido": "Enfermería, limpieza y esterilización",
+   "orden": 70
+  },
+  {
+   "codigo": "ISO-071",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.5",
+   "pregunta": "¿Definen y cumplen actividades posteriores a la entrega o prestación según riesgos y requisitos?",
+   "responsable_sugerido": "Dirección asistencial y atención al usuario",
+   "orden": 71
+  },
+  {
+   "codigo": "ISO-072",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.5.6",
+   "pregunta": "¿Revisan y autorizan cambios en la prestación y conservan resultados y acciones necesarias?",
+   "responsable_sugerido": "Farmacia, gerencia y Calidad",
+   "orden": 72
+  },
+  {
+   "codigo": "ISO-073",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.6",
+   "pregunta": "¿Verifican requisitos y criterios de aceptación antes de liberar productos o servicios?",
+   "responsable_sugerido": "Farmacia, laboratorio y dirección asistencial",
+   "orden": 73
+  },
+  {
+   "codigo": "ISO-074",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.6",
+   "pregunta": "¿Conservan evidencia de conformidad y trazabilidad de quién autorizó la liberación?",
+   "responsable_sugerido": "Responsables de liberación y registros",
+   "orden": 74
+  },
+  {
+   "codigo": "ISO-075",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.7.1",
+   "pregunta": "¿Identifican y controlan salidas no conformes para impedir su uso o entrega no intencional?",
+   "responsable_sugerido": "Farmacia, laboratorio y Calidad",
+   "orden": 75
+  },
+  {
+   "codigo": "ISO-076",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.7.1",
+   "pregunta": "¿Corrigen, contienen, informan y verifican de nuevo las salidas corregidas y controlan concesiones si proceden?",
+   "responsable_sugerido": "Líderes de proceso y Calidad",
+   "orden": 76
+  },
+  {
+   "codigo": "ISO-077",
+   "capitulo": 8,
+   "capitulo_nombre": "Operación",
+   "numeral": "8.7.2",
+   "pregunta": "¿Registran no conformidad, acciones, concesiones y autoridad que decide?",
+   "responsable_sugerido": "Calidad y líderes de proceso",
+   "orden": 77
+  },
+  {
+   "codigo": "ISO-078",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.1.1",
+   "pregunta": "¿Definen qué medir, método, frecuencia y momento de analizar los resultados?",
+   "responsable_sugerido": "Calidad y responsables de indicadores",
+   "orden": 78
+  },
+  {
+   "codigo": "ISO-079",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.1.1",
+   "pregunta": "¿Evalúan desempeño y eficacia del SGC y conservan resultados verificables?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 79
+  },
+  {
+   "codigo": "ISO-080",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.1.2",
+   "pregunta": "¿Monitorean la percepción del usuario y definen cómo obtener, revisar y usar esa información?",
+   "responsable_sugerido": "Atención al usuario y Calidad",
+   "orden": 80
+  },
+  {
+   "codigo": "ISO-081",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.1.3",
+   "pregunta": "¿Analizan datos sobre conformidad, satisfacción, desempeño, eficacia y ejecución de lo planificado?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 81
+  },
+  {
+   "codigo": "ISO-082",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.1.3",
+   "pregunta": "¿Evalúan eficacia de riesgos, proveedores y necesidades de mejora mediante datos?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 82
+  },
+  {
+   "codigo": "ISO-083",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.2.1",
+   "pregunta": "¿Realizan auditorías internas planificadas para comprobar requisitos propios, ISO y eficacia de implementación?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 83
+  },
+  {
+   "codigo": "ISO-084",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.2.2",
+   "pregunta": "¿El programa de auditorías considera importancia de procesos, cambios y resultados previos?",
+   "responsable_sugerido": "Calidad y responsable de auditorías",
+   "orden": 84
+  },
+  {
+   "codigo": "ISO-085",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.2.2",
+   "pregunta": "¿Aseguran competencia, objetividad e imparcialidad y reportan resultados a la dirección pertinente?",
+   "responsable_sugerido": "Calidad y responsable de auditorías",
+   "orden": 85
+  },
+  {
+   "codigo": "ISO-086",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.2.2",
+   "pregunta": "¿Aplican correcciones y acciones sin demora indebida y conservan evidencia del programa y resultados?",
+   "responsable_sugerido": "Calidad y líderes auditados",
+   "orden": 86
+  },
+  {
+   "codigo": "ISO-087",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.3.1",
+   "pregunta": "¿La dirección revisa periódicamente conveniencia, adecuación, eficacia y alineación estratégica del SGC?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 87
+  },
+  {
+   "codigo": "ISO-088",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.3.2",
+   "pregunta": "¿La revisión incluye seguimiento de decisiones anteriores y cambios del contexto?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 88
+  },
+  {
+   "codigo": "ISO-089",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.3.2",
+   "pregunta": "¿La revisión considera tendencias de satisfacción, objetivos, procesos, conformidad, no conformidades, mediciones, auditorías y proveedores?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 89
+  },
+  {
+   "codigo": "ISO-090",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.3.2",
+   "pregunta": "¿La revisión considera recursos, eficacia de acciones sobre riesgos y oportunidades de mejora?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 90
+  },
+  {
+   "codigo": "ISO-091",
+   "capitulo": 9,
+   "capitulo_nombre": "Evaluación del desempeño",
+   "numeral": "9.3.3",
+   "pregunta": "¿La revisión genera decisiones sobre mejora, cambios del SGC y recursos y conserva resultados?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 91
+  },
+  {
+   "codigo": "ISO-092",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.1",
+   "pregunta": "¿Seleccionan oportunidades de mejora para cumplir requisitos y aumentar la satisfacción?",
+   "responsable_sugerido": "Gerencia, Calidad y líderes de proceso",
+   "orden": 92
+  },
+  {
+   "codigo": "ISO-093",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.2.1",
+   "pregunta": "¿Reaccionan ante no conformidades, incluidas quejas, las controlan, corrigen y atienden consecuencias?",
+   "responsable_sugerido": "Calidad y líderes de proceso",
+   "orden": 93
+  },
+  {
+   "codigo": "ISO-094",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.2.1",
+   "pregunta": "¿Analizan causas y revisan si el problema existe o puede ocurrir en otros procesos?",
+   "responsable_sugerido": "Calidad, Mantenimiento y farmacia",
+   "orden": 94
+  },
+  {
+   "codigo": "ISO-095",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.2.1",
+   "pregunta": "¿Implementan acciones proporcionales y comprueban su eficacia antes de cerrar?",
+   "responsable_sugerido": "Calidad y líderes de proceso",
+   "orden": 95
+  },
+  {
+   "codigo": "ISO-096",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.2.1",
+   "pregunta": "¿Actualizan riesgos y modifican el SGC cuando la acción correctiva lo requiere?",
+   "responsable_sugerido": "Calidad y líderes de proceso",
+   "orden": 96
+  },
+  {
+   "codigo": "ISO-097",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.2.2",
+   "pregunta": "¿Conservan evidencia de la no conformidad, acciones y resultados de la acción correctiva?",
+   "responsable_sugerido": "Calidad",
+   "orden": 97
+  },
+  {
+   "codigo": "ISO-098",
+   "capitulo": 10,
+   "capitulo_nombre": "Mejora",
+   "numeral": "10.3",
+   "pregunta": "¿Mejoran continuamente la conveniencia, adecuación y eficacia del SGC usando análisis y revisión directiva?",
+   "responsable_sugerido": "Calidad y gerencia",
+   "orden": 98
+  }
+ ]
+}

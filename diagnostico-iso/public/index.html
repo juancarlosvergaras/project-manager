@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b4f8a">
+<meta name="description" content="Herramienta en línea para el diagnóstico de implementación de ISO 9001:2015 y su Enmienda 1:2024.">
+<title>Diagnóstico ISO 9001 · ProyectoIA</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icono.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar no-print" id="topbar">
+  <button class="icon-btn" id="btn-back" aria-label="Volver" hidden>‹</button>
+  <a class="brand" href="#/"><img src="/icono.svg" alt="" width="28" height="28"><span>Diagnóstico ISO 9001</span></a>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="btn-menu" aria-label="Menú" hidden>☰</button>
+</header>
+<nav class="drawer no-print" id="drawer" hidden>
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <div class="drawer-panel">
+    <div class="drawer-user" id="drawer-user"></div>
+    <a href="#/" class="drawer-link">Organizaciones</a>
+    <a href="#/imprimir-blanco" class="drawer-link">Imprimir formato en blanco</a>
+    <a href="#/usuarios" class="drawer-link" data-admin hidden>Usuarios</a>
+    <a href="#/perfil" class="drawer-link">Mi perfil</a>
+    <a href="#" class="drawer-link" id="link-app-proyectoia" target="_blank" rel="noopener">Ir a app.proyectoia.org</a>
+    <button class="drawer-link danger" id="btn-logout">Cerrar sesión</button>
+    <p class="drawer-foot">ISO 9001:2015 + Enmienda 1:2024. Instrumento propio de aplicación. No es un documento oficial de ISO.</p>
+  </div>
+</nav>
+<main id="app" class="app"><div class="loading">Cargando…</div></main>
+<div id="toast" class="toast" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>

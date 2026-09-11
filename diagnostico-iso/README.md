@@ -1,0 +1,128 @@
+# Diagnóstico ISO 9001 · diagnosticoiso.proyectoia.org
+
+Herramienta en línea para aplicar, versionar y analizar el diagnóstico de implementación de la norma ISO 9001:2015 con su Enmienda 1:2024 en cualquier organización. Está diseñada para diligenciarse desde el teléfono móvil, se integra con el sistema de usuarios de gestor.proyectoia.org y se enlaza desde app.proyectoia.org.
+
+## Funcionalidades
+
+- **Organizaciones**. Creación y administración de organizaciones (nombre, sigla, NIT, sector, ciudad, contacto) y asignación de usuarios a cada una con rol de editor o lector.
+- **Cuestionario**. Instrumento de 98 preguntas propias de aplicación, organizadas por capítulo (4 a 10) y numeral de la norma, con responsable sugerido de la evidencia.
+- **Escala de valoración**. Cumple (100 %), Cumplimiento parcial (50 %), No cumple (0 %) y Sin evidencia (0 %). Cada respuesta admite evidencia, observaciones y responsable.
+- **Versiones e histórico**. Cada aplicación del cuestionario es una versión numerada de la organización. Una versión se cierra para congelarla y una nueva puede partir en blanco o heredar de una anterior (con o sin valoraciones). El histórico muestra la evolución del cumplimiento por versión y permite comparar dos versiones ítem a ítem.
+- **Indicadores**. Cumplimiento global, brecha para alcanzar ISO 9001, nivel de madurez, capítulo crítico, distribución de valoraciones, cumplimiento por capítulo y por numeral, lista priorizada de requisitos por cerrar y carga por responsable. Exportación a CSV.
+- **Impresión**. Formato en blanco (sin sesión) y formato diligenciado con filtro de versión, ambos optimizados para A4 horizontal.
+- **Caso precargado**. Diagnóstico documental del Hospital Universitario del Caribe (98 respuestas, versión 1 cerrada), tomado del instrumento en Excel aportado. Las categorías originales (Evidencia parcial, Sin evidencia aportada, Brecha documental, Antecedente por verificar) se conservan en cada respuesta como estado de origen.
+- **Aplicación instalable**. Manifiesto PWA para agregarla a la pantalla de inicio del teléfono.
+
+## Arquitectura
+
+| Capa | Tecnología |
+|---|---|
+| Servidor | Node.js 22.13 o superior, sin dependencias externas (`node:http`, `node:sqlite`, `node:crypto`) |
+| Base de datos | SQLite en un archivo (WAL), esquema y datos semilla creados automáticamente al arrancar |
+| Interfaz | HTML, CSS y JavaScript sin framework ni paso de compilación, diseño móvil primero |
+| Autenticación | Sesiones propias en cookie firmada, con ingreso por gestor.proyectoia.org (SSO) o usuarios locales |
+
+Estructura del proyecto:
+
+```
+diagnostico-iso/
+  server/
+    index.js      servidor HTTP, archivos estáticos y flujo SSO
+    routes.js     API REST
+    auth.js       sesiones, usuarios locales e integración con el gestor
+    db.js         esquema SQLite, escala de valoración y carga de datos semilla
+    scoring.js    indicadores, brecha, niveles de madurez y comparación de versiones
+    seed/         instrumento (98 preguntas) y caso del Hospital Universitario del Caribe
+  public/         interfaz (index.html, app.js, styles.css, manifest, ícono)
+  integracion/    fragmento HTML del botón para app.proyectoia.org
+  scripts/        importador de diagnósticos desde Excel
+  deploy/         configuración de nginx y unidad de systemd
+  test/           pruebas unitarias e integración (node --test)
+```
+
+## Puesta en marcha local
+
+```bash
+cd diagnostico-iso
+npm run dev            # http://localhost:3010 en modo local
+```
+
+Usuario inicial: `admin@proyectoia.org` con contraseña `admin1234` (se crea solo si no hay usuarios; cámbiela en Mi perfil o defina `ADMIN_EMAIL` y `ADMIN_PASSWORD`).
+
+Pruebas:
+
+```bash
+npm test
+```
+
+## Despliegue en diagnosticoiso.proyectoia.org
+
+1. Copie la carpeta al servidor (por ejemplo `/opt/diagnostico-iso`) y cree `.env` a partir de `.env.example`. Defina como mínimo `SESSION_SECRET`, `BASE_URL`, `DB_PATH` y las variables `GESTOR_*`.
+2. Opción A, systemd: copie `deploy/diagnostico-iso.service` a `/etc/systemd/system/`, ajuste usuario y rutas y ejecute `systemctl enable --now diagnostico-iso`.
+3. Opción B, Docker: `docker compose up -d --build` (la base de datos queda en el volumen `diagnostico-data`).
+4. Publique el subdominio con nginx usando `deploy/nginx.diagnosticoiso.conf` y emita el certificado con certbot. La cabecera `X-Forwarded-Proto https` es necesaria para que la cookie de sesión se marque como segura.
+5. Registro DNS: `diagnosticoiso.proyectoia.org` apuntando al servidor.
+
+Copia de seguridad: basta con copiar el archivo SQLite indicado en `DB_PATH` (con sus archivos `-wal` y `-shm` si existen).
+
+## Integración con el sistema de usuarios de gestor.proyectoia.org
+
+La herramienta no almacena contraseñas de los usuarios del gestor. Los reconoce por un token que el gestor emite y los crea localmente en su primer ingreso, sincronizando nombre y rol en cada acceso. El contrato es configurable por variables de entorno para adaptarse a lo que el gestor ya exponga.
+
+Flujo:
+
+1. El usuario pulsa "Ingresar con Gestor ProyectoIA". La herramienta redirige a `GESTOR_LOGIN_URL` enviando la URL de retorno en el parámetro `GESTOR_REDIRECT_PARAM` (por defecto `redirect_uri`).
+2. El gestor autentica al usuario y lo devuelve a `https://diagnosticoiso.proyectoia.org/auth/gestor/callback?token=…` (el nombre del parámetro se define en `GESTOR_TOKEN_PARAM`).
+3. La herramienta valida el token con una de estas opciones:
+   - `GESTOR_USERINFO_URL`: petición GET con `Authorization: Bearer <token>` que debe responder JSON con los campos `id` (o `sub`), `email`, `nombre` (o `name`) y `rol` (o `role` o `roles`). Esta es la opción recomendada porque el gestor conserva el control total de la validez de las sesiones.
+   - `GESTOR_JWT_SECRET` (HS256) o `GESTOR_JWT_PUBLIC_KEY` (RS256): verificación local del JWT, con comprobación opcional de `iss` y `aud`.
+   - `GESTOR_SESSION_COOKIE` junto con `GESTOR_USERINFO_URL`: si el gestor deja una cookie de sesión en el dominio `.proyectoia.org`, la herramienta la reenvía al gestor para identificar al usuario sin redirección.
+4. Los roles del gestor listados en `GESTOR_ADMIN_ROLES` se traducen a administrador y los de `GESTOR_CONSULTOR_ROLES` a consultor. Cualquier otro rol ingresa como usuario y solo ve las organizaciones que se le asignen.
+
+Alternativa por API: `POST /api/auth/gestor/token` con `{ "token": "…" }` canjea un token del gestor por una sesión. La interfaz lo hace automáticamente cuando se abre `https://diagnosticoiso.proyectoia.org/?token=…`, lo que permite que app.proyectoia.org enlace directamente sin pedir credenciales de nuevo.
+
+`AUTH_MODE=gestor` desactiva el ingreso con usuarios locales, `AUTH_MODE=local` desactiva el gestor y `AUTH_MODE=mixto` (predeterminado) habilita ambos.
+
+## Botón en app.proyectoia.org
+
+El código fuente de app.proyectoia.org no forma parte de este repositorio, por lo que el botón se entrega como fragmento listo para pegar en `integracion/boton-app-proyectoia.html`. Incluye la versión con enlace simple y la versión con token del gestor.
+
+## Roles y permisos
+
+| Rol global | Alcance |
+|---|---|
+| admin | Todo: organizaciones, usuarios, versiones, eliminación y reapertura |
+| consultor | Crea y edita organizaciones, asigna usuarios, diligencia y cierra versiones de cualquier organización, reabre versiones |
+| usuario | Solo las organizaciones asignadas, como editor (diligencia y cierra) o lector (consulta e imprime) |
+
+## API principal
+
+| Método y ruta | Descripción |
+|---|---|
+| `GET /api/config` | Modos de autenticación, escala de valoración y niveles de madurez |
+| `POST /api/auth/local/login`, `POST /api/auth/logout` | Sesión local |
+| `GET /api/organizaciones`, `POST /api/organizaciones`, `PUT /api/organizaciones/:id` | Organizaciones |
+| `POST /api/organizaciones/:id/miembros`, `DELETE …/miembros/:usuarioId` | Asignación de usuarios |
+| `POST /api/organizaciones/:id/diagnosticos` | Nueva versión (opcional `desde_version_id` y `modo_copia`) |
+| `GET /api/organizaciones/:id/historico` | Serie histórica de cumplimiento por versión |
+| `GET /api/diagnosticos/:id` | Versión con preguntas y respuestas |
+| `PUT /api/diagnosticos/:id/respuestas/:itemId` | Guarda una respuesta (autoguardado) |
+| `POST /api/diagnosticos/:id/cerrar`, `…/reabrir`, `DELETE /api/diagnosticos/:id` | Ciclo de vida de la versión |
+| `GET /api/diagnosticos/:id/indicadores` | Indicadores y brecha |
+| `GET /api/diagnosticos/:id/comparar/:otroId` | Comparación entre versiones |
+| `GET /api/diagnosticos/:id/export.csv` | Exportación |
+| `GET /api/instrumentos/:clave/items` | Instrumento (público, para el formato en blanco) |
+
+## Método de cálculo
+
+El cumplimiento global es el promedio de los pesos de las preguntas (Cumple 1, Cumplimiento parcial 0,5, No cumple 0, Sin evidencia 0, Sin valorar 0). La brecha es el complemento a 100. Los niveles de madurez son Inicial (menos de 25 %), Básico (25 a 49,9 %), En desarrollo (50 a 74,9 %), Avanzado (75 a 89,9 %) y Listo para certificación (90 % o más). La lista de brecha prioriza como alta las preguntas con No cumple, Sin evidencia o sin valorar y como media las de Cumplimiento parcial.
+
+## Importar un diagnóstico desde Excel
+
+```bash
+pip install openpyxl requests
+python3 scripts/importar-excel.py Instrumento.xlsx --api https://diagnosticoiso.proyectoia.org \
+  --email admin@proyectoia.org --password '…' --organizacion "Nombre" --sigla SIG
+```
+
+El archivo debe conservar los encabezados del instrumento (ID, Capítulo, Numeral ISO, Pregunta, Estado, Evidencia, Observaciones, Responsable). Los estados textuales se traducen a la escala de cuatro valores.

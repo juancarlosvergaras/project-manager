@@ -1,0 +1,14 @@
+{
+  "name": "diagnostico-iso",
+  "version": "1.0.0",
+  "description": "Herramienta en línea para el diagnóstico de implementación ISO 9001 (diagnosticoiso.proyectoia.org)",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning server/index.js",
+    "dev": "PORT=3010 AUTH_MODE=local node --no-warnings=ExperimentalWarning --watch server/index.js",
+    "test": "node --no-warnings=ExperimentalWarning --test test/*.test.js"
+  },
+  "license": "UNLICENSED"
+}
