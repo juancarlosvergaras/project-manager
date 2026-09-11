@@ -123,7 +123,7 @@
       ${a.gestor && a.local ? '<div class="sep">o con correo y contraseña</div>' : ''}
       ${a.local ? `<form id="f-login" class="tarjeta">
         ${a.credenciales_gestor ? `<p class="hint" style="margin-top:0">Use el mismo correo y contraseña de ${esc(a.gestor_nombre)}.</p>` : ''}
-        <label>Correo electrónico</label><input name="email" type="email" autocomplete="username" required inputmode="email">
+        <label>Correo electrónico o usuario</label><input name="email" type="text" autocomplete="username" required inputmode="email" autocapitalize="none" spellcheck="false">
         <label>Contraseña</label><input name="password" type="password" autocomplete="current-password" required>
         <div class="acciones"><button class="btn bloque" type="submit">Ingresar</button></div></form>` : ''}
       ${!a.gestor && !a.local ? '<div class="alerta">No hay ningún método de acceso habilitado. Revise la configuración del servidor.</div>' : ''}
