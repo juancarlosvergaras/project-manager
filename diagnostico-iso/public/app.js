@@ -434,7 +434,19 @@
     const admin = estado.usuario.rol === 'admin';
     app.innerHTML = `<div class="fila entre"><h1>Usuarios</h1>${admin && estado.config.auth.local ? '<button class="btn peq" id="b-nuevo">+ Usuario local</button>' : ''}</div>
       <p class="hint">Los usuarios que ingresan por ${esc(estado.config.auth.gestor_nombre)} se crean automáticamente en su primer acceso y sincronizan su nombre y rol desde el gestor.</p>
-      <div class="tarjeta tabla-scroll"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Origen</th><th>Último acceso</th>${admin ? '<th></th>' : ''}</tr></thead><tbody>${usuarios.map(u => `<tr style="${u.activo ? '' : 'opacity:.5'}"><td>${esc(u.nombre)}</td><td>${esc(u.email)}</td><td>${u.rol}</td><td>${u.origen}</td><td>${fecha(u.ultimo_acceso)}</td>${admin ? `<td class="der"><button class="btn peq sec" data-edit="${u.id}">Editar</button></td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+      <div class="tarjeta"><input id="buscar-u" placeholder="Buscar por nombre o correo" inputmode="search"></div>
+      <div id="lista-usuarios"></div>`;
+    function pintarUsuarios() {
+      const q = ($('#buscar-u').value || '').toLowerCase();
+      const l = usuarios.filter(u => !q || u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+      $('#lista-usuarios').innerHTML = l.length ? l.map(u => `<div class="tarjeta" style="${u.activo ? '' : 'opacity:.55'}">
+        <div class="fila entre"><div><strong>${esc(u.nombre)}</strong><br><span class="hint">${esc(u.email)} · ${u.rol} · ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}${u.activo ? '' : ' · inactivo'}</span></div></div>
+        <p class="hint" style="margin:.4rem 0 0">${['admin', 'consultor'].includes(u.rol) ? 'Acceso a todas las organizaciones por su rol global.' : (u.total_organizaciones ? `${u.total_organizaciones} organización(es): ${esc(u.organizaciones)}` : 'Sin organizaciones asignadas.')}</p>
+        <div class="acciones"><button class="btn peq suave" data-orgs="${u.id}">Organizaciones</button>${admin ? `<button class="btn peq sec" data-edit="${u.id}">Editar</button>` : ''}</div></div>`).join('') : '<div class="tarjeta vacio">Sin resultados.</div>';
+      $$('[data-edit]').forEach(b => b.onclick = () => form(usuarios.find(u => u.id === b.dataset.edit)));
+      $$('[data-orgs]').forEach(b => b.onclick = () => asignarOrganizaciones(usuarios.find(u => u.id === b.dataset.orgs)));
+    }
+    $('#buscar-u').oninput = pintarUsuarios;
     const form = (u) => modal(`<h2>${u ? 'Editar' : 'Nuevo'} usuario</h2><form id="f-u">
       <label>Nombre *</label><input name="nombre" required value="${esc(u?.nombre)}">
       <label>Correo *</label><input name="email" type="email" required value="${esc(u?.email)}" ${u ? 'readonly' : ''}>
@@ -444,8 +456,38 @@
       <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar</button></div></form>`,
       (bg, cerrar) => { $('#f-u', bg).onsubmit = async e => { e.preventDefault(); const body = Object.fromEntries(new FormData(e.target)); if (body.activo !== undefined) body.activo = body.activo === '1'; if (!body.password) delete body.password; try { await api(u ? '/api/usuarios/' + u.id : '/api/usuarios', { method: u ? 'PUT' : 'POST', body }); cerrar(); toast('Guardado'); navegar(); } catch (err) { toast(err.message, true); } }; });
     const bn = $('#b-nuevo'); if (bn) bn.onclick = () => form(null);
-    $$('[data-edit]').forEach(b => b.onclick = () => form(usuarios.find(u => u.id === b.dataset.edit)));
+    pintarUsuarios();
   });
+
+  // Asignación de una o varias organizaciones a un usuario (selección múltiple con rol por organización).
+  async function asignarOrganizaciones(u) {
+    const { organizaciones } = await api(`/api/usuarios/${u.id}/organizaciones`);
+    const global = ['admin', 'consultor'].includes(u.rol);
+    modal(`<h2>Organizaciones de ${esc(u.nombre)}</h2>
+      <p class="hint">Marque las organizaciones que este usuario podrá diligenciar o consultar. ${global ? 'Este usuario tiene acceso a todas por su rol global; la asignación solo aplicaría si cambia a rol usuario.' : ''}</p>
+      ${organizaciones.length ? `<input id="buscar-o" placeholder="Filtrar organizaciones" inputmode="search" style="margin-bottom:.5rem">
+      <div class="fila entre" style="margin-bottom:.4rem"><button type="button" class="btn peq sec" id="o-todas">Seleccionar todas</button><button type="button" class="btn peq sec" id="o-ninguna">Quitar todas</button><span class="hint" id="o-cuenta"></span></div>
+      <form id="f-orgs"><div id="lista-orgs">${organizaciones.map(o => `<label class="sel-org" data-texto="${esc((o.nombre + ' ' + (o.sigla || '') + ' ' + (o.sector || '') + ' ' + (o.ciudad || '')).toLowerCase())}">
+          <input type="checkbox" name="org" value="${o.id}" ${o.asignada ? 'checked' : ''}>
+          <span class="sel-org-nombre"><strong>${esc(o.nombre)}</strong><span class="hint">${[o.sigla, o.sector, o.ciudad].filter(Boolean).map(esc).join(' · ')}</span></span>
+          <select name="rol-${o.id}" aria-label="Rol"><option value="editor" ${o.rol_asignado !== 'lector' ? 'selected' : ''}>Editor</option><option value="lector" ${o.rol_asignado === 'lector' ? 'selected' : ''}>Lector</option></select>
+        </label>`).join('')}</div>
+        <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar asignación</button></div></form>` : '<p class="vacio">Todavía no hay organizaciones creadas.</p><div class="acciones"><button class="btn sec" type="button" data-cerrar>Cerrar</button></div>'}`,
+      (bg, cerrar) => {
+        const f = $('#f-orgs', bg); if (!f) return;
+        const cuenta = () => { $('#o-cuenta', bg).textContent = $$('input[name=org]:checked', bg).length + ' de ' + organizaciones.length + ' seleccionadas'; };
+        cuenta();
+        f.addEventListener('change', cuenta);
+        $('#buscar-o', bg).oninput = e => { const q = e.target.value.toLowerCase(); $$('.sel-org', bg).forEach(l => l.hidden = q && !l.dataset.texto.includes(q)); };
+        $('#o-todas', bg).onclick = () => { $$('.sel-org:not([hidden]) input[name=org]', bg).forEach(c => c.checked = true); cuenta(); };
+        $('#o-ninguna', bg).onclick = () => { $$('.sel-org:not([hidden]) input[name=org]', bg).forEach(c => c.checked = false); cuenta(); };
+        f.onsubmit = async e => {
+          e.preventDefault();
+          const sel = $$('input[name=org]:checked', bg).map(c => ({ id: c.value, rol: f[`rol-${c.value}`].value }));
+          try { const r = await api(`/api/usuarios/${u.id}/organizaciones`, { method: 'PUT', body: { organizaciones: sel } }); cerrar(); toast(`${r.asignadas} organización(es) asignada(s)`); navegar(); } catch (err) { toast(err.message, true); }
+        };
+      });
+  }
 
   ruta('/perfil', async () => {
     const u = estado.usuario;

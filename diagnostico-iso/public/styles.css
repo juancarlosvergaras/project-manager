@@ -104,6 +104,13 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; color:
 .num { font-variant-numeric: tabular-nums; }
 .der { text-align: right; }
 
+/* ---- Selección múltiple de organizaciones ---- */
+.sel-org { display: grid; grid-template-columns: 24px 1fr auto; gap: .6rem; align-items: center; padding: .6rem .4rem; border-bottom: 1px solid var(--borde); font-weight: 400; margin: 0; color: var(--texto); font-size: .95rem; cursor: pointer; }
+.sel-org input[type=checkbox] { width: 22px; height: 22px; margin: 0; accent-color: var(--azul); }
+.sel-org-nombre { display: flex; flex-direction: column; min-width: 0; }
+.sel-org select { width: auto; padding: .35rem .5rem; font-size: .85rem; }
+.sel-org:has(input:checked) { background: var(--azul-claro); border-radius: 8px; }
+
 /* ---- Diligenciamiento ---- */
 .sticky-sub { position: sticky; top: calc(56px + env(safe-area-inset-top)); z-index: 20; background: var(--fondo); padding: .5rem 0 .4rem; margin: -.5rem 0 .5rem; }
 .caps { display: flex; gap: .4rem; overflow-x: auto; padding: .2rem 0 .4rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }

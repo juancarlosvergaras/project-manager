@@ -94,7 +94,10 @@ api.post('/api/auth/cambiar-password', auth.requiereSesion, async (ctx) => {
 // ---------- usuarios (administración) ----------
 api.get('/api/usuarios', auth.requiereRol('admin', 'consultor'), (ctx) => {
   const q = '%' + (ctx.query.q || '') + '%';
-  ctx.json({ usuarios: db().prepare('SELECT id, email, nombre, rol, origen, activo, creado_en, ultimo_acceso FROM usuarios WHERE email LIKE ? OR nombre LIKE ? ORDER BY nombre LIMIT 200').all(q, q) });
+  ctx.json({ usuarios: db().prepare(`SELECT u.id, u.email, u.nombre, u.rol, u.origen, u.activo, u.creado_en, u.ultimo_acceso,
+      (SELECT COUNT(*) FROM organizacion_miembros m JOIN organizaciones o ON o.id = m.organizacion_id AND o.activa = 1 WHERE m.usuario_id = u.id) AS total_organizaciones,
+      (SELECT GROUP_CONCAT(COALESCE(o.sigla, o.nombre), ' · ') FROM organizacion_miembros m JOIN organizaciones o ON o.id = m.organizacion_id AND o.activa = 1 WHERE m.usuario_id = u.id) AS organizaciones
+      FROM usuarios u WHERE u.email LIKE ? OR u.nombre LIKE ? ORDER BY u.nombre LIMIT 200`).all(q, q) });
 });
 api.post('/api/usuarios', auth.requiereRol('admin'), async (ctx) => {
   const b = await ctx.body();
@@ -124,6 +127,42 @@ api.put('/api/usuarios/:id', auth.requiereRol('admin'), async (ctx) => {
   }
   log(ctx.usuario.id, 'usuario.actualizado', 'usuario', u.id, { rol, activo });
   ctx.json({ ok: true });
+});
+
+// Asignación de organizaciones a un usuario (una o varias), al estilo de la asignación de proyectos del gestor.
+api.get('/api/usuarios/:id/organizaciones', auth.requiereRol('admin', 'consultor'), (ctx) => {
+  const u = db().prepare('SELECT id, email, nombre, rol FROM usuarios WHERE id = ?').get(ctx.params.id);
+  if (!u) throw new HttpError(404, 'Usuario no encontrado');
+  const orgs = db().prepare(`SELECT o.id, o.nombre, o.sigla, o.sector, o.ciudad, m.rol AS rol_asignado, m.asignado_en
+                             FROM organizaciones o LEFT JOIN organizacion_miembros m ON m.organizacion_id = o.id AND m.usuario_id = ?
+                             WHERE o.activa = 1 ORDER BY o.nombre`).all(u.id);
+  ctx.json({ usuario: u, organizaciones: orgs.map(o => ({ ...o, asignada: !!o.rol_asignado })) });
+});
+api.put('/api/usuarios/:id/organizaciones', auth.requiereRol('admin', 'consultor'), async (ctx) => {
+  const u = db().prepare('SELECT id FROM usuarios WHERE id = ?').get(ctx.params.id);
+  if (!u) throw new HttpError(404, 'Usuario no encontrado');
+  const b = await ctx.body();
+  const lista = Array.isArray(b.organizaciones) ? b.organizaciones : [];
+  const validas = new Set(db().prepare('SELECT id FROM organizaciones WHERE activa = 1').all().map(o => o.id));
+  const deseadas = new Map();
+  for (const x of lista) {
+    const id = typeof x === 'string' ? x : x?.id;
+    if (!validas.has(id)) throw new HttpError(400, 'Organización no válida: ' + id);
+    deseadas.set(id, (typeof x === 'object' && x?.rol === 'lector') ? 'lector' : 'editor');
+  }
+  const actuales = new Map(db().prepare('SELECT organizacion_id, rol FROM organizacion_miembros WHERE usuario_id = ?').all(u.id).map(m => [m.organizacion_id, m.rol]));
+  db().exec('BEGIN');
+  try {
+    if (b.reemplazar !== false) {
+      const del = db().prepare('DELETE FROM organizacion_miembros WHERE usuario_id = ? AND organizacion_id = ?');
+      for (const id of actuales.keys()) if (!deseadas.has(id)) del.run(u.id, id);
+    }
+    const up = db().prepare('INSERT INTO organizacion_miembros (organizacion_id, usuario_id, rol) VALUES (?,?,?) ON CONFLICT(organizacion_id, usuario_id) DO UPDATE SET rol = excluded.rol');
+    for (const [id, rol] of deseadas) up.run(id, u.id, rol);
+    db().exec('COMMIT');
+  } catch (e) { db().exec('ROLLBACK'); throw e; }
+  log(ctx.usuario.id, 'usuario.organizaciones_asignadas', 'usuario', u.id, { organizaciones: [...deseadas.keys()] });
+  ctx.json({ ok: true, asignadas: deseadas.size });
 });
 
 // ---------- instrumentos ----------

@@ -4,7 +4,8 @@ Herramienta en línea para aplicar, versionar y analizar el diagnóstico de impl
 
 ## Funcionalidades
 
-- **Organizaciones**. Creación y administración de organizaciones (nombre, sigla, NIT, sector, ciudad, contacto) y asignación de usuarios a cada una con rol de editor o lector.
+- **Organizaciones**. Creación y administración de organizaciones (nombre, sigla, NIT, sector, ciudad, contacto).
+- **Asignación de organizaciones a usuarios**. Desde la pantalla de Usuarios se asignan a cada usuario una o varias de las organizaciones creadas mediante selección múltiple con filtro, con rol de editor o lector por organización, al estilo de la asignación de proyectos del gestor. También es posible asignar un usuario desde la propia organización.
 - **Cuestionario**. Instrumento de 98 preguntas propias de aplicación, organizadas por capítulo (4 a 10) y numeral de la norma, con responsable sugerido de la evidencia.
 - **Escala de valoración**. Cumple (100 %), Cumplimiento parcial (50 %), No cumple (0 %) y Sin evidencia (0 %). Cada respuesta admite evidencia, observaciones y responsable.
 - **Versiones e histórico**. Cada aplicación del cuestionario es una versión numerada de la organización. Una versión se cierra para congelarla y una nueva puede partir en blanco o heredar de una anterior (con o sin valoraciones). El histórico muestra la evolución del cumplimiento por versión y permite comparar dos versiones ítem a ítem.
@@ -102,7 +103,8 @@ El código fuente de app.proyectoia.org no forma parte de este repositorio, por 
 | `GET /api/config` | Modos de autenticación, escala de valoración y niveles de madurez |
 | `POST /api/auth/local/login`, `POST /api/auth/logout` | Sesión local |
 | `GET /api/organizaciones`, `POST /api/organizaciones`, `PUT /api/organizaciones/:id` | Organizaciones |
-| `POST /api/organizaciones/:id/miembros`, `DELETE …/miembros/:usuarioId` | Asignación de usuarios |
+| `POST /api/organizaciones/:id/miembros`, `DELETE …/miembros/:usuarioId` | Asignación de un usuario desde la organización |
+| `GET /api/usuarios/:id/organizaciones`, `PUT /api/usuarios/:id/organizaciones` | Organizaciones asignadas a un usuario; el PUT recibe `{ organizaciones: [{ id, rol }] }` y reemplaza la asignación |
 | `POST /api/organizaciones/:id/diagnosticos` | Nueva versión (opcional `desde_version_id` y `modo_copia`) |
 | `GET /api/organizaciones/:id/historico` | Serie histórica de cumplimiento por versión |
 | `GET /api/diagnosticos/:id` | Versión con preguntas y respuestas |

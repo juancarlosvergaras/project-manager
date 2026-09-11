@@ -88,6 +88,31 @@ test('flujo completo: organización, asignación de usuario, versión, respuesta
   cookie = adminCookie;
 });
 
+test('asignación de una o varias organizaciones desde el usuario', async () => {
+  const o1 = await call('/api/organizaciones', { method: 'POST', body: { nombre: 'Alcaldía de Prueba', sigla: 'ALC' } });
+  const o2 = await call('/api/organizaciones', { method: 'POST', body: { nombre: 'Clínica de Prueba', sigla: 'CLI' } });
+  const { data: lista } = await call('/api/usuarios');
+  const ev = lista.usuarios.find(u => u.email === 'evaluador@prueba.org');
+  assert.equal(ev.total_organizaciones, 1);
+  const antes = await call(`/api/usuarios/${ev.id}/organizaciones`);
+  assert.ok(antes.data.organizaciones.length >= 4);
+  assert.equal(antes.data.organizaciones.filter(o => o.asignada).length, 1);
+  const put = await call(`/api/usuarios/${ev.id}/organizaciones`, { method: 'PUT', body: { organizaciones: [{ id: o1.data.id, rol: 'editor' }, { id: o2.data.id, rol: 'lector' }] } });
+  assert.equal(put.status, 200); assert.equal(put.data.asignadas, 2);
+  const despues = await call(`/api/usuarios/${ev.id}/organizaciones`);
+  const asignadas = despues.data.organizaciones.filter(o => o.asignada);
+  assert.deepEqual(asignadas.map(o => o.sigla).sort(), ['ALC', 'CLI'], 'reemplaza la asignación anterior');
+  assert.equal(asignadas.find(o => o.sigla === 'CLI').rol_asignado, 'lector');
+  const invalida = await call(`/api/usuarios/${ev.id}/organizaciones`, { method: 'PUT', body: { organizaciones: ['no-existe'] } });
+  assert.equal(invalida.status, 400);
+  const adminCookie = cookie; cookie = '';
+  await call('/api/auth/local/login', { method: 'POST', body: { email: 'evaluador@prueba.org', password: 'clave-evaluador' } });
+  const mias = await call('/api/organizaciones');
+  assert.deepEqual(mias.data.organizaciones.map(o => o.sigla).sort(), ['ALC', 'CLI']);
+  assert.equal(mias.data.organizaciones.find(o => o.sigla === 'CLI').mi_rol, 'lector');
+  cookie = adminCookie;
+});
+
 test('el formato en blanco es público', async () => {
   cookie = '';
   const r = await call('/api/instrumentos/iso9001-2015-amd1-2024/items');
