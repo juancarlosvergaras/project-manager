@@ -68,6 +68,14 @@ curl -fsSL https://raw.githubusercontent.com/juancarlosvergaras/project-manager/
 
 El script instala Node.js 22 si falta, clona o actualiza el repositorio en `~/apps/project-manager`, crea el `.env` con un secreto y una contraseña de administrador generados, registra un servicio launchd que mantiene la aplicación activa en el puerto 3050 y muestra las instrucciones para publicar el subdominio en el túnel de Cloudflare ya existente. Ejecutarlo de nuevo actualiza a la última versión sin tocar la base de datos ni el `.env`. Variables opcionales: `RAMA`, `PUERTO` y `DESTINO`.
 
+Para publicar el subdominio en el túnel de Cloudflare que ya corre en el Mac (configuración por archivo en `/etc/cloudflared/config.yml`):
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/juancarlosvergaras/project-manager/main/diagnostico-iso/deploy/publicar-tunel.sh)"
+```
+
+El script agrega la regla de ingress con la sangría del archivo, la valida, crea el registro DNS hacia el túnel, reinicia cloudflared y comprueba que el dominio responde. Si algo falla restaura la copia de seguridad y explica el paso manual.
+
 ### Instalación manual en Linux
 
 1. Copie la carpeta al servidor (por ejemplo `/opt/diagnostico-iso`) y cree `.env` a partir de `.env.example`. Defina como mínimo `SESSION_SECRET`, `BASE_URL`, `DB_PATH` y las variables `GESTOR_*`.
