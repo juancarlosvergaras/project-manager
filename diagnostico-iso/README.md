@@ -66,12 +66,12 @@ Desde una terminal o una sesión SSH en el Mac:
 curl -fsSL https://raw.githubusercontent.com/juancarlosvergaras/project-manager/main/diagnostico-iso/deploy/instalar-macmini.sh | bash
 ```
 
-El script instala Node.js 22 si falta, clona o actualiza el repositorio en `~/apps/project-manager`, crea el `.env` con un secreto y una contraseña de administrador generados, registra un servicio launchd que mantiene la aplicación activa en el puerto 3050 y muestra las instrucciones para publicar el subdominio en el túnel de Cloudflare ya existente. Ejecutarlo de nuevo actualiza a la última versión sin tocar la base de datos ni el `.env`. Variables opcionales: `RAMA`, `PUERTO` y `DESTINO`.
+El script instala Node.js 22 si falta, clona o actualiza el repositorio en `~/Servidor/apps/diagnosticoiso` (si existía una instalación previa en `~/apps/project-manager` la mueve con su base de datos), crea el `.env` con un secreto y una contraseña de administrador generados, registra un servicio launchd que mantiene la aplicación activa en el puerto 3050 y muestra las instrucciones para publicar el subdominio en el túnel de Cloudflare ya existente. Ejecutarlo de nuevo actualiza a la última versión sin tocar la base de datos ni el `.env`. Variables opcionales: `RAMA`, `PUERTO` y `DESTINO`.
 
 Para publicar el subdominio con un túnel de Cloudflare propio de la aplicación (mismo esquema que las demás apps del Mac, con su `cloudflared.yml` en la carpeta):
 
 ```bash
-cd ~/apps/project-manager/diagnostico-iso && bash deploy/tunel.sh
+cd ~/Servidor/apps/diagnosticoiso/diagnostico-iso && bash deploy/tunel.sh
 ```
 
 El script crea el túnel `diagnosticoiso` si no existe, escribe `cloudflared.yml` con el ID y las credenciales, valida la configuración, crea el registro DNS, deja cloudflared corriendo como agente launchd y comprueba que el dominio responde. Alternativa para agregar el hostname al túnel global de `/etc/cloudflared/config.yml`: `sudo bash deploy/publicar-tunel.sh`.

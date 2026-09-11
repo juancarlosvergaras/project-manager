@@ -11,7 +11,8 @@ set -euo pipefail
 REPO="https://github.com/juancarlosvergaras/project-manager.git"
 RAMA="${RAMA:-}"            # vacío: usa la rama ya desplegada, o main en una instalación nueva
 PUERTO="${PUERTO:-3050}"
-DESTINO="${DESTINO:-$HOME/apps/project-manager}"
+DESTINO="${DESTINO:-$HOME/Servidor/apps/diagnosticoiso}"   # junto a las demás aplicaciones del servidor
+ANTERIOR="$HOME/apps/project-manager"
 APP="$DESTINO/diagnostico-iso"
 ETIQUETA="org.proyectoia.diagnosticoiso"
 PLIST="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
@@ -36,6 +37,15 @@ echo "-- Node.js $(node -v) en $NODE_BIN"
 
 # 2. Código fuente
 mkdir -p "$(dirname "$DESTINO")"
+# Migración desde la ubicación anterior (~/apps/project-manager): se mueve todo, incluida la base de datos.
+if [ ! -d "$DESTINO" ] && [ -d "$ANTERIOR/.git" ] && [ "$DESTINO" != "$ANTERIOR" ]; then
+  echo "-- Moviendo la instalación de $ANTERIOR a $DESTINO"
+  launchctl bootout "gui/$(id -u)/$ETIQUETA" >/dev/null 2>&1 || true
+  launchctl bootout "gui/$(id -u)/$ETIQUETA.tunel" >/dev/null 2>&1 || true
+  mv "$ANTERIOR" "$DESTINO"
+  [ -f "$APP/.env" ] && sed -i '' "s#$ANTERIOR/diagnostico-iso#$APP#g" "$APP/.env"
+  [ -f "$APP/cloudflared.yml" ] && sed -i '' "s#$ANTERIOR/diagnostico-iso#$APP#g" "$APP/cloudflared.yml"
+fi
 if [ -d "$DESTINO/.git" ]; then
   [ -z "$RAMA" ] && RAMA="$(git -C "$DESTINO" rev-parse --abbrev-ref HEAD)"
   echo "-- Actualizando repositorio ($RAMA)"
@@ -111,6 +121,28 @@ if curl -fsS "http://127.0.0.1:$PUERTO/api/config" >/dev/null; then
   echo "-- Servicio activo en http://127.0.0.1:$PUERTO"
 else
   echo "!! El servicio no respondió. Revise $APP/logs/error.log"; exit 1
+fi
+
+# 4b. Si el túnel propio ya está configurado, se reescribe su agente con la ruta actual
+if [ -f "$APP/cloudflared.yml" ] && [ -f "$HOME/Library/LaunchAgents/$ETIQUETA.tunel.plist" ]; then
+  CF="$(command -v cloudflared || echo /opt/homebrew/bin/cloudflared)"
+  PL2="$HOME/Library/LaunchAgents/$ETIQUETA.tunel.plist"
+  cat > "$PL2" <<PL
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>$ETIQUETA.tunel</string>
+  <key>ProgramArguments</key><array>
+    <string>$CF</string><string>--config</string><string>$APP/cloudflared.yml</string><string>--no-autoupdate</string><string>tunnel</string><string>run</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$APP/logs/tunel.log</string>
+  <key>StandardErrorPath</key><string>$APP/logs/tunel.log</string>
+</dict></plist>
+PL
+  launchctl bootout "gui/$(id -u)/$ETIQUETA.tunel" >/dev/null 2>&1 || true
+  launchctl bootstrap "gui/$(id -u)" "$PL2" && echo "-- Túnel propio activo ($ETIQUETA.tunel)"
 fi
 
 # 5. Publicación del dominio
