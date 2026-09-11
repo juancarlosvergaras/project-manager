@@ -13,22 +13,22 @@
 </head>
 <body>
 <header class="topbar no-print" id="topbar">
+  <button class="icon-btn" id="btn-menu" aria-label="Menú" hidden>☰</button>
   <button class="icon-btn" id="btn-back" aria-label="Volver" hidden>‹</button>
   <a class="brand" href="#/"><img src="/icono.svg" alt="" width="28" height="28"><span>Diagnóstico ISO 9001</span></a>
   <div class="spacer"></div>
-  <button class="icon-btn" id="btn-menu" aria-label="Menú" hidden>☰</button>
 </header>
-<nav class="drawer no-print" id="drawer" hidden>
+<nav class="drawer no-print" id="drawer" hidden aria-label="Navegación principal">
   <div class="drawer-backdrop" id="drawer-backdrop"></div>
   <div class="drawer-panel">
     <div class="drawer-user" id="drawer-user"></div>
-    <a href="#/" class="drawer-link">Organizaciones</a>
-    <a href="#/imprimir-blanco" class="drawer-link">Imprimir formato en blanco</a>
-    <a href="#/usuarios" class="drawer-link" data-admin hidden>Usuarios</a>
-    <a href="#/cuestionario" class="drawer-link" data-instrumento hidden>Cuestionario</a>
-    <a href="#/perfil" class="drawer-link">Mi perfil</a>
-    <a href="#" class="drawer-link" id="link-app-proyectoia" target="_blank" rel="noopener">Ir a app.proyectoia.org</a>
-    <button class="drawer-link danger" id="btn-logout">Cerrar sesión</button>
+    <a href="#/" class="drawer-link" data-ruta="/"><span class="ic">🏢</span>Organizaciones</a>
+    <a href="#/cuestionario" class="drawer-link" data-ruta="/cuestionario" data-instrumento hidden><span class="ic">📋</span>Cuestionario</a>
+    <a href="#/usuarios" class="drawer-link" data-ruta="/usuarios" data-admin hidden><span class="ic">👥</span>Usuarios</a>
+    <a href="#/imprimir-blanco" class="drawer-link" data-ruta="/imprimir-blanco"><span class="ic">🖨️</span>Formato en blanco</a>
+    <a href="#/perfil" class="drawer-link" data-ruta="/perfil"><span class="ic">👤</span>Mi perfil</a>
+    <a href="#" class="drawer-link" id="link-app-proyectoia" target="_blank" rel="noopener"><span class="ic">↗</span>app.proyectoia.org</a>
+    <button class="drawer-link danger" id="btn-logout"><span class="ic">⏻</span>Cerrar sesión</button>
     <p class="drawer-foot">ISO 9001:2015 + Enmienda 1:2024. Instrumento propio de aplicación. No es un documento oficial de ISO.</p>
   </div>
 </nav>

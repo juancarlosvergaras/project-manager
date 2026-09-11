@@ -30,12 +30,14 @@ label { display: block; font-size: .85rem; font-weight: 600; color: var(--texto-
 .icon-btn:active { background: rgba(255,255,255,.15); }
 
 .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; }
-.drawer-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(320px, 85vw); background: #fff; z-index: 41; padding: 1rem; padding-top: calc(1rem + env(safe-area-inset-top)); display: flex; flex-direction: column; gap: .25rem; box-shadow: -4px 0 20px rgba(0,0,0,.2); overflow-y: auto; }
+.drawer-panel { position: fixed; top: 0; left: 0; bottom: 0; width: min(300px, 85vw); background: #fff; z-index: 41; padding: 1rem; padding-top: calc(1rem + env(safe-area-inset-top)); display: flex; flex-direction: column; gap: .15rem; box-shadow: 4px 0 20px rgba(0,0,0,.2); overflow-y: auto; }
 .drawer-user { padding: .5rem .75rem 1rem; border-bottom: 1px solid var(--borde); margin-bottom: .5rem; }
 .drawer-user strong { display: block; }
 .drawer-user span { color: var(--texto-3); font-size: .85rem; }
-.drawer-link { display: block; padding: .8rem .75rem; border-radius: 10px; color: var(--texto); text-decoration: none; background: transparent; border: 0; text-align: left; width: 100%; cursor: pointer; font-size: 1rem; }
+.drawer-link { display: flex; align-items: center; gap: .6rem; padding: .7rem .75rem; border-radius: 10px; color: var(--texto); text-decoration: none; background: transparent; border: 0; text-align: left; width: 100%; cursor: pointer; font-size: .98rem; }
 .drawer-link:hover { background: var(--azul-claro); }
+.drawer-link.activo { background: var(--azul); color: #fff; font-weight: 600; }
+.drawer-link .ic { width: 1.4rem; text-align: center; font-size: 1.05rem; opacity: .9; }
 .drawer-link.danger { color: var(--nocumple); margin-top: .5rem; }
 .drawer-foot { margin-top: auto; font-size: .75rem; color: var(--texto-3); }
 
@@ -225,3 +227,14 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; color:
 .chk input { width: auto; }
 .informe h2 { margin-top: 1.25rem; border-bottom: 2px solid var(--azul-claro); padding-bottom: .25rem; }
 @media print { .tab-grid { grid-template-columns: 1fr 1fr; } .tab-grid .tarjeta { border: 1px solid #ccc; padding: .6rem; page-break-inside: avoid; } .tab-hero { grid-column: 1 / -1; } }
+
+/* ---- Panel lateral fijo a la izquierda en pantallas grandes ---- */
+@media (min-width: 960px) {
+  body.con-sesion .drawer[hidden] { display: block; }
+  body.con-sesion .drawer-backdrop { display: none; }
+  body.con-sesion .drawer-panel { top: 56px; width: 250px; box-shadow: none; border-right: 1px solid var(--borde); padding-top: 1rem; }
+  body.con-sesion .app { margin-left: 250px; max-width: 1150px; padding-left: 2rem; padding-right: 2rem; }
+  body.con-sesion .barra-inferior { left: 250px; }
+  body.con-sesion #btn-menu { display: none; }
+  body.con-sesion .topbar { padding-left: 1.25rem; }
+}

@@ -645,6 +645,12 @@
     $$('[data-admin]').forEach(a => a.hidden = !puede('gestionar_usuarios'));
     $$('[data-instrumento]').forEach(a => a.hidden = !puede('editar_instrumento'));
     $('#btn-menu').hidden = !u;
+    document.body.classList.toggle('con-sesion', !!u);
+    marcarActivo();
+  }
+  function marcarActivo() {
+    const path = (location.hash.slice(1) || '/').split('?')[0];
+    $$('.drawer-link[data-ruta]').forEach(a => a.classList.toggle('activo', a.dataset.ruta === '/' ? (path === '/' || path.startsWith('/org/') || path.startsWith('/diag/') || path.startsWith('/tablero/') || path.startsWith('/informe/') || path.startsWith('/imprimir/')) : path.startsWith(a.dataset.ruta)));
   }
   function abrirMenu(abrir) { $('#drawer').hidden = !abrir; }
   $('#btn-menu').onclick = () => abrirMenu(true);
@@ -652,7 +658,7 @@
   $$('.drawer-link').forEach(a => a.addEventListener('click', () => abrirMenu(false)));
   $('#btn-back').onclick = () => { if (history.length > 1) history.back(); else location.hash = '#/'; };
   $('#btn-logout').onclick = async () => { await api('/api/auth/logout', { method: 'POST' }); estado.usuario = null; pintarUsuario(); location.hash = '#/login'; };
-  window.addEventListener('hashchange', navegar);
+  window.addEventListener('hashchange', () => { marcarActivo(); navegar(); });
 
   (async () => {
     // Token del gestor entregado por app.proyectoia.org como parámetro (?token=…): se canjea por una sesión propia.
