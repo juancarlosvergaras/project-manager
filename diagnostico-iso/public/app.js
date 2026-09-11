@@ -434,10 +434,10 @@
   // ---------- usuarios y perfil ----------
   ruta('/usuarios', async () => {
     if (!['admin', 'consultor'].includes(estado.usuario.rol)) { app.innerHTML = '<div class="tarjeta vacio">Solo administradores.</div>'; return; }
-    const { usuarios, puede_sincronizar } = await api('/api/usuarios');
+    const { usuarios, puede_sincronizar, sincronizacion } = await api('/api/usuarios');
     const admin = estado.usuario.rol === 'admin';
     app.innerHTML = `<div class="fila entre"><h1>Usuarios</h1><div class="fila">${puede_sincronizar ? `<button class="btn peq suave" id="b-sync">↻ Traer usuarios de ${esc(estado.config.auth.gestor_nombre)}</button>` : ''}${admin && estado.config.auth.local ? '<button class="btn peq" id="b-nuevo">+ Usuario local</button>' : ''}</div></div>
-      <p class="hint">Los usuarios que ingresan por ${esc(estado.config.auth.gestor_nombre)} se crean automáticamente en su primer acceso y sincronizan su nombre y rol desde el gestor.</p>
+      ${sincronizacion?.automatica ? `<div class="alerta info">Sincronización automática con ${esc(estado.config.auth.gestor_nombre)} activa${sincronizacion.ultima ? ' · última: ' + new Date(sincronizacion.ultima).toLocaleString('es-CO') + (sincronizacion.resultado ? ` · ${sincronizacion.resultado.total} usuarios` : '') : ''}${sincronizacion.error ? ' · <strong>error:</strong> ' + esc(sincronizacion.error) : ''}. Los usuarios creados en el gestor aparecen aquí sin intervención.</div>` : `<div class="alerta">La sincronización automática no está configurada. Los usuarios del gestor se crean aquí en su primer ingreso${puede_sincronizar ? ' o al pulsar "Traer usuarios"' : ''}. Configure GESTOR_USUARIOS_ARCHIVO o la cuenta de servicio en el .env.</div>`}
       <div class="tarjeta"><input id="buscar-u" placeholder="Buscar por nombre o correo" inputmode="search"></div>
       <div id="lista-usuarios"></div>`;
     function pintarUsuarios() {

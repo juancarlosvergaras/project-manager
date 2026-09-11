@@ -86,6 +86,14 @@ GESTOR_URL=https://gestor.proyectoia.org
 GESTOR_LOGIN_API=https://gestor.proyectoia.org/api/login
 GESTOR_SESION_API=https://gestor.proyectoia.org/api/sesion
 GESTOR_USUARIOS_API=https://gestor.proyectoia.org/api/usuarios
+# Sincronización automática de usuarios (los creados en el gestor aparecen solos). Una de las dos fuentes:
+#  a) archivo de usuarios del gestor en este mismo servidor (JSON o SQLite; para SQLite indique la tabla)
+GESTOR_USUARIOS_ARCHIVO=
+GESTOR_USUARIOS_TABLA=usuarios
+#  b) cuenta del gestor con permiso para listar usuarios (consulta GESTOR_USUARIOS_API)
+GESTOR_SERVICIO_USUARIO=
+GESTOR_SERVICIO_CLAVE=
+GESTOR_SYNC_MINUTOS=5
 GESTOR_LOGIN_CAMPOS=
 # Alternativas por token/SSO (ver README)
 GESTOR_LOGIN_URL=

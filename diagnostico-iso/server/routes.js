@@ -94,7 +94,7 @@ api.post('/api/auth/cambiar-password', auth.requiereSesion, async (ctx) => {
 // ---------- usuarios (administración) ----------
 api.get('/api/usuarios', auth.requiereRol('admin', 'consultor'), (ctx) => {
   const q = '%' + (ctx.query.q || '') + '%';
-  ctx.json({ puede_sincronizar: !!ctx.usuario.gestor_cookie, usuarios: db().prepare(`SELECT u.id, u.email, u.nombre, u.rol, u.origen, u.activo, u.creado_en, u.ultimo_acceso, u.cargo, u.sincronizado_en,
+  ctx.json({ puede_sincronizar: !!ctx.usuario.gestor_cookie, sincronizacion: { automatica: auth.fuenteSyncConfigurada(), ultima: auth.estadoSync.ultima, resultado: auth.estadoSync.resultado, error: auth.estadoSync.error }, usuarios: db().prepare(`SELECT u.id, u.email, u.nombre, u.rol, u.origen, u.activo, u.creado_en, u.ultimo_acceso, u.cargo, u.sincronizado_en,
       (SELECT COUNT(*) FROM organizacion_miembros m JOIN organizaciones o ON o.id = m.organizacion_id AND o.activa = 1 WHERE m.usuario_id = u.id) AS total_organizaciones,
       (SELECT GROUP_CONCAT(COALESCE(o.sigla, o.nombre), ' · ') FROM organizacion_miembros m JOIN organizaciones o ON o.id = m.organizacion_id AND o.activa = 1 WHERE m.usuario_id = u.id) AS organizaciones
       FROM usuarios u WHERE u.email LIKE ? OR u.nombre LIKE ? ORDER BY u.nombre LIMIT 200`).all(q, q) });

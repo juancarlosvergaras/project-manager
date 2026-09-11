@@ -175,7 +175,101 @@ export async function loginDelegadoGestor(email, password) {
   return u;
 }
 
-// ---------- sincronización del listado de usuarios del gestor ----------
+// ---------- sincronización automática de usuarios del gestor ----------
+// Fuente 1: GESTOR_USUARIOS_ARCHIVO = archivo JSON o SQLite del gestor en el mismo servidor (solo lectura).
+//           Para SQLite, GESTOR_USUARIOS_TABLA indica la tabla (por defecto "usuarios").
+// Fuente 2: GESTOR_SERVICIO_USUARIO / GESTOR_SERVICIO_CLAVE = cuenta del gestor con permiso para listar usuarios;
+//           la herramienta inicia sesión en GESTOR_LOGIN_API y consulta GESTOR_USUARIOS_API.
+// Se ejecuta al arrancar y cada GESTOR_SYNC_MINUTOS (por defecto 5). Los usuarios nuevos del gestor aparecen solos.
+export const estadoSync = { ultima: null, resultado: null, error: null, fuente: null };
+
+export function fuenteSyncConfigurada() {
+  if (process.env.GESTOR_USUARIOS_ARCHIVO) return 'archivo';
+  if (process.env.GESTOR_SERVICIO_USUARIO && process.env.GESTOR_SERVICIO_CLAVE && process.env.GESTOR_LOGIN_API) return 'api';
+  return null;
+}
+
+async function leerUsuariosDeArchivo(ruta) {
+  const { readFileSync, existsSync } = await import('node:fs');
+  if (!existsSync(ruta)) throw new HttpError(500, 'No existe el archivo de usuarios del gestor: ' + ruta);
+  if (/\.(sqlite3?|db)$/i.test(ruta)) {
+    const { DatabaseSync } = await import('node:sqlite');
+    const gdb = new DatabaseSync(ruta, { readOnly: true });
+    try {
+      const tabla = (process.env.GESTOR_USUARIOS_TABLA || 'usuarios').replace(/[^\w]/g, '');
+      return gdb.prepare(`SELECT * FROM ${tabla}`).all();
+    } finally { gdb.close(); }
+  }
+  const j = JSON.parse(readFileSync(ruta, 'utf8'));
+  if (Array.isArray(j)) return j;
+  const lista = j.usuarios ?? j.users ?? j.data ?? j.items;
+  if (Array.isArray(lista)) return lista;
+  // Diccionario { "correo": {...}, ... }
+  if (j && typeof j === 'object') return Object.entries(j).map(([k, v]) => (v && typeof v === 'object') ? { usuario: k, ...v } : null).filter(Boolean);
+  throw new HttpError(500, 'Formato de usuarios no reconocido en ' + ruta);
+}
+
+async function leerUsuariosConCuentaDeServicio() {
+  const r = await fetch(process.env.GESTOR_LOGIN_API, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(cuerpoCredenciales(process.env.GESTOR_SERVICIO_USUARIO, process.env.GESTOR_SERVICIO_CLAVE)), signal: AbortSignal.timeout(8000), redirect: 'manual' });
+  if (!r.ok) throw new HttpError(502, 'La cuenta de servicio no pudo iniciar sesión en ' + authConfig.gestorNombre + ' (HTTP ' + r.status + ')');
+  const cookies = (typeof r.headers.getSetCookie === 'function' ? r.headers.getSetCookie() : [r.headers.get('set-cookie')].filter(Boolean)).map(c => c.split(';')[0]).join('; ');
+  const url = process.env.GESTOR_USUARIOS_API || (authConfig.gestorUrl.replace(/\/$/, '') + '/api/usuarios');
+  const r2 = await fetch(url, { headers: { Accept: 'application/json', Cookie: cookies }, signal: AbortSignal.timeout(10000) });
+  if (!r2.ok) throw new HttpError(502, authConfig.gestorNombre + ' respondió HTTP ' + r2.status + ' en ' + url);
+  const j = await r2.json();
+  const lista = Array.isArray(j) ? j : (j.usuarios ?? j.users ?? j.data ?? j.items ?? []);
+  if (!Array.isArray(lista)) throw new HttpError(502, 'Formato de usuarios no reconocido en ' + url);
+  return lista;
+}
+
+export function aplicarListaUsuarios(lista) {
+  const db = getDb();
+  let creados = 0, actualizados = 0, omitidos = 0;
+  for (const p of lista) {
+    try {
+      const antes = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
+      const u = upsertUsuarioGestor(p, { desdeSincronizacion: true });
+      const despues = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
+      if (despues > antes) creados++; else actualizados++;
+      const inactivo = p.activo === false || p.activo === 0 || p.activo === '0' || String(p.estado ?? '').toLowerCase() === 'inactivo' || p.habilitado === false || p.deshabilitado === true;
+      db.prepare("UPDATE usuarios SET cargo = COALESCE(?, cargo), activo = ?, sincronizado_en = datetime('now') WHERE id = ?")
+        .run(String(p.cargo ?? p.dependencia ?? p.area ?? '') || null, inactivo ? 0 : 1, u.id);
+    } catch { omitidos++; }
+  }
+  return { total: lista.length, creados, actualizados, omitidos };
+}
+
+export async function sincronizarAutomatico() {
+  const fuente = fuenteSyncConfigurada();
+  estadoSync.fuente = fuente;
+  if (!fuente) return null;
+  try {
+    const lista = fuente === 'archivo' ? await leerUsuariosDeArchivo(process.env.GESTOR_USUARIOS_ARCHIVO) : await leerUsuariosConCuentaDeServicio();
+    estadoSync.resultado = aplicarListaUsuarios(lista);
+    estadoSync.ultima = new Date().toISOString();
+    estadoSync.error = null;
+    if (estadoSync.resultado.creados) console.log(`[sync] ${estadoSync.resultado.creados} usuario(s) nuevo(s) del gestor`);
+  } catch (e) {
+    estadoSync.error = e.message; console.error('[sync] ' + e.message);
+  }
+  return estadoSync.resultado;
+}
+
+export function programarSincronizacion() {
+  if (!fuenteSyncConfigurada()) { console.log('[sync] Sincronización automática de usuarios no configurada (GESTOR_USUARIOS_ARCHIVO o GESTOR_SERVICIO_USUARIO/CLAVE)'); return; }
+  const min = Math.max(1, Number(process.env.GESTOR_SYNC_MINUTOS || 5));
+  sincronizarAutomatico();
+  setInterval(sincronizarAutomatico, min * 60000).unref();
+  if (process.env.GESTOR_USUARIOS_ARCHIVO) {
+    // Además del intervalo, reacciona a cambios del archivo (nuevo usuario en el gestor = aparece en segundos).
+    import('node:fs').then(({ watch }) => {
+      try { let t; watch(process.env.GESTOR_USUARIOS_ARCHIVO, () => { clearTimeout(t); t = setTimeout(sincronizarAutomatico, 1500); }); } catch { }
+    });
+  }
+  console.log(`[sync] Usuarios del gestor sincronizados automáticamente (${fuenteSyncConfigurada()}, cada ${min} min)`);
+}
+
+// ---------- sincronización manual con la sesión del administrador ----------
 // GESTOR_USUARIOS_API (por defecto <GESTOR_URL>/api/usuarios) se consulta con la cookie de sesión del
 // administrador que ingresó por el gestor. Cada usuario recibido se crea o actualiza localmente (origen gestor).
 export async function sincronizarUsuariosGestor(cookie) {
@@ -189,19 +283,9 @@ export async function sincronizarUsuariosGestor(cookie) {
   const j = await r.json();
   const lista = Array.isArray(j) ? j : (j.usuarios ?? j.users ?? j.data ?? j.items ?? []);
   if (!Array.isArray(lista)) throw new HttpError(502, 'Formato de usuarios no reconocido en ' + url);
-  const db = getDb();
-  let creados = 0, actualizados = 0, omitidos = 0;
-  for (const p of lista) {
-    try {
-      const antes = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
-      const u = upsertUsuarioGestor(p, { desdeSincronizacion: true });
-      const despues = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
-      if (despues > antes) creados++; else actualizados++;
-      db.prepare("UPDATE usuarios SET cargo = COALESCE(?, cargo), activo = ?, sincronizado_en = datetime('now') WHERE id = ?")
-        .run(String(p.cargo ?? p.dependencia ?? p.area ?? '') || null, (p.activo === false || p.activo === 0 || p.estado === 'inactivo') ? 0 : 1, u.id);
-    } catch { omitidos++; }
-  }
-  return { total: lista.length, creados, actualizados, omitidos };
+  const res = aplicarListaUsuarios(lista);
+  estadoSync.ultima = new Date().toISOString(); estadoSync.resultado = res; estadoSync.error = null;
+  return res;
 }
 
 // Usuario administrador inicial en modo local (ADMIN_EMAIL / ADMIN_PASSWORD).

@@ -81,6 +81,32 @@ test('trae el listado de usuarios del gestor con la sesión del administrador', 
   assert.equal(data.puede_sincronizar, true);
 });
 
+test('sincronización automática desde el archivo de usuarios del gestor', async () => {
+  const { writeFileSync, mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'gestor-'));
+  const archivo = join(dir, 'usuarios.json');
+  writeFileSync(archivo, JSON.stringify({ usuarios: [{ id: 21, usuario: 'nuevo@mintic1519.local', nombre: 'Usuario Nuevo', rol: 'consulta', cargo: 'Planeación' }] }));
+  const P2 = PORT + 2;
+  const p2 = spawn(process.execPath, ['--no-warnings=ExperimentalWarning', 'server/index.js'], { cwd: root, env: { ...process.env, PORT: String(P2), AUTH_MODE: 'mixto', DB_PATH: ':memory:', SESSION_SECRET: 'prueba', ADMIN_PASSWORD: 'clave-prueba-123', GESTOR_USUARIOS_ARCHIVO: archivo, GESTOR_SYNC_MINUTOS: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  let salida = '';
+  await new Promise((res, rej) => { p2.stdout.on('data', d => { salida += d; if (salida.includes('escuchando')) res(); }); p2.on('exit', c => rej(new Error('terminó ' + c))); });
+  try {
+    await new Promise(r => setTimeout(r, 400));
+    let c2 = '';
+    const login = await fetch(`http://127.0.0.1:${P2}/api/auth/local/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'admin@proyectoia.org', password: 'clave-prueba-123' }) });
+    c2 = login.headers.get('set-cookie').split(';')[0];
+    let r = await (await fetch(`http://127.0.0.1:${P2}/api/usuarios`, { headers: { Cookie: c2 } })).json();
+    assert.equal(r.sincronizacion.automatica, 'archivo');
+    assert.ok(r.usuarios.some(u => u.email === 'nuevo@mintic1519.local' && u.cargo === 'Planeación'), 'usuario del archivo creado al arrancar');
+    // Se crea otro usuario en el gestor: aparece solo al cambiar el archivo
+    writeFileSync(archivo, JSON.stringify({ usuarios: [{ id: 21, usuario: 'nuevo@mintic1519.local', nombre: 'Usuario Nuevo', rol: 'consulta' }, { id: 22, usuario: 'otra@mintic1519.local', nombre: 'Otra Persona', rol: 'admin' }] }));
+    for (let i = 0; i < 20; i++) { await new Promise(r => setTimeout(r, 300)); r = await (await fetch(`http://127.0.0.1:${P2}/api/usuarios`, { headers: { Cookie: c2 } })).json(); if (r.usuarios.some(u => u.email === 'otra@mintic1519.local')) break; }
+    const otra = r.usuarios.find(u => u.email === 'otra@mintic1519.local');
+    assert.ok(otra, 'usuario nuevo detectado automáticamente'); assert.equal(otra.rol, 'admin');
+  } finally { p2.kill(); }
+});
+
 test('el administrador local sigue funcionando junto al gestor', async () => {
   cookie = '';
   const ok = await call('/api/auth/local/login', { method: 'POST', body: { email: 'admin@proyectoia.org', password: 'clave-prueba-123' } });
