@@ -55,6 +55,8 @@ function publico(u) { const { password_hash, gestor_cookie, ...x } = u; return {
 
 // ---------- sesión y configuración ----------
 api.get('/api/config', (ctx) => ctx.json({
+  version: process.env.APP_VERSION || '',
+  escala: 'cumple=1, cumple_parcial=0.5, no_cumple=0, no_aplica=excluida',
   auth: { modo: auth.authConfig.mode, gestor: auth.authConfig.gestorHabilitado, local: auth.authConfig.localHabilitado || auth.authConfig.gestorCredenciales, credenciales_gestor: auth.authConfig.gestorCredenciales, gestor_nombre: auth.authConfig.gestorNombre, gestor_url: auth.authConfig.gestorUrl, app_url: auth.authConfig.appUrl },
   valoraciones: Object.entries(VALORACIONES).map(([clave, v]) => ({ clave, ...v })),
   roles: Object.entries(ROLES).map(([clave, r]) => ({ clave, ...r, capacidades: CAPACIDADES[clave] })),

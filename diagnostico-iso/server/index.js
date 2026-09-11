@@ -1,6 +1,7 @@
 // Servidor HTTP de diagnosticoiso.proyectoia.org (sin dependencias externas).
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
@@ -16,6 +17,16 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2' };
 
+// Versión desplegada (visible en el menú y en /api/config) para verificar qué código está corriendo.
+import { execSync } from 'node:child_process';
+export const VERSION = (() => {
+  let v = '1.2.0';
+  try { v = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')).version; } catch { }
+  let commit = process.env.APP_COMMIT || '';
+  if (!commit) { try { commit = execSync('git rev-parse --short HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { } }
+  return v + (commit ? ' · ' + commit : '');
+})();
+process.env.APP_VERSION = VERSION;
 openDb();
 auth.asegurarAdminInicial();
 auth.programarSincronizacion();
@@ -108,7 +119,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => console.log(`Diagnóstico ISO 9001 escuchando en http://${HOST}:${PORT} (modo de autenticación: ${auth.authConfig.mode})`));
+server.listen(PORT, HOST, () => console.log(`Diagnóstico ISO 9001 ${VERSION} escuchando en http://${HOST}:${PORT} (modo de autenticación: ${auth.authConfig.mode})`));
 
 // Limpieza periódica de sesiones vencidas
 setInterval(() => { try { openDb().prepare("DELETE FROM sesiones WHERE expira_en < datetime('now')").run(); } catch {} }, 3600_000).unref();

@@ -1,6 +1,6 @@
 {
   "name": "diagnostico-iso",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Herramienta en línea para el diagnóstico de implementación ISO 9001 (diagnosticoiso.proyectoia.org)",
   "private": true,
   "type": "module",
