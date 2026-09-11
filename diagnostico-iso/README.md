@@ -58,6 +58,18 @@ npm test
 
 ## Despliegue en diagnosticoiso.proyectoia.org
 
+### Instalación rápida en un Mac (por ejemplo el Mac mini que aloja app y gestor)
+
+Desde una terminal o una sesión SSH en el Mac:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/juancarlosvergaras/project-manager/main/diagnostico-iso/deploy/instalar-macmini.sh | bash
+```
+
+El script instala Node.js 22 si falta, clona o actualiza el repositorio en `~/apps/project-manager`, crea el `.env` con un secreto y una contraseña de administrador generados, registra un servicio launchd que mantiene la aplicación activa en el puerto 3050 y muestra las instrucciones para publicar el subdominio en el túnel de Cloudflare ya existente. Ejecutarlo de nuevo actualiza a la última versión sin tocar la base de datos ni el `.env`. Variables opcionales: `RAMA`, `PUERTO` y `DESTINO`.
+
+### Instalación manual en Linux
+
 1. Copie la carpeta al servidor (por ejemplo `/opt/diagnostico-iso`) y cree `.env` a partir de `.env.example`. Defina como mínimo `SESSION_SECRET`, `BASE_URL`, `DB_PATH` y las variables `GESTOR_*`.
 2. Opción A, systemd: copie `deploy/diagnostico-iso.service` a `/etc/systemd/system/`, ajuste usuario y rutas y ejecute `systemctl enable --now diagnostico-iso`.
 3. Opción B, Docker: `docker compose up -d --build` (la base de datos queda en el volumen `diagnostico-data`).
