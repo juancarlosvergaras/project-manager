@@ -195,6 +195,34 @@ export function fuenteSyncConfigurada() {
   return null;
 }
 
+// ¿El objeto parece un usuario? Debe tener identificación (correo/usuario) y algún rasgo de cuenta (rol, clave, nombre…).
+function pareceUsuario(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const tieneId = ['email', 'correo', 'usuario', 'username', 'login'].some(k => typeof v[k] === 'string' && v[k]);
+  const tieneRasgo = ['rol', 'role', 'roles', 'perfil', 'clave', 'clave_hash', 'hash', 'password', 'password_hash', 'salt', 'sal', 'nombre', 'name'].some(k => v[k] !== undefined);
+  return tieneId && tieneRasgo;
+}
+// Convierte cualquier estructura razonable en una lista de usuarios: lista, {usuarios:[...]}, {usuarios:{correo:{...}}},
+// {correo:{...}} o anidada en alguna clave.
+export function extraerUsuarios(j, profundidad = 0) {
+  if (Array.isArray(j)) {
+    const l = j.filter(pareceUsuario);
+    if (l.length) return l;
+    return j.map(x => (typeof x === 'string' ? { usuario: x } : x)).filter(x => x && typeof x === 'object' && (x.usuario || x.email || x.correo));
+  }
+  if (!j || typeof j !== 'object') return [];
+  for (const k of ['usuarios', 'users', 'cuentas', 'accounts', 'data', 'items']) {
+    if (j[k] !== undefined) { const l = extraerUsuarios(j[k], profundidad + 1); if (l.length) return l; }
+  }
+  // Diccionario indexado por correo o usuario
+  const entradas = Object.entries(j).filter(([k, v]) => v && typeof v === 'object' && !Array.isArray(v));
+  const comoDic = entradas.map(([k, v]) => ({ usuario: v.usuario ?? v.email ?? v.correo ?? k, ...v })).filter(pareceUsuario);
+  if (comoDic.length && comoDic.length >= entradas.length / 2) return comoDic;
+  // Buscar un nivel más adentro
+  if (profundidad < 3) for (const [, v] of entradas) { const l = extraerUsuarios(v, profundidad + 1); if (l.length) return l; }
+  return [];
+}
+
 async function leerUsuariosDeArchivo(ruta) {
   const { readFileSync, existsSync } = await import('node:fs');
   if (!existsSync(ruta)) throw new HttpError(500, 'No existe el archivo de usuarios del gestor: ' + ruta);
@@ -207,12 +235,9 @@ async function leerUsuariosDeArchivo(ruta) {
     } finally { gdb.close(); }
   }
   const j = JSON.parse(readFileSync(ruta, 'utf8'));
-  if (Array.isArray(j)) return j;
-  const lista = j.usuarios ?? j.users ?? j.data ?? j.items;
-  if (Array.isArray(lista)) return lista;
-  // Diccionario { "correo": {...}, ... }
-  if (j && typeof j === 'object') return Object.entries(j).map(([k, v]) => (v && typeof v === 'object') ? { usuario: k, ...v } : null).filter(Boolean);
-  throw new HttpError(500, 'Formato de usuarios no reconocido en ' + ruta);
+  const lista = extraerUsuarios(j);
+  if (!lista.length) throw new HttpError(500, 'No se reconocieron usuarios en ' + ruta + ' (claves de primer nivel: ' + (Array.isArray(j) ? 'lista' : Object.keys(j).slice(0, 8).join(', ')) + ')');
+  return lista;
 }
 
 async function leerUsuariosConCuentaDeServicio() {
@@ -223,8 +248,8 @@ async function leerUsuariosConCuentaDeServicio() {
   const r2 = await fetch(url, { headers: { Accept: 'application/json', Cookie: cookies }, signal: AbortSignal.timeout(10000) });
   if (!r2.ok) throw new HttpError(502, authConfig.gestorNombre + ' respondió HTTP ' + r2.status + ' en ' + url);
   const j = await r2.json();
-  const lista = Array.isArray(j) ? j : (j.usuarios ?? j.users ?? j.data ?? j.items ?? []);
-  if (!Array.isArray(lista)) throw new HttpError(502, 'Formato de usuarios no reconocido en ' + url);
+  const lista = extraerUsuarios(j);
+  if (!lista.length) throw new HttpError(502, 'No se reconocieron usuarios en ' + url);
   return lista;
 }
 
@@ -232,6 +257,7 @@ export function aplicarListaUsuarios(lista) {
   const db = getDb();
   let creados = 0, actualizados = 0, omitidos = 0;
   for (const p of lista) {
+    if (!pareceUsuario(p) && !(p.usuario || p.email || p.correo)) { omitidos++; continue; }
     try {
       const antes = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
       const u = upsertUsuarioGestor(p, { desdeSincronizacion: true });
@@ -287,8 +313,8 @@ export async function sincronizarUsuariosGestor(cookie) {
   if (r.status === 401 || r.status === 403) throw new HttpError(403, authConfig.gestorNombre + ' no autorizó el listado de usuarios con su sesión');
   if (!r.ok) throw new HttpError(502, authConfig.gestorNombre + ' respondió HTTP ' + r.status + ' en ' + url);
   const j = await r.json();
-  const lista = Array.isArray(j) ? j : (j.usuarios ?? j.users ?? j.data ?? j.items ?? []);
-  if (!Array.isArray(lista)) throw new HttpError(502, 'Formato de usuarios no reconocido en ' + url);
+  const lista = extraerUsuarios(j);
+  if (!lista.length) throw new HttpError(502, 'No se reconocieron usuarios en ' + url);
   const res = aplicarListaUsuarios(lista);
   estadoSync.ultima = new Date().toISOString(); estadoSync.resultado = res; estadoSync.error = null;
   return res;
