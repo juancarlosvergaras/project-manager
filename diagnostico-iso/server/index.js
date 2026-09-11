@@ -34,7 +34,8 @@ async function readBody(req) {
   });
 }
 
-async function serveStatic(res, path) {
+async function serveStatic(res, path, req) {
+  res.req = req;
   let rel = normalize(decodeURIComponent(path)).replace(/^(\.\.[\/\\])+/, '');
   if (rel === '/' || rel === '') rel = '/index.html';
   const file = join(PUBLIC_DIR, rel);
@@ -43,7 +44,11 @@ async function serveStatic(res, path) {
     const s = await stat(file);
     if (!s.isFile()) throw new Error('nofile');
     const ext = extname(file);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600' });
+    // HTML, JS y CSS se revalidan siempre (Last-Modified + 304) para que cada despliegue llegue al celular sin vaciar caché.
+    const revalidar = ['.html', '.js', '.css', '.webmanifest'].includes(ext);
+    const lastMod = s.mtime.toUTCString();
+    if (revalidar && res.req?.headers['if-modified-since'] === lastMod) { res.writeHead(304); return res.end(); }
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Last-Modified': lastMod, 'Cache-Control': revalidar ? 'no-cache' : 'public, max-age=86400' });
     res.end(await readFile(file));
   } catch {
     // SPA: cualquier ruta desconocida devuelve index.html
@@ -90,7 +95,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
-    await serveStatic(res, path);
+    await serveStatic(res, path, req);
   } catch (e) {
     if (e instanceof HttpError) {
       if (path.startsWith('/api/')) return sendJson(res, e.status, { error: e.message, ...e.extra });
