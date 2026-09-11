@@ -4,3 +4,6 @@ data/
 *.sqlite-wal
 *.sqlite-shm
 .env
+cloudflared.yml
+cloudflared.yml.local
+logs/

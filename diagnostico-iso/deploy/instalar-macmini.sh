@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO="https://github.com/juancarlosvergaras/project-manager.git"
-RAMA="${RAMA:-main}"
+RAMA="${RAMA:-}"            # vacío: usa la rama ya desplegada, o main en una instalación nueva
 PUERTO="${PUERTO:-3050}"
 DESTINO="${DESTINO:-$HOME/apps/project-manager}"
 APP="$DESTINO/diagnostico-iso"
@@ -37,11 +37,17 @@ echo "-- Node.js $(node -v) en $NODE_BIN"
 # 2. Código fuente
 mkdir -p "$(dirname "$DESTINO")"
 if [ -d "$DESTINO/.git" ]; then
+  [ -z "$RAMA" ] && RAMA="$(git -C "$DESTINO" rev-parse --abbrev-ref HEAD)"
   echo "-- Actualizando repositorio ($RAMA)"
+  # cloudflared.yml lo escribe deploy/tunel.sh y no está versionado: se conserva durante la actualización
+  [ -f "$APP/cloudflared.yml" ] && cp "$APP/cloudflared.yml" "$APP/cloudflared.yml.local"
+  git -C "$DESTINO" checkout --quiet -- . 2>/dev/null || true
   git -C "$DESTINO" fetch --quiet origin "$RAMA"
   git -C "$DESTINO" checkout --quiet "$RAMA"
   git -C "$DESTINO" reset --quiet --hard "origin/$RAMA"
+  [ -f "$APP/cloudflared.yml.local" ] && mv "$APP/cloudflared.yml.local" "$APP/cloudflared.yml"
 else
+  [ -z "$RAMA" ] && RAMA=main
   echo "-- Clonando repositorio ($RAMA) en $DESTINO"
   git clone --quiet --branch "$RAMA" "$REPO" "$DESTINO"
 fi

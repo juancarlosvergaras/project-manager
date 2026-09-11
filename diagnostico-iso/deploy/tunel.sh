@@ -3,6 +3,7 @@
 # y deja cloudflared corriendo como agente launchd del usuario. Mismo esquema por aplicación que riesgosia.
 #
 # Uso:  bash deploy/tunel.sh        (desde la carpeta diagnostico-iso, con el usuario normal, sin sudo)
+# Escribe cloudflared.yml (no versionado; plantilla en cloudflared.ejemplo.yml).
 # Variables opcionales: NOMBRE, DOMINIO, PUERTO
 set -euo pipefail
 
