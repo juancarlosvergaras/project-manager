@@ -669,7 +669,6 @@
     }
     const [cfg, me] = await Promise.all([api('/api/config'), api('/api/me').catch(() => ({ usuario: null }))]);
     estado.config = cfg; estado.usuario = me.usuario;
-    $('#link-app-proyectoia').href = cfg.auth.app_url;
     $('.drawer-foot').insertAdjacentHTML('beforeend', `<br>Versión ${esc(cfg.version || '')}`);
     pintarUsuario();
     navegar();

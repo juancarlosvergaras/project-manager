@@ -60,11 +60,13 @@ async function serveStatic(res, path, req) {
     const lastMod = s.mtime.toUTCString();
     if (revalidar && res.req?.headers['if-modified-since'] === lastMod) { res.writeHead(304); return res.end(); }
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Last-Modified': lastMod, 'Cache-Control': revalidar ? 'no-cache' : 'public, max-age=86400' });
+    // index.html referencia app.js y styles.css con la versión desplegada: cada despliegue obliga a descargar la interfaz nueva.
+    if (ext === '.html') return res.end((await readFile(file, 'utf8')).replace(/__VERSION__/g, encodeURIComponent(VERSION)));
     res.end(await readFile(file));
   } catch {
     // SPA: cualquier ruta desconocida devuelve index.html
     res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' });
-    res.end(await readFile(join(PUBLIC_DIR, 'index.html')));
+    res.end((await readFile(join(PUBLIC_DIR, 'index.html'), 'utf8')).replace(/__VERSION__/g, encodeURIComponent(VERSION)));
   }
 }
 

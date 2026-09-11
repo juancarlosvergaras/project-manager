@@ -9,7 +9,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icono.svg">
-<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/styles.css?v=__VERSION__">
 </head>
 <body>
 <header class="topbar no-print" id="topbar">
@@ -27,13 +27,12 @@
     <a href="#/usuarios" class="drawer-link" data-ruta="/usuarios" data-admin hidden><span class="ic">👥</span>Usuarios</a>
     <a href="#/imprimir-blanco" class="drawer-link" data-ruta="/imprimir-blanco"><span class="ic">🖨️</span>Formato en blanco</a>
     <a href="#/perfil" class="drawer-link" data-ruta="/perfil"><span class="ic">👤</span>Mi perfil</a>
-    <a href="#" class="drawer-link" id="link-app-proyectoia" target="_blank" rel="noopener"><span class="ic">↗</span>app.proyectoia.org</a>
     <button class="drawer-link danger" id="btn-logout"><span class="ic">⏻</span>Cerrar sesión</button>
     <p class="drawer-foot">ISO 9001:2015 + Enmienda 1:2024. Instrumento propio de aplicación. No es un documento oficial de ISO.</p>
   </div>
 </nav>
 <main id="app" class="app"><div class="loading">Cargando…</div></main>
 <div id="toast" class="toast" hidden></div>
-<script src="/app.js"></script>
+<script src="/app.js?v=__VERSION__"></script>
 </body>
 </html>
