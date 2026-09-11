@@ -43,7 +43,8 @@ Y
 echo "-- $APP/cloudflared.yml escrito y validado"
 
 # 4. DNS
-salida="$("$CF" tunnel route dns "$NOMBRE" "$DOMINIO" 2>&1)" && echo "-- DNS creado: $DOMINIO" || {
+# Se usa el UUID y --overwrite-dns: por nombre, cloudflared puede resolver a otro túnel de la cuenta.
+salida="$("$CF" tunnel route dns --overwrite-dns "$ID" "$DOMINIO" 2>&1)" && echo "-- DNS: $DOMINIO -> $ID.cfargotunnel.com" || {
   echo "$salida" | grep -qi "already exists" && echo "-- DNS ya existía: $DOMINIO" || { echo "!! DNS: $salida"; echo "   Cree manualmente el CNAME diagnosticoiso -> $ID.cfargotunnel.com (proxy activado)"; }
 }
 
