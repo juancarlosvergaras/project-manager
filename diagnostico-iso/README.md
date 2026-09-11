@@ -114,7 +114,13 @@ Alternativa por API: `POST /api/auth/gestor/token` con `{ "token": "…" }` canj
 
 ## Botón en app.proyectoia.org
 
-El código fuente de app.proyectoia.org no forma parte de este repositorio, por lo que el botón se entrega como fragmento listo para pegar en `integracion/boton-app-proyectoia.html`. Incluye la versión con enlace simple y la versión con token del gestor.
+La página principal es `~/Servidor/web/index.html` en el servidor (servida por nginx). El script `deploy/agregar-boton-portal.sh` inserta la tarjeta `deploy/boton-diagnostico.html` al final de la rejilla de botones con las clases propias de la página, con copia de seguridad, siguiendo el mismo patrón del botón del Observatorio:
+
+```bash
+bash deploy/agregar-boton-portal.sh
+```
+
+`integracion/boton-app-proyectoia.html` conserva un fragmento autónomo (con estilos propios) para cualquier otra página.
 
 ## Roles y permisos
 
