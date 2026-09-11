@@ -75,11 +75,11 @@ export function verifyPassword(pw, hash) {
 }
 
 // ---------- sesiones ----------
-export function crearSesion(res, req, usuarioId) {
+export function crearSesion(res, req, usuarioId, gestorCookie = null) {
   const db = getDb();
   const id = randomBytes(24).toString('base64url');
   const expira = new Date(Date.now() + SESSION_DAYS * 86400000).toISOString();
-  db.prepare('INSERT INTO sesiones (id, usuario_id, expira_en) VALUES (?,?,?)').run(id, usuarioId, expira);
+  db.prepare('INSERT INTO sesiones (id, usuario_id, expira_en, gestor_cookie) VALUES (?,?,?,?)').run(id, usuarioId, expira, gestorCookie);
   db.prepare("UPDATE usuarios SET ultimo_acceso = datetime('now') WHERE id = ?").run(usuarioId);
   res.setHeader('Set-Cookie', cookieHeader(SESSION_COOKIE, sign(id), { maxAge: SESSION_DAYS * 86400, secure: isSecure(req) }));
 }
@@ -91,10 +91,11 @@ export function cerrarSesion(req, res) {
 export function usuarioActual(req) {
   const id = unsign(parseCookies(req)[SESSION_COOKIE]);
   if (!id) return null;
-  const row = getDb().prepare(`SELECT u.* FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id
+  const row = getDb().prepare(`SELECT u.*, s.gestor_cookie AS _gestor_cookie FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id
                                WHERE s.id = ? AND s.expira_en > datetime('now') AND u.activo = 1`).get(id);
   if (!row) return null;
-  const { password_hash, ...u } = row;
+  const { password_hash, _gestor_cookie, ...u } = row;
+  Object.defineProperty(u, 'gestor_cookie', { value: _gestor_cookie ?? null, enumerable: false });
   return u;
 }
 
@@ -168,8 +169,39 @@ export async function loginDelegadoGestor(email, password) {
       if (s2.ok) { const j = await s2.json(); perfil = { ...perfil, ...(j.usuario ?? j.user ?? j.data ?? j) }; }
     } catch { }
   }
-  if (!perfil.email && !perfil.correo) perfil.email = email;   // el gestor validó, el correo es el ingresado
-  return upsertUsuarioGestor(perfil);
+  if (!perfil.email && !perfil.correo && !perfil.usuario) perfil.email = email;   // el gestor validó, el correo es el ingresado
+  const u = upsertUsuarioGestor(perfil);
+  u.gestor_cookie = cookies || null;
+  return u;
+}
+
+// ---------- sincronización del listado de usuarios del gestor ----------
+// GESTOR_USUARIOS_API (por defecto <GESTOR_URL>/api/usuarios) se consulta con la cookie de sesión del
+// administrador que ingresó por el gestor. Cada usuario recibido se crea o actualiza localmente (origen gestor).
+export async function sincronizarUsuariosGestor(cookie) {
+  const url = process.env.GESTOR_USUARIOS_API || (authConfig.gestorUrl.replace(/\/$/, '') + '/api/usuarios');
+  if (!cookie) throw new HttpError(400, 'Para sincronizar debe haber ingresado con un usuario de ' + authConfig.gestorNombre);
+  let r;
+  try { r = await fetch(url, { headers: { Accept: 'application/json', Cookie: cookie }, signal: AbortSignal.timeout(10000) }); }
+  catch (e) { throw new HttpError(503, authConfig.gestorNombre + ' no respondió: ' + e.message); }
+  if (r.status === 401 || r.status === 403) throw new HttpError(403, authConfig.gestorNombre + ' no autorizó el listado de usuarios con su sesión');
+  if (!r.ok) throw new HttpError(502, authConfig.gestorNombre + ' respondió HTTP ' + r.status + ' en ' + url);
+  const j = await r.json();
+  const lista = Array.isArray(j) ? j : (j.usuarios ?? j.users ?? j.data ?? j.items ?? []);
+  if (!Array.isArray(lista)) throw new HttpError(502, 'Formato de usuarios no reconocido en ' + url);
+  const db = getDb();
+  let creados = 0, actualizados = 0, omitidos = 0;
+  for (const p of lista) {
+    try {
+      const antes = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
+      const u = upsertUsuarioGestor(p, { desdeSincronizacion: true });
+      const despues = db.prepare('SELECT COUNT(*) c FROM usuarios').get().c;
+      if (despues > antes) creados++; else actualizados++;
+      db.prepare("UPDATE usuarios SET cargo = COALESCE(?, cargo), activo = ?, sincronizado_en = datetime('now') WHERE id = ?")
+        .run(String(p.cargo ?? p.dependencia ?? p.area ?? '') || null, (p.activo === false || p.activo === 0 || p.estado === 'inactivo') ? 0 : 1, u.id);
+    } catch { omitidos++; }
+  }
+  return { total: lista.length, creados, actualizados, omitidos };
 }
 
 // Usuario administrador inicial en modo local (ADMIN_EMAIL / ADMIN_PASSWORD).
@@ -238,7 +270,7 @@ async function consultarUserinfo(token, cookie) {
 
 function normalizarPerfil(p) {
   const id = String(p.id ?? p.sub ?? p.user_id ?? p.usuario_id ?? '');
-  const email = String(p.email ?? p.correo ?? '').trim();
+  const email = String(p.email ?? p.correo ?? p.usuario ?? p.username ?? p.login ?? '').trim();
   const nombre = String(p.nombre ?? p.name ?? p.nombre_completo ?? p.full_name ?? email.split('@')[0] ?? 'Usuario').trim();
   const rolesAdmin = (process.env.GESTOR_ADMIN_ROLES || 'admin,administrador,superadmin').split(',').map(s => s.trim().toLowerCase());
   const rolesConsultor = (process.env.GESTOR_CONSULTOR_ROLES || 'consultor,auditor,gestor,docente').split(',').map(s => s.trim().toLowerCase());
@@ -250,7 +282,7 @@ function normalizarPerfil(p) {
   return { gestor_id: id || createHash('sha1').update(email).digest('hex'), email, nombre, rol };
 }
 
-export function upsertUsuarioGestor(perfil) {
+export function upsertUsuarioGestor(perfil, { desdeSincronizacion = false } = {}) {
   const db = getDb();
   const p = normalizarPerfil(perfil);
   let u = db.prepare('SELECT * FROM usuarios WHERE (origen = ? AND gestor_id = ?) OR email = ?').get('gestor', p.gestor_id, p.email);
@@ -265,7 +297,7 @@ export function upsertUsuarioGestor(perfil) {
     db.prepare('UPDATE usuarios SET nombre = ?, rol = ?, origen = ?, gestor_id = ? WHERE id = ?').run(p.nombre, rol, 'gestor', p.gestor_id, u.id);
     u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(u.id);
   }
-  if (!u.activo) throw new HttpError(403, 'El usuario está inactivo en esta herramienta');
+  if (!u.activo && !desdeSincronizacion) throw new HttpError(403, 'El usuario está inactivo en esta herramienta');
   return u;
 }
 

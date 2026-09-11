@@ -66,7 +66,7 @@ api.get('/api/me', (ctx) => ctx.json({ usuario: ctx.usuario }));
 api.post('/api/auth/local/login', async (ctx) => {
   const b = await ctx.body();
   const u = await auth.loginConCredenciales(b.email, b.password);
-  auth.crearSesion(ctx.res, ctx.req, u.id);
+  auth.crearSesion(ctx.res, ctx.req, u.id, u.gestor_cookie ?? null);
   log(u.id, u.origen === 'gestor' ? 'sesion.inicio_gestor' : 'sesion.inicio_local', 'usuario', u.id);
   const { password_hash, ...usuario } = u;
   ctx.json({ usuario });
@@ -94,10 +94,15 @@ api.post('/api/auth/cambiar-password', auth.requiereSesion, async (ctx) => {
 // ---------- usuarios (administración) ----------
 api.get('/api/usuarios', auth.requiereRol('admin', 'consultor'), (ctx) => {
   const q = '%' + (ctx.query.q || '') + '%';
-  ctx.json({ usuarios: db().prepare(`SELECT u.id, u.email, u.nombre, u.rol, u.origen, u.activo, u.creado_en, u.ultimo_acceso,
+  ctx.json({ puede_sincronizar: !!ctx.usuario.gestor_cookie, usuarios: db().prepare(`SELECT u.id, u.email, u.nombre, u.rol, u.origen, u.activo, u.creado_en, u.ultimo_acceso, u.cargo, u.sincronizado_en,
       (SELECT COUNT(*) FROM organizacion_miembros m JOIN organizaciones o ON o.id = m.organizacion_id AND o.activa = 1 WHERE m.usuario_id = u.id) AS total_organizaciones,
       (SELECT GROUP_CONCAT(COALESCE(o.sigla, o.nombre), ' · ') FROM organizacion_miembros m JOIN organizaciones o ON o.id = m.organizacion_id AND o.activa = 1 WHERE m.usuario_id = u.id) AS organizaciones
       FROM usuarios u WHERE u.email LIKE ? OR u.nombre LIKE ? ORDER BY u.nombre LIMIT 200`).all(q, q) });
+});
+api.post('/api/usuarios/sincronizar', auth.requiereRol('admin', 'consultor'), async (ctx) => {
+  const r = await auth.sincronizarUsuariosGestor(ctx.usuario.gestor_cookie);
+  log(ctx.usuario.id, 'usuarios.sincronizados_gestor', 'usuario', null, r);
+  ctx.json(r);
 });
 api.post('/api/usuarios', auth.requiereRol('admin'), async (ctx) => {
   const b = await ctx.body();

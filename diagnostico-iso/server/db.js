@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS sesiones (
   id TEXT PRIMARY KEY,
   usuario_id TEXT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   creado_en TEXT NOT NULL DEFAULT (datetime('now')),
-  expira_en TEXT NOT NULL
+  expira_en TEXT NOT NULL,
+  gestor_cookie TEXT
 );
 CREATE TABLE IF NOT EXISTS organizaciones (
   id TEXT PRIMARY KEY,
@@ -124,6 +125,7 @@ export function openDb(path = process.env.DB_PATH || join(__dirname, '..', 'data
   db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
+  migrar(db);
   seed(db);
   return db;
 }
@@ -134,6 +136,15 @@ export function closeDb() { if (db) { db.close(); db = undefined; } }
 export function log(usuarioId, accion, entidad, entidadId, detalle) {
   getDb().prepare('INSERT INTO bitacora (usuario_id, accion, entidad, entidad_id, detalle) VALUES (?,?,?,?,?)')
     .run(usuarioId ?? null, accion, entidad ?? null, entidadId ?? null, detalle ? JSON.stringify(detalle) : null);
+}
+
+// ---------- Migraciones sobre bases existentes ----------
+function migrar(db) {
+  const cols = db.prepare('PRAGMA table_info(sesiones)').all().map(c => c.name);
+  if (!cols.includes('gestor_cookie')) db.exec('ALTER TABLE sesiones ADD COLUMN gestor_cookie TEXT');
+  const colsU = db.prepare('PRAGMA table_info(usuarios)').all().map(c => c.name);
+  if (!colsU.includes('cargo')) db.exec('ALTER TABLE usuarios ADD COLUMN cargo TEXT');
+  if (!colsU.includes('sincronizado_en')) db.exec('ALTER TABLE usuarios ADD COLUMN sincronizado_en TEXT');
 }
 
 // ---------- Datos semilla ----------

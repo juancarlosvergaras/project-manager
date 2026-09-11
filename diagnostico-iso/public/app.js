@@ -431,9 +431,9 @@
   // ---------- usuarios y perfil ----------
   ruta('/usuarios', async () => {
     if (!['admin', 'consultor'].includes(estado.usuario.rol)) { app.innerHTML = '<div class="tarjeta vacio">Solo administradores.</div>'; return; }
-    const { usuarios } = await api('/api/usuarios');
+    const { usuarios, puede_sincronizar } = await api('/api/usuarios');
     const admin = estado.usuario.rol === 'admin';
-    app.innerHTML = `<div class="fila entre"><h1>Usuarios</h1>${admin && estado.config.auth.local ? '<button class="btn peq" id="b-nuevo">+ Usuario local</button>' : ''}</div>
+    app.innerHTML = `<div class="fila entre"><h1>Usuarios</h1><div class="fila">${puede_sincronizar ? `<button class="btn peq suave" id="b-sync">↻ Traer usuarios de ${esc(estado.config.auth.gestor_nombre)}</button>` : ''}${admin && estado.config.auth.local ? '<button class="btn peq" id="b-nuevo">+ Usuario local</button>' : ''}</div></div>
       <p class="hint">Los usuarios que ingresan por ${esc(estado.config.auth.gestor_nombre)} se crean automáticamente en su primer acceso y sincronizan su nombre y rol desde el gestor.</p>
       <div class="tarjeta"><input id="buscar-u" placeholder="Buscar por nombre o correo" inputmode="search"></div>
       <div id="lista-usuarios"></div>`;
@@ -441,7 +441,7 @@
       const q = ($('#buscar-u').value || '').toLowerCase();
       const l = usuarios.filter(u => !q || u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
       $('#lista-usuarios').innerHTML = l.length ? l.map(u => `<div class="tarjeta" style="${u.activo ? '' : 'opacity:.55'}">
-        <div class="fila entre"><div><strong>${esc(u.nombre)}</strong><br><span class="hint">${esc(u.email)} · ${u.rol} · ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}${u.activo ? '' : ' · inactivo'}</span></div></div>
+        <div class="fila entre"><div><strong>${esc(u.nombre)}</strong><br><span class="hint">${esc(u.email)}${u.cargo ? ' · ' + esc(u.cargo) : ''} · ${u.rol} · ${u.origen === 'gestor' ? esc(estado.config.auth.gestor_nombre) : 'local'}${u.activo ? '' : ' · inactivo'}${u.origen === 'gestor' && !u.ultimo_acceso ? ' · aún no ha ingresado' : ''}</span></div></div>
         <p class="hint" style="margin:.4rem 0 0">${['admin', 'consultor'].includes(u.rol) ? 'Acceso a todas las organizaciones por su rol global.' : (u.total_organizaciones ? `${u.total_organizaciones} organización(es): ${esc(u.organizaciones)}` : 'Sin organizaciones asignadas.')}</p>
         <div class="acciones"><button class="btn peq suave" data-orgs="${u.id}">Organizaciones</button>${admin ? `<button class="btn peq sec" data-edit="${u.id}">Editar</button>` : ''}</div></div>`).join('') : '<div class="tarjeta vacio">Sin resultados.</div>';
       $$('[data-edit]').forEach(b => b.onclick = () => form(usuarios.find(u => u.id === b.dataset.edit)));
@@ -457,6 +457,7 @@
       <div class="acciones"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar</button></div></form>`,
       (bg, cerrar) => { $('#f-u', bg).onsubmit = async e => { e.preventDefault(); const body = Object.fromEntries(new FormData(e.target)); if (body.activo !== undefined) body.activo = body.activo === '1'; if (!body.password) delete body.password; try { await api(u ? '/api/usuarios/' + u.id : '/api/usuarios', { method: u ? 'PUT' : 'POST', body }); cerrar(); toast('Guardado'); navegar(); } catch (err) { toast(err.message, true); } }; });
     const bn = $('#b-nuevo'); if (bn) bn.onclick = () => form(null);
+    const bs = $('#b-sync'); if (bs) bs.onclick = async () => { bs.disabled = true; try { const r = await api('/api/usuarios/sincronizar', { method: 'POST' }); toast(`${r.total} usuarios del gestor: ${r.creados} nuevos, ${r.actualizados} actualizados`); navegar(); } catch (e) { toast(e.message, true); bs.disabled = false; } };
     pintarUsuarios();
   });
 

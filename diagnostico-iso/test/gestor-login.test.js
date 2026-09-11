@@ -30,6 +30,15 @@ before(async () => {
         }
         res.writeHead(401, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: 'Credenciales inválidas' }));
       }
+      if (req.url === '/api/usuarios') {
+        if (!(req.headers.cookie || '').includes('sesion_gestor=abc123')) { res.writeHead(401); return res.end(); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ usuarios: [
+          { id: 7, usuario: 'admin@mintic1519.local', nombre: 'Juan Carlos Vergara', rol: 'admin', cargo: 'Dirección' },
+          { id: 8, usuario: 'ana@mintic1519.local', nombre: 'Ana Pérez', rol: 'consulta', cargo: 'Calidad', activo: true },
+          { id: 9, usuario: 'luis@mintic1519.local', nombre: 'Luis Gómez', rol: 'gestor', activo: false },
+        ] }));
+      }
       if (req.url === '/api/sesion') {
         if ((req.headers.cookie || '').includes('sesion_gestor=abc123')) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -58,6 +67,18 @@ test('un usuario del gestor entra con su correo y contraseña y hereda su rol', 
   const orgs = await call('/api/organizaciones');
   assert.equal(orgs.status, 200);
   assert.ok(orgs.data.organizaciones.some(o => o.sigla === 'HUC'));
+});
+
+test('trae el listado de usuarios del gestor con la sesión del administrador', async () => {
+  const r = await call('/api/usuarios/sincronizar', { method: 'POST' });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.total, 3); assert.equal(r.data.creados, 2); assert.equal(r.data.actualizados, 1);
+  const { data } = await call('/api/usuarios');
+  const ana = data.usuarios.find(u => u.email === 'ana@mintic1519.local');
+  assert.ok(ana); assert.equal(ana.rol, 'usuario'); assert.equal(ana.cargo, 'Calidad'); assert.equal(ana.origen, 'gestor');
+  const luis = data.usuarios.find(u => u.email === 'luis@mintic1519.local');
+  assert.equal(luis.rol, 'consultor'); assert.equal(luis.activo, 0);
+  assert.equal(data.puede_sincronizar, true);
 });
 
 test('el administrador local sigue funcionando junto al gestor', async () => {
