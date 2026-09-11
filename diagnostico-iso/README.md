@@ -68,13 +68,13 @@ curl -fsSL https://raw.githubusercontent.com/juancarlosvergaras/project-manager/
 
 El script instala Node.js 22 si falta, clona o actualiza el repositorio en `~/apps/project-manager`, crea el `.env` con un secreto y una contraseña de administrador generados, registra un servicio launchd que mantiene la aplicación activa en el puerto 3050 y muestra las instrucciones para publicar el subdominio en el túnel de Cloudflare ya existente. Ejecutarlo de nuevo actualiza a la última versión sin tocar la base de datos ni el `.env`. Variables opcionales: `RAMA`, `PUERTO` y `DESTINO`.
 
-Para publicar el subdominio en el túnel de Cloudflare que ya corre en el Mac (configuración por archivo en `/etc/cloudflared/config.yml`):
+Para publicar el subdominio con un túnel de Cloudflare propio de la aplicación (mismo esquema que las demás apps del Mac, con su `cloudflared.yml` en la carpeta):
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/juancarlosvergaras/project-manager/main/diagnostico-iso/deploy/publicar-tunel.sh)"
+cd ~/apps/project-manager/diagnostico-iso && bash deploy/tunel.sh
 ```
 
-El script agrega la regla de ingress con la sangría del archivo, la valida, crea el registro DNS hacia el túnel, reinicia cloudflared y comprueba que el dominio responde. Si algo falla restaura la copia de seguridad y explica el paso manual.
+El script crea el túnel `diagnosticoiso` si no existe, escribe `cloudflared.yml` con el ID y las credenciales, valida la configuración, crea el registro DNS, deja cloudflared corriendo como agente launchd y comprueba que el dominio responde. Alternativa para agregar el hostname al túnel global de `/etc/cloudflared/config.yml`: `sudo bash deploy/publicar-tunel.sh`.
 
 ### Instalación manual en Linux
 
