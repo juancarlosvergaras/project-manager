@@ -172,8 +172,18 @@ class TransporteBLE(Transporte):
     async def _escribir(self, caracteristica: str, carga: bytes) -> None:
         if self._cliente is None or not self._cliente.is_connected:
             raise ErrorTransporte("El teclado no está conectado")
+        # Como pida cada característica: la de comandos de este teclado solo
+        # admite escritura CON respuesta (mandarle una sin respuesta no da
+        # error: no llega). Se le pregunta a bleak qué admite, igual que hace
+        # el camino de Windows.
+        con_respuesta = True
         try:
-            await self._cliente.write_gatt_char(caracteristica, bytes(carga), response=False)
+            propiedades = self._cliente.services.get_characteristic(caracteristica).properties
+            con_respuesta = "write-without-response" not in propiedades
+        except Exception:  # noqa: BLE001 - si no se sabe, con respuesta, que siempre llega
+            pass
+        try:
+            await self._cliente.write_gatt_char(caracteristica, bytes(carga), response=con_respuesta)
         except Exception as error:  # noqa: BLE001 - bleak lanza excepciones variadas
             raise ErrorTransporte(f"Fallo al escribir en el teclado: {error}") from error
 

@@ -34,6 +34,10 @@ _log = obtener("cuadro")
 TIPO_EDIT = 50004
 TIPO_DOCUMENT = 50030
 
+#: Patrones de la capa de accesibilidad para leer lo escrito en un cuadro.
+PATRON_VALUE = 10002
+PATRON_TEXT = 10014
+
 #: Mensaje con el que se despierta el árbol de accesibilidad de Chromium.
 _WM_GETOBJECT = 0x003D
 _OBJETOS = (0xFFFFFFFC, 0x00000000)  # raíz de UIA y cliente
@@ -184,4 +188,52 @@ def enfocar_cuadro(hwnd, intentos: int = 3) -> Optional[dict]:
     return None
 
 
-__all__ = ["enfocar_cuadro", "hay_soporte"]
+def _cuadros_de(hwnd):
+    """Los cuadros de escribir de esa ventana (los de verdad), o una lista vacía."""
+    if not hay_soporte() or not hwnd:
+        return []
+    try:
+        uia, UIA = _automatizacion()
+        _despertar_accesibilidad(hwnd)
+        condicion = uia.CreateOrCondition(
+            uia.CreatePropertyCondition(UIA.UIA_ControlTypePropertyId, TIPO_EDIT),
+            uia.CreatePropertyCondition(UIA.UIA_ControlTypePropertyId, TIPO_DOCUMENT),
+        )
+        raiz = uia.ElementFromHandle(hwnd)
+        marco = raiz.CurrentBoundingRectangle
+        hallados = raiz.FindAll(UIA.TreeScope_Descendants, condicion)
+    except Exception:  # noqa: BLE001 - la ventana puede irse mientras se mira
+        return []
+    candidatos = []
+    for i in range(hallados.Length):
+        elemento = hallados.GetElement(i)
+        try:
+            if _es_el_cuadro(elemento, marco.right - marco.left, marco.bottom - marco.top):
+                candidatos.append(elemento)
+        except Exception:  # noqa: BLE001
+            continue
+    return candidatos
+
+
+def texto_del_cuadro(hwnd) -> Optional[str]:
+    """Lo que hay escrito en el cuadro del chat de esa ventana, o ``None`` si
+    no se puede leer. Sirve para saber cuándo ha llegado una transcripción:
+    el texto cambia."""
+    candidatos = _cuadros_de(hwnd)
+    if not candidatos:
+        return None
+    try:
+        _, UIA = _automatizacion()
+        cuadro = elegir_cuadro(candidatos)
+        crudo = cuadro.GetCurrentPattern(PATRON_VALUE)
+        if crudo:
+            return str(crudo.QueryInterface(UIA.IUIAutomationValuePattern).CurrentValue or "")
+        crudo = cuadro.GetCurrentPattern(PATRON_TEXT)
+        if crudo:
+            return str(crudo.QueryInterface(UIA.IUIAutomationTextPattern).DocumentRange.GetText(-1) or "")
+    except Exception:  # noqa: BLE001
+        _log.debug("No se pudo leer el cuadro", exc_info=True)
+    return None
+
+
+__all__ = ["enfocar_cuadro", "hay_soporte", "texto_del_cuadro"]

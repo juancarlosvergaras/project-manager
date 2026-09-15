@@ -70,6 +70,34 @@ class BasePanel(PruebaAislada):
         return json.loads(crudo)
 
 
+
+class PruebaSaludYDireccionPublica(BasePanel):
+    puerto_panel = 8893
+    puerto_hooks = 8963
+
+    def test_salud_sin_clave(self):
+        async def caso(panel):
+            cabecera, cuerpo = await self.pedir(panel, "GET", "/api/salud")
+            self.assertIn("200", cabecera)
+            datos = json.loads(cuerpo)
+            self.assertEqual(datos["app"], "tecladoia")
+            self.assertTrue(datos["teclado"])
+            self.assertIn("version", datos)
+        self.correr(caso, clave_panel="secreta")
+
+    def test_lo_publico_no_bloquea_lo_local(self):
+        """Con una dirección pública que no existe, el panel abre igual en local
+        y deja lo público para cuando aparezca (Tailscale llega después)."""
+        async def caso(panel):
+            self.assertEqual(panel.puerto, self.puerto_panel)
+            self.assertIsNone(panel._http_publico)
+            self.assertIsNotNone(panel._vigilante_publico)
+            self.assertEqual(panel.direccion_publica, "192.0.2.77")
+            datos = await self.json_de(panel, "GET", "/api/salud")
+            self.assertEqual(datos["app"], "tecladoia")
+        self.correr(caso, host_panel="192.0.2.77", clave_panel="secreta")
+
+
 class PruebaEstaticos(BasePanel):
     def test_la_pagina_y_sus_piezas_se_sirven(self):
         async def caso(panel):

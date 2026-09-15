@@ -27,10 +27,14 @@ import asyncio
 import contextlib
 import ctypes
 import os
+import threading
 import time
 from ctypes import wintypes
 from typing import Callable, Optional
 
+from .cuadro_de_texto import texto_del_cuadro
+from .microfono_propio import _pulsar as _pulsar_boton
+from .microfono_propio import boton_de_enviar
 from .microfono_propio import buscar as buscar_microfono_propio
 from .registro import obtener
 
@@ -63,6 +67,15 @@ MODIFICADORES_A_SOLTAR = (
     0x5B, 0x5C,  # Win izquierdo y derecho
 )
 WM_HOTKEY = 0x0312
+
+#: Gancho de teclado de bajo nivel, para atrapar el Intro mientras graba el
+#: micrófono propio del programa.
+WH_KEYBOARD_LL = 13
+WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x0100, 0x0101, 0x0104, 0x0105
+LLKHF_INJECTED = 0x10
+
+#: Cuánto se espera a que la transcripción aparezca en el cuadro tras parar.
+ESPERA_TRANSCRIPCION_S = 8.0
 ENTRADA_TECLADO = 1
 TECLA_SOLTAR = 0x0002
 TECLA_EXTENDIDA = 0x0001
@@ -576,6 +589,60 @@ VK_INTRO = 0x0D
 VK_ESC = 0x1B
 
 
+class _TECLA_BAJA(ctypes.Structure):
+    """``KBDLLHOOKSTRUCT``: lo que el gancho recibe por cada tecla."""
+
+    _fields_ = [
+        ("vkCode", wintypes.DWORD), ("scanCode", wintypes.DWORD), ("flags", wintypes.DWORD),
+        ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_void_p),
+    ]
+
+
+def decidir_intro(tecla: int, banderas: int, mensaje: int, capturar: bool) -> tuple[bool, bool]:
+    """Qué hacer con una tecla que ve el gancho: ``(tragarla, atenderla)``.
+
+    Solo el Intro, solo mientras se pide capturar (el micrófono propio está
+    grabando) y solo si lo pulsó alguien: los Intro que mandamos nosotros van
+    marcados como inyectados y se dejan pasar, si no se tragarían solos. Se
+    tragan la pulsación y el rebote (soltar), y se atiende una sola vez.
+    """
+    if tecla != VK_INTRO or banderas & LLKHF_INJECTED or not capturar:
+        return False, False
+    return True, mensaje in (WM_KEYDOWN, WM_SYSKEYDOWN)
+
+
+def _esperar_transcripcion(hwnd: int, antes: Optional[str], plazo_s: float = ESPERA_TRANSCRIPCION_S) -> bool:
+    """Espera a que el cuadro cambie (llegó la transcripción) y se asiente."""
+    if antes is None:
+        time.sleep(1.5)   # no se puede leer el cuadro: se le da un tiempo prudente
+        return True
+    limite = time.monotonic() + plazo_s
+    ultimo, estable_desde = antes, None
+    while time.monotonic() < limite:
+        time.sleep(0.3)
+        ahora = texto_del_cuadro(hwnd)
+        if ahora is None:
+            continue
+        if ahora != antes and ahora.strip():
+            if ahora == ultimo:
+                if estable_desde is not None and time.monotonic() - estable_desde >= 0.5:
+                    return True
+            else:
+                estable_desde = time.monotonic()
+        ultimo = ahora
+    return False
+
+
+def _enviar_en(hwnd: int) -> str:
+    """Manda lo escrito: por el botón de enviar del programa si lo publica
+    (no necesita el foco), y si no con un Intro donde esté el cursor."""
+    boton = boton_de_enviar(hwnd) if hwnd else None
+    if boton is not None and _pulsar_boton(boton):
+        return "botón"
+    _pulsar(VK_INTRO)
+    return "intro"
+
+
 class Dictado:
     """Lleva la cuenta de si el micrófono está abierto o cerrado.
 
@@ -741,6 +808,51 @@ class Dictado:
         self.programa = programa
         return {"accion": "abierto", **hecho}
 
+    def grabando_con_el_propio(self) -> bool:
+        """¿Está grabando el micrófono propio de un programa, abierto por nosotros?
+
+        Lo consulta el gancho de teclado por cada tecla: solo mira atributos.
+        """
+        return bool(self.abierto and self._propio_abierto is not None)
+
+    def aceptar(self, programa: str = "") -> dict:
+        """Intro mientras el micrófono propio graba: **parar y enviar**.
+
+        En el dictado de Claude, un Intro a media grabación cancela y borra lo
+        transcrito (15/9/2026). Lo que quiere decir Intro es «ya está»: se
+        para la grabación, se espera a que la transcripción llegue al cuadro,
+        y entonces se manda. ChatGPT trae su propio «transcribir y enviar» y
+        se usa ese.
+        """
+        propio = self._propio_abierto
+        if not self.abierto or propio is None:
+            return {"accion": "nada", "programa": programa}
+        self._ultima = time.monotonic()
+        self.abierto = False
+        self._propio_abierto = None
+        hwnd = int(getattr(propio, "hwnd", 0) or 0)
+        if propio.puede_enviar_el_solo():
+            quedo = propio.parar(enviar=True)
+            return {
+                "accion": "enviado" if quedo is not None else "sin parar",
+                "programa": programa, "con_el_propio": True, "como": "el propio programa",
+            }
+        antes = texto_del_cuadro(hwnd) if hwnd else None
+        quedo = propio.parar()
+        if quedo is None:
+            _log.warning(
+                "Intro con el micrófono propio de «%s» grabando: no se pudo parar, "
+                "y no se manda nada a ciegas", programa,
+            )
+            return {"accion": "sin parar", "programa": programa, "con_el_propio": True}
+        if not _esperar_transcripcion(hwnd, antes):
+            _log.info(
+                "La transcripción de «%s» no apareció en %.0f s; se envía lo que haya",
+                programa, ESPERA_TRANSCRIPCION_S,
+            )
+        como = _enviar_en(hwnd)
+        return {"accion": "enviado", "programa": programa, "con_el_propio": True, "como": como}
+
     def _boton_propio(self, programa: str):
         if not self.usar_el_propio:
             return None
@@ -873,17 +985,29 @@ class EscuchaDictado:
         identificador: int = 0xA17A,
         tecla_virtual: int = VK_F13,
         nombre: str = ATAJO_DICTADO,
+        al_intro: Optional[Callable[[], None]] = None,
+        capturar_intro: Optional[Callable[[], bool]] = None,
     ) -> None:
         # `tecla_virtual` y `nombre` existen para que otro servicio del mismo
         # PC (MiniMic) escuche su propia combinación: Windows solo deja
         # reservar cada una a un proceso, así que dos teclados no pueden
         # compartir F13.
+        #
+        # `al_intro` y `capturar_intro`: mientras `capturar_intro()` diga que
+        # sí (el micrófono propio está grabando), el Intro —el de la tecla K2
+        # del teclado y el de cualquier teclado— no llega al programa: se
+        # atiende con `al_intro`, que para la grabación y envía. En el
+        # dictado de Claude un Intro a medias cancela y borra lo dictado.
         self.al_pulsar = al_pulsar
         self.identificador = identificador
         self.tecla_virtual = tecla_virtual
         self.nombre = nombre
+        self.al_intro = al_intro
+        self.capturar_intro = capturar_intro
         self._parar = False
         self._ultimo_disparo = 0.0
+        self._ultimo_intro = 0.0
+        self._gancho_proc = None
 
     def correr(self) -> None:
         """Bucle de mensajes. Bloquea: va en su propio hilo."""
@@ -917,6 +1041,7 @@ class EscuchaDictado:
             )
             return
         _log.info("Escuchando la tecla del micrófono (%s)", self.nombre)
+        gancho = self._instalar_gancho(user32) if self.al_intro and self.capturar_intro else None
         try:
             mensaje = wintypes.MSG()
             while not self._parar:
@@ -934,7 +1059,53 @@ class EscuchaDictado:
                     except Exception:  # noqa: BLE001 - un fallo no debe callar la tecla
                         _log.exception("Fallo al atender la tecla del micrófono")
         finally:
+            if gancho:
+                with contextlib.suppress(Exception):
+                    user32.UnhookWindowsHookEx(gancho)
             user32.UnregisterHotKey(None, self.identificador)
+
+    def _instalar_gancho(self, user32):
+        """Pone el gancho de teclado en este hilo (que tiene bucle de mensajes)."""
+        PROC = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
+        user32.CallNextHookEx.restype = ctypes.c_ssize_t
+        user32.CallNextHookEx.argtypes = [wintypes.HHOOK, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM]
+        user32.SetWindowsHookExW.restype = wintypes.HHOOK
+        user32.SetWindowsHookExW.argtypes = [ctypes.c_int, PROC, wintypes.HINSTANCE, wintypes.DWORD]
+        user32.UnhookWindowsHookEx.argtypes = [wintypes.HHOOK]
+
+        def proc(codigo, wparam, lparam):
+            if codigo >= 0:
+                try:
+                    tecla = ctypes.cast(lparam, ctypes.POINTER(_TECLA_BAJA)).contents
+                    try:
+                        capturar = bool(self.capturar_intro())
+                    except Exception:  # noqa: BLE001
+                        capturar = False
+                    tragar, atender = decidir_intro(tecla.vkCode, tecla.flags, int(wparam), capturar)
+                    if atender:
+                        ahora = time.monotonic()
+                        if ahora - self._ultimo_intro >= 1.0:
+                            self._ultimo_intro = ahora
+                            threading.Thread(target=self._atender_intro, daemon=True).start()
+                    if tragar:
+                        return 1
+                except Exception:  # noqa: BLE001 - el gancho no puede fallar nunca
+                    _log.debug("Fallo en el gancho de teclado", exc_info=True)
+            return user32.CallNextHookEx(None, codigo, wparam, lparam)
+
+        self._gancho_proc = PROC(proc)   # se guarda: si se recoge, Windows llama a la nada
+        gancho = user32.SetWindowsHookExW(WH_KEYBOARD_LL, self._gancho_proc, None, 0)
+        if not gancho:
+            _log.warning("No se pudo poner el gancho del Intro (error %s)", ctypes.get_last_error())
+            return None
+        _log.info("Intro atendido mientras grabe el micrófono propio (para y envía)")
+        return gancho
+
+    def _atender_intro(self) -> None:
+        try:
+            self.al_intro()
+        except Exception:  # noqa: BLE001
+            _log.exception("Fallo al atender el Intro")
 
     def parar(self) -> None:
         """Suelta la combinación para que el siguiente arranque la encuentre libre."""
@@ -955,6 +1126,7 @@ __all__ = [
     "ATAJO_DICTADO",
     "Dictado",
     "AVISO_SIN_DICTADO",
+    "decidir_intro",
     "dictado_configurado",
     "MODIFICADORES_A_SOLTAR",
     "abrir_programa",

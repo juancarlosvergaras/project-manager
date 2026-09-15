@@ -75,7 +75,14 @@ PERFILES: dict[str, dict[str, tuple[str, ...]]] = {
         # grabar se cambia por «Detener dictado». Si no aparece el interruptor
         # se cae a esto. «Entrada de voz» es el modo de voz, no el dictado.
         "empezar": ("dictar", "dictate", "grabar", "record"),
-        "parar": ("detener dictado", "stop dictation"),
+        # Y en la vista de chat, a los pocos segundos de grabar, el botón
+        # deja de ser el interruptor de antes: aparece la barra de grabación
+        # con sus propios botones. Se para por el que haya.
+        "parar": (
+            "detener dictado", "stop dictation", "finalizar dictado", "finish dictation",
+            "terminar dictado", "end dictation", "listo", "done",
+        ),
+        "cancelar": ("cancelar dictado", "cancel dictation"),
     },
     "chatgpt": {
         # Su atajo, de respaldo por si algún día no se encuentra el botón.
@@ -224,17 +231,61 @@ def _mandar_atajo(atajo: str) -> bool:
 
 
 def _pulsar(boton: Any) -> bool:
-    """Pulsa un botón por accesibilidad. Devuelve si se pudo."""
+    """Pulsa un botón por accesibilidad. Devuelve si se pudo.
+
+    Primero como botón normal; si no se deja, como interruptor. Un botón de
+    «parar» puede ser cualquiera de las dos cosas según la vista del programa.
+    """
     try:
         _, UIA = _automatizacion()
         crudo = boton.GetCurrentPattern(PATRON_INVOKE)
-        if not crudo:
-            return False
-        crudo.QueryInterface(UIA.IUIAutomationInvokePattern).Invoke()
-        return True
+        if crudo:
+            crudo.QueryInterface(UIA.IUIAutomationInvokePattern).Invoke()
+            return True
+        interruptor = _interruptor(boton)
+        if interruptor is not None:
+            interruptor.Toggle()
+            return True
+        return False
     except Exception:  # noqa: BLE001 - el botón puede irse mientras se pulsa
         _log.debug("El botón no aceptó la pulsación", exc_info=True)
         return False
+
+
+def _nombres(botones: list[Any], maximo: int = 40) -> list[str]:
+    """Los nombres de esos botones, para el registro: es lo único que permite
+    saber cómo se llama el botón que no se encontró."""
+    nombres: list[str] = []
+    for boton in botones[:maximo]:
+        try:
+            nombre = boton.CurrentName or ""
+        except Exception:  # noqa: BLE001
+            nombre = "?"
+        if nombre:
+            nombres.append(nombre)
+    return nombres
+
+
+#: Nombres que parecen «enviar» y no lo son.
+_NO_ES_ENVIAR = ("comentario", "feedback", "ahora", "now", "voz", "voice", "comando", "command")
+
+
+def boton_de_enviar(hwnd: int) -> Optional[Any]:
+    """El botón de mandar el mensaje de esa ventana, si está y se puede pulsar."""
+    for boton in _botones(hwnd):
+        try:
+            nombre = (boton.CurrentName or "").lower()
+        except Exception:  # noqa: BLE001
+            continue
+        if not _coincide(nombre, ("enviar", "send")) or any(t in nombre for t in _NO_ES_ENVIAR):
+            continue
+        try:
+            if not boton.CurrentIsEnabled:
+                continue
+        except Exception:  # noqa: BLE001
+            pass
+        return boton
+    return None
 
 
 class MicrofonoDeLaApp:
@@ -255,6 +306,10 @@ class MicrofonoDeLaApp:
         #: (mismo identificador), así que se guarda y se vuelve a usar.
         self._interruptor_conocido: Any = None
         self._identificador_conocido: Any = None
+        #: ¿La grabación en curso la empezamos nosotros? Entonces una lectura
+        #: que diga «parado» no basta para dejarlo: si además hay un botón de
+        #: parar a la vista, es que sigue grabando con otra cara.
+        self._arrancado = False
 
     def _recordar(self, boton: Any, interruptor: Any) -> None:
         self._interruptor_conocido = interruptor
@@ -337,7 +392,9 @@ class MicrofonoDeLaApp:
         actual = self.estado()
         if actual is None or actual:
             return actual
-        return self._accionar("empezar", quedando=True)
+        quedo = self._accionar("empezar", quedando=True)
+        self._arrancado = bool(quedo)
+        return quedo
 
     def parar(self, enviar: bool = False) -> Optional[bool]:
         """Deja de grabar. Con ``enviar``, además manda lo dictado.
@@ -347,10 +404,17 @@ class MicrofonoDeLaApp:
         lo hace él, sabiendo cuándo ha terminado de transcribir.
         """
         actual = self.estado()
-        if actual is None and self._interruptor_conocido is not None:
-            # No se sabe leer, pero la grabación la empezamos nosotros con
-            # este interruptor: se apaga con él. Es lo contrario de rendirse
-            # y mandar Escape, que borraba lo dictado.
+        arrancado, self._arrancado = self._arrancado, False
+        if actual is None and (self._interruptor_conocido is not None or arrancado):
+            # No se sabe leer, pero la grabación la empezamos nosotros: se
+            # para por donde se pueda. Es lo contrario de rendirse y mandar
+            # Escape, que borraba lo dictado.
+            return self._accionar("parar", quedando=False)
+        if actual is False and arrancado and _buscar(self._botones(), self.perfil.get("parar", ())) is not None:
+            # El interruptor con el que se arrancó dice «parado», pero hay un
+            # botón de parar a la vista: la grabación sigue, con otra cara.
+            # En la vista de chat de Claude pasa a los pocos segundos
+            # (15/9/2026: «vuelvo a pulsar el micrófono y no pasa nada»).
             return self._accionar("parar", quedando=False)
         if actual is None or not actual:
             return actual
@@ -369,7 +433,7 @@ class MicrofonoDeLaApp:
     def _accionar(self, papel: str, quedando: bool) -> Optional[bool]:
         botones = self._botones()
         trozos = self.perfil.get("interruptor")
-        interruptor = None
+        hecho = False
         if trozos:
             # Un solo botón para las dos cosas.
             boton, interruptor = _buscar_interruptor(botones, trozos)
@@ -377,13 +441,29 @@ class MicrofonoDeLaApp:
                 self._recordar(boton, interruptor)
             else:
                 interruptor = self._interruptor_recordado(botones)
-        if interruptor is not None:
-            try:
-                interruptor.Toggle()
-            except Exception:  # noqa: BLE001
-                _log.debug("El interruptor no aceptó la pulsación", exc_info=True)
-                return None
-        else:
+            ya_esta = False
+            if interruptor is not None:
+                try:
+                    ya_esta = bool(interruptor.CurrentToggleState == 1) == quedando
+                except Exception:  # noqa: BLE001 - si no se puede leer, se toca
+                    ya_esta = False
+            if interruptor is not None and ya_esta:
+                # Ya está donde se quiere; tocarlo lo dejaría al revés (para
+                # «parar» con el interruptor apagado, arrancaría otra
+                # grabación). Lo que sigue grabando tiene otro botón: abajo.
+                interruptor = None
+            if interruptor is not None:
+                try:
+                    interruptor.Toggle()
+                    hecho = True
+                except Exception:  # noqa: BLE001
+                    # El elemento con el que se arrancó ya no existe: la vista
+                    # de chat de Claude cambia el botón por la barra de
+                    # grabación a los pocos segundos. Rendirse aquí dejaba la
+                    # grabación abierta («sin parar», 15/9/2026); se sigue
+                    # por el botón que haya ahora.
+                    _log.info("El interruptor de «%s» ya no responde; se busca el botón de «%s» por nombre", self.programa, papel)
+        if not hecho:
             # **El botón primero, el atajo de respaldo.** Parece al revés de lo
             # que uno esperaría, y hay una razón medida: pulsar un botón por
             # accesibilidad no necesita que la ventana esté al frente, y un
@@ -393,12 +473,20 @@ class MicrofonoDeLaApp:
             # nunca —quedaba «parado» en el registro después de pedirle que
             # grabara—. El botón, en cambio, va directo al programa.
             boton = _buscar(botones, self.perfil.get(papel, ()))
-            if boton is None or not _pulsar(boton):
+            if boton is not None and _pulsar(boton):
+                hecho = True
+            else:
                 atajo = self.perfil.get("atajo")
-                if not atajo or papel not in ("empezar", "parar"):
-                    return None
-                if not _mandar_atajo(atajo):
-                    return None
+                if atajo and papel in ("empezar", "parar") and _mandar_atajo(atajo):
+                    hecho = True
+        if not hecho:
+            # Se apuntan los botones que había: es lo único que permite saber,
+            # desde el registro, cómo se llama el que no se reconoció.
+            _log.warning(
+                "No hay con qué «%s» el dictado de «%s». Botones a la vista: %s",
+                papel, self.programa, _nombres(botones),
+            )
+            return None
         # Se espera a que el estado cuadre, en vez de un rato fijo. ChatGPT
         # tarda lo que tarde en transcribir antes de soltar sus botones de
         # dictado, y con una espera fija se leía «sigue grabando» justo después
@@ -422,4 +510,4 @@ def buscar(hwnd: int, programa: str) -> Optional["MicrofonoDeLaApp"]:
     return micro if micro.hay_dictado() else None
 
 
-__all__ = ["MicrofonoDeLaApp", "buscar", "perfil_de", "PERFILES"]
+__all__ = ["MicrofonoDeLaApp", "buscar", "boton_de_enviar", "perfil_de", "PERFILES"]

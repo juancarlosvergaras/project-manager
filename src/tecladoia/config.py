@@ -159,6 +159,12 @@ class Ajustes:
     host_panel: str = "127.0.0.1"
     #: Clave del panel. Vacía solo es aceptable escuchando en local.
     clave_panel: str = ""
+    #: El portero del Mac mini al que este PC se presenta solo (túnel de
+    #: salida, ``tunel.py``): así ``ahakey.proyectoia.org`` llega al equipo
+    #: que tenga el teclado sin publicar el panel, sin cortafuegos y sin que
+    #: nadie sepa su dirección. Exige clave en el panel. Vacío o apagado: no.
+    portero: str = "100.65.52.65:8030"
+    usar_portero: bool = True
     puente_host: str = "127.0.0.1"
     puente_puerto: int = 9000
     vigencia_cache_ms: int = 1500

@@ -353,6 +353,29 @@ class PruebaEnvoltorioAutomatico(PruebaAislada):
     def test_sin_camino_elegido_no_hay_canal(self):
         self.assertFalse(self._auto(None).canal_abierto)
 
+    def test_en_windows_bleak_solo_se_prueba_de_vez_en_cuando(self):
+        """Probar bleak en cada vuelta dejaba el camino de Windows con «acceso
+        denegado» y encender el teclado tardaba más de un minuto en notarse."""
+        from unittest import mock
+
+        from tecladoia.transporte import automatico
+
+        a = self._auto(None)
+        with mock.patch("tecladoia.transporte.windows_emparejado.hay_winrt", return_value=True), \
+                mock.patch("tecladoia.transporte.base.hay_bleak", return_value=True):
+            nombres = []
+            for vuelta in range(1, automatico.CADA_CUANTAS_VUELTAS_BLE * 2 + 1):
+                a._vueltas = vuelta
+                nombres.append([c.nombre_legible for c in a._candidatos()])
+        con_ble = [i + 1 for i, n in enumerate(nombres) if "BLE nativo" in n]
+        self.assertTrue(all("Windows" in n[0] or "emparejado" in n[0].lower() for n in nombres), nombres[0])
+        self.assertEqual(con_ble, [automatico.CADA_CUANTAS_VUELTAS_BLE, automatico.CADA_CUANTAS_VUELTAS_BLE * 2])
+        # Sin el camino de Windows (macOS, Linux), bleak va siempre.
+        with mock.patch("tecladoia.transporte.windows_emparejado.hay_winrt", return_value=False), \
+                mock.patch("tecladoia.transporte.base.hay_bleak", return_value=True):
+            a._vueltas = 3
+            self.assertIn("BLE nativo", [c.nombre_legible for c in a._candidatos()])
+
     def test_suelta_lo_anterior_antes_de_abrir(self):
         """Un camino a medias sigue con el aparato abierto y bloquea al nuevo.
 

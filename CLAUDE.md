@@ -130,6 +130,19 @@ obliga a reiniciar el servicio. Están en `PLAZO_DE_BUSQUEDA_S`,
 `PLAZO_DE_APERTURA_S` y `PLAZO_DE_RECONEXION_S`; no quitarlos. Lo cubre
 `pruebas/test_conexion.py`.
 
+**El respaldo de bleak solo se prueba una vuelta de cada ocho**
+(`automatico.CADA_CUANTAS_VUELTAS_BLE`), y las vueltas van cada cinco segundos.
+El camino de Windows falla en un segundo con el teclado apagado; bleak tarda
+quince en rendirse y, mientras lo intenta, al camino de Windows le contesta
+«acceso denegado o dormido». Probándolos los dos en cada vuelta, encender el
+teclado tardaba más de un minuto en notarse (15/9/2026: encendido a las
+17:38, enganchado por bleak a las 17:39:46), y hasta que engancha no se le
+repone ni el modo 1 ni el reposo: «arranca en el modo 2 y se queda en verde
+un buen rato». Ahora engancha por Windows a los pocos segundos. Sin el camino
+de Windows (macOS, Linux) bleak va en todas las vueltas. Y `ble._escribir`
+escribe con o sin respuesta según lo que admita la característica, como hace
+el camino de Windows.
+
 **Solo un programa a la vez.** Si está abierta la aplicación oficial de AhaKey o
 su `BLE_tcp_driver.exe`, tienen el teclado tomado y nosotros no entramos.
 Ciérralos. (Si prefieres convivir con ellos: `--transporte puente`, que habla con
@@ -275,9 +288,10 @@ Tailscale una conexión de control a `100.65.52.65:8027` (la dirección de
 Tailscale del Mac mini), dice qué equipo es y si tiene el teclado, y cuando
 llega un navegador el portero le pide una conexión de datos y las empalma.
 Nada que configurar en el PC: ni publicar el panel, ni cortafuegos, ni que el
-Mac mini sepa su dirección. Está en `minimic/tunel.py` (genérico, para que
-MiniMic lo use también) y en `despliegue/sikaimini/portero.py`; el camino
-viejo de preguntar a direcciones fijas queda de respaldo. **Dos condiciones**:
+Mac mini sepa su dirección. Está en `tecladoia/tunel.py` (genérico; desde el
+15/9/2026 lo usan los cuatro teclados, `minimic/tunel.py` lo reexporta) y en
+`despliegue/sikaimini/portero.py`; el camino viejo de preguntar a direcciones
+fijas queda de respaldo. **Dos condiciones**:
 Tailscale conectado y **clave puesta en el panel** —sin clave el servicio no se
 presenta, porque lo que entra por el túnel viene de Internet—. Y una trampa
 resuelta: las conexiones de datos hacia el panel salen **desde `127.0.0.2`**,
@@ -719,10 +733,31 @@ siempre, con la palanca donde sea.
   `MicrofonoDeLaApp` recuerda el interruptor con el que empezó (mismo
   `RuntimeId` aunque cambie el nombre) y `Dictado` guarda `_propio_abierto` y
   cierra por ahí; si no puede, deja la grabación como está y lo dice.
-- **Pulsar Intro (K2) mientras Claude graba no manda nada**: la transcripción
-  aún no está en el cuadro. Primero se para con la tecla del micrófono. Si se
-  quiere que K2 pare y envíe, hay que darle una combinación propia y
-  atenderla en `dictado`; hoy K2 es un Intro que manda el teclado solo.
+- **Intro (K2) mientras graba el micrófono propio = parar y enviar.** Un
+  Intro a media grabación en el dictado de Claude **cancela y borra** lo
+  transcrito (15/9/2026). K2 manda un Intro normal que no se distingue del
+  de cualquier teclado, así que `EscuchaDictado` pone un gancho de teclado
+  de bajo nivel (`WH_KEYBOARD_LL`) que **solo mientras
+  `Dictado.grabando_con_el_propio()`** se traga el Intro y llama a
+  `Dictado.aceptar`: para la grabación, espera a que la transcripción llegue
+  al cuadro (`cuadro_de_texto.texto_del_cuadro` cambia y se asienta) y manda
+  por el botón «Enviar» del programa (`microfono_propio.boton_de_enviar`) o
+  con un Intro. ChatGPT usa su «Transcribir y enviar». Los Intro que
+  mandamos nosotros van marcados como inyectados y el gancho los deja pasar
+  (`dictado.decidir_intro`). Fuera de una grabación el gancho no toca nada.
+- **El botón con el que se arrancó el dictado puede dejar de existir.** En la
+  vista de chat de Claude, a los pocos segundos de grabar, el interruptor se
+  sustituye por la barra de grabación con sus botones; el puntero recordado
+  lanza al tocarlo y una lectura del interruptor viejo dice «parado» con la
+  grabación en marcha («vuelvo a pulsar el micrófono y no pasa nada»,
+  15/9/2026). `_accionar` ya no se rinde con el interruptor: sigue por el
+  botón de «parar» por nombre y por el atajo; `parar()` no se cree un
+  «parado» si arrancamos nosotros y hay botón de parar a la vista; y un
+  interruptor que ya está en la posición pedida **no se toca** (para «parar»
+  con él apagado, tocarlo arrancaría otra grabación). Si aun así no hay con
+  qué parar, el registro apunta **los nombres de los botones a la vista**:
+  con eso se añade el nombre al perfil. También `GET /api/botones` del
+  panel (con clave, por el túnel) los enseña desde lejos.
 - **El transporte BLE de respaldo tenía el teclado tomado tras fallar.** Si
   `connect()` salía bien y `start_notify()` no («Characteristic 7344 not
   found»), el `BleakClient` quedaba abierto en el proceso y el camino de
@@ -801,10 +836,31 @@ siempre, con la palanca donde sea.
 
 `ahakey.proyectoia.org` **no lleva directamente a este PC**: pasa antes por un
 portero en el Mac mini (`~/Servidor/apps/ahakey/portero.py`, puerto 8024, con
-launchd `com.jcvs.ahakey-portero`). Si el PC contesta, se aparta y deja pasar
+launchd `com.jcvs.ahakey-portero`; el código está en
+`despliegue/ahakey/portero.py`). Si el PC contesta, se aparta y deja pasar
 todo tal cual; si no, sirve una página que explica que el ordenador del teclado
 está apagado, en vez del «Bad gateway» de Cloudflare, que parece un servidor
 roto.
+
+**Desde el 15/9/2026 el PC se presenta solo al portero**, como SikaiMini y la
+Botonera: el servicio abre por Tailscale una conexión de control a
+`100.65.52.65:8030` (`tecladoia/tunel.py`, que antes vivía en `minimic/tunel.py`
+y ahí queda reexportado) y el portero le pide una conexión de datos cuando
+llega un navegador. Nada que configurar en el PC ni que saber su dirección:
+**la web sigue al equipo que tenga el teclado**. Exige clave en el panel; las
+conexiones de datos salen desde `127.0.0.2` para que el panel no las tome por
+locales. Ajustes `portero` y `usar_portero`. El camino viejo (preguntar a
+direcciones fijas por `/api/salud`, que ahora TecladoIA también publica sin
+clave) queda de respaldo para los PC con una versión anterior.
+
+Lo que lo hizo necesario: el servicio arranca con la sesión y **Tailscale
+llega después**, y escuchar en una dirección que aún no existe fallaba; el
+panel se quedaba solo en `127.0.0.1` con el registro diciendo «disponible en
+100.79.52.120», y la web pública decía «el equipo está apagado» con el equipo
+encendido. Ahora el panel abre lo local siempre y **reintenta la dirección
+pública cada veinte segundos** hasta que aparezca, y la vuelve a abrir si
+deja de contestar (`panel._vigilar_publico`). El túnel, además, no depende
+de ninguna dirección.
 
 Es un proxy de nivel TCP a propósito: no interpreta HTTP, solo empalma los dos
 extremos, así que las descargas grandes y el canal de sucesos en vivo funcionan
@@ -836,4 +892,5 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-326, todas verdes, sin dependencias externas. Si algo se rompe, empieza por ahí.
+324, todas verdes (una se salta si el sistema no deja salir desde 127.0.0.2),
+sin dependencias externas. Si algo se rompe, empieza por ahí.

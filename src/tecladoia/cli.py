@@ -234,6 +234,35 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
         vigilantes: list[asyncio.Task] = []
         vigilantes.append(asyncio.create_task(gestor.vigilar_estado()))
 
+        # El PC se presenta solo al portero del Mac mini (túnel de salida):
+        # así ahakey.proyectoia.org llega a este equipo esté donde esté, sin
+        # publicar el panel ni saber su dirección. Solo con clave: lo que
+        # entra por el túnel viene de Internet.
+        if panel is not None and panel.puerto and getattr(ajustes, "usar_portero", True):
+            from .tunel import Tunel, analizar_portero, se_puede_usar_el_origen
+
+            destino = analizar_portero(getattr(ajustes, "portero", ""), 8030)
+            if destino is None:
+                salida.linea("  Portero: sin dirección; no se presenta")
+            elif not ajustes.clave_panel:
+                salida.linea("  Portero: el panel no tiene clave; sin clave no se publica")
+            elif not se_puede_usar_el_origen():
+                salida.linea("  Portero: este sistema no deja salir desde 127.0.0.2; no se presenta")
+            else:
+                import socket
+
+                def presentacion() -> dict:
+                    try:
+                        equipo = socket.gethostname()
+                    except OSError:
+                        equipo = ""
+                    return {"equipo": equipo, "teclado": bool(gestor.conectado)}
+
+                tunel = Tunel("tecladoia", panel.puerto, destino, presentacion)
+                panel.tunel = tunel
+                vigilantes.append(asyncio.create_task(tunel.mantener()))
+                salida.dato("Portero", f"{destino[0]}:{destino[1]}")
+
         def al_cambiar_la_conexion(conectado: bool) -> None:
             """Deja el teclado en el modo elegido cada vez que aparece.
 
@@ -414,7 +443,30 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                         (" · enviado" if hecho.get("enviado") else "")
                     )
 
-                escucha = EscuchaDictado(al_pulsar_microfono)
+                def al_pulsar_intro() -> None:
+                    # K2 (Intro) mientras el micrófono propio graba: parar y
+                    # enviar. Sin esto, en Claude el Intro cancelaba el
+                    # dictado y borraba lo transcrito.
+                    indice = ultimo_modo[0]
+                    modo = ajustes.modos[indice] if 0 <= indice < len(ajustes.modos) else None
+                    hecho = microfono.aceptar(getattr(modo, "programa", "") if modo else "")
+                    registro.obtener("microfono").info(
+                        "intro con el micrófono grabando: %s · programa %s%s",
+                        hecho["accion"], hecho.get("programa") or "?",
+                        f" · por {hecho['como']}" if hecho.get("como") else "",
+                    )
+                    servidor.avisar_de_pulsacion("intro", {
+                        "accion": hecho["accion"],
+                        "programa": hecho.get("programa") or "",
+                        "enviado": hecho["accion"] == "enviado",
+                        "modo": indice,
+                    })
+
+                escucha = EscuchaDictado(
+                    al_pulsar_microfono,
+                    al_intro=al_pulsar_intro,
+                    capturar_intro=microfono.grabando_con_el_propio,
+                )
                 threading.Thread(target=escucha.correr, daemon=True).start()
                 salida.dato("Microfono", "escuchando " + ATAJO_DICTADO)
 

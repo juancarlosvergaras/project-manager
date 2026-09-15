@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 from pathlib import Path
 
 from . import instalador
-from .config import Ajustes
+from .config import Ajustes, directorio_base
 from .dispositivo import GestorTeclado
 from .modelo import EfectoLuz, EstadoIA
 from .registro import obtener
@@ -230,7 +230,13 @@ class PanelWeb:
         self.ajustes = ajustes or gestor.ajustes
         self.puerto: Optional[int] = None
         self._http: Optional[asyncio.AbstractServer] = None
+        #: El servidor en la dirección pública (Tailscale), aparte del local:
+        #: puede no existir todavía y volver más tarde.
+        self._http_publico: Optional[asyncio.AbstractServer] = None
+        self._vigilante_publico: Optional[asyncio.Task] = None
         self._adjunto: Optional[str] = None
+        #: El túnel al portero, si el servicio lo abrió; para enseñarlo.
+        self.tunel: Any = None
 
     @property
     def url(self) -> str:
@@ -255,6 +261,67 @@ class PanelWeb:
             return [host or "127.0.0.1"]
         return ["127.0.0.1", host]
 
+    @property
+    def direccion_publica(self) -> str:
+        """La dirección de fuera (Tailscale) en la que se quiere escuchar, o «»."""
+        host = self.ajustes.host_panel
+        return "" if host in ("", "127.0.0.1", "localhost", "::1") else host
+
+    async def _abrir_publico(self) -> bool:
+        """Intenta escuchar en la dirección pública. Devuelve si lo consiguió.
+
+        Al arrancar con el equipo, Tailscale suele llegar **después** que el
+        servicio, y una dirección que todavía no existe no se puede escuchar.
+        Antes eso hacía que el panel entero se fuera al puerto siguiente (o
+        se quedara solo en local con el registro diciendo lo contrario), y la
+        web pública decía «el equipo está apagado» con el equipo encendido
+        (15/9/2026). Ahora lo local se abre siempre y lo público se
+        reintenta hasta que la dirección aparezca.
+        """
+        host = self.direccion_publica
+        if not host or self.puerto is None or host == "0.0.0.0":
+            return False
+        try:
+            self._http_publico = await asyncio.start_server(self._atender, host, self.puerto)
+        except OSError as error:
+            if self._http_publico is None and not getattr(self, "_avisado_publico", False):
+                self._avisado_publico = True
+                _log.info(
+                    "Todavía no se puede escuchar en %s:%s (%s); se reintenta hasta que "
+                    "la dirección aparezca (Tailscale suele tardar más que el servicio)",
+                    host, self.puerto, error,
+                )
+            return False
+        self._avisado_publico = False
+        _log.info("Panel disponible también en http://%s:%s/ (con clave)", host, self.puerto)
+        return True
+
+    async def _vigilar_publico(self, cada_s: float = 20.0) -> None:
+        """Mantiene abierta la dirección pública: la abre cuando aparece y la
+        vuelve a abrir si la interfaz se fue y volvió (Tailscale se reinicia
+        y el socket que escuchaba en su dirección se queda muerto)."""
+        while True:
+            await asyncio.sleep(cada_s)
+            try:
+                if self._http_publico is None:
+                    await self._abrir_publico()
+                    continue
+                host = self.direccion_publica
+                try:
+                    _, escritor = await asyncio.wait_for(asyncio.open_connection(host, self.puerto), 2.0)
+                    escritor.close()
+                except (OSError, asyncio.TimeoutError) as error:
+                    _log.info("La dirección %s:%s dejó de contestar (%s); se vuelve a abrir", host, self.puerto, error)
+                    viejo, self._http_publico = self._http_publico, None
+                    viejo.close()
+                    with contextlib.suppress(Exception):
+                        await viejo.wait_closed()
+                    await self._abrir_publico()
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001 - el vigilante no puede morir
+                _log.debug("Fallo vigilando la dirección pública", exc_info=True)
+
     async def arrancar(self) -> None:
         # El panel mueve la palanca de aprobación: publicarlo sin clave sería
         # dejar que cualquiera que lo alcance ponga los agentes en «aprobar
@@ -268,29 +335,40 @@ class PanelWeb:
             return
 
         base = self.ajustes.puerto_panel
+        # Lo local se abre aquí y tiene que salir bien; lo público se abre
+        # aparte y se reintenta, porque su dirección puede no existir aún.
+        local = "0.0.0.0" if self.ajustes.host_panel == "0.0.0.0" else "127.0.0.1"
         for intento in range(10):
             try:
-                self._http = await asyncio.start_server(
-                    self._atender, self._donde_escuchar(), base + intento
-                )
+                self._http = await asyncio.start_server(self._atender, local, base + intento)
             except OSError:
                 continue
             self.puerto = base + intento
             _log.info(
-                "Panel disponible en %s%s",
-                self.url,
-                "" if self.solo_local else " (con clave)",
+                "Panel disponible en http://127.0.0.1:%s/%s",
+                self.puerto,
+                "" if self.solo_local else f" (y en {self.direccion_publica or local}, con clave)",
             )
+            if self.direccion_publica and self.direccion_publica != "0.0.0.0":
+                await self._abrir_publico()
+                self._vigilante_publico = asyncio.get_running_loop().create_task(self._vigilar_publico())
             return
         _log.error("No se pudo abrir el panel entre los puertos %s y %s", base, base + 9)
 
     async def detener(self) -> None:
-        if self._http is None:
-            return
-        self._http.close()
-        with contextlib.suppress(Exception):
-            await self._http.wait_closed()
-        self._http = None
+        if self._vigilante_publico is not None:
+            self._vigilante_publico.cancel()
+            with contextlib.suppress(Exception, asyncio.CancelledError):
+                await self._vigilante_publico
+            self._vigilante_publico = None
+        for atributo in ("_http_publico", "_http"):
+            servidor = getattr(self, atributo)
+            if servidor is None:
+                continue
+            servidor.close()
+            with contextlib.suppress(Exception):
+                await servidor.wait_closed()
+            setattr(self, atributo, None)
 
     # --- HTTP -----------------------------------------------------------
     async def _atender(self, lector: asyncio.StreamReader, escritor: asyncio.StreamWriter) -> None:
@@ -312,7 +390,14 @@ class PanelWeb:
             partes = urlparse(destino)
             consulta = parse_qs(partes.query)
             extras: list[str] = []
-            if not self._autorizado(cabeceras, consulta, self._es_local(escritor)):
+            if partes.path == "/api/salud":
+                # Sin clave a propósito: es lo que mira el portero del Mac mini
+                # para pasar al PC que tenga el teclado, y el siguiente arranque
+                # para no abrir dos servicios. No cuenta nada que no se vea ya.
+                estado, tipo, datos = "200 OK", "application/json; charset=utf-8", json.dumps(
+                    self._salud(), ensure_ascii=False,
+                ).encode("utf-8")
+            elif not self._autorizado(cabeceras, consulta, self._es_local(escritor)):
                 estado, tipo, datos = self._sin_permiso()
             else:
                 if consulta.get("clave"):
@@ -612,6 +697,14 @@ if (location.search.includes("clave=")) {
         cuerpo = json.dumps(resultado, ensure_ascii=False, default=str).encode("utf-8")
         return "200 OK", tipo, cuerpo
 
+    def _salud(self) -> dict[str, Any]:
+        from . import __version__
+
+        return {
+            "app": "tecladoia", "version": __version__,
+            "teclado": bool(self.gestor.conectado), "equipo": _nombre_del_equipo(),
+        }
+
     def _panorama(self) -> dict[str, Any]:
         """Todo lo que la página necesita para pintarse de cero."""
         from .transporte.base import hay_bleak
@@ -629,6 +722,10 @@ if (location.search.includes("clave=")) {
                 "subida": self.gestor.subida,
                 "solo_local": self.solo_local,
                 "dictado_listo": _dictado_listo(),
+                "publico_abierto": self._http_publico is not None,
+                "direccion_publica": self.direccion_publica,
+                "tunel": (self.tunel.resumen() if self.tunel is not None
+                          else {"conectado": False, "portero": getattr(self.ajustes, "portero", "")}),
             },
         }
 
@@ -636,6 +733,16 @@ if (location.search.includes("clave=")) {
         # ---- lectura -----------------------------------------------------
         if ruta == "/api/estado":
             return self._panorama()
+        if ruta == "/api/botones":
+            # Los botones que publica la ventana de un programa, para saber
+            # cómo se llama su botón de dictado cuando no se encuentra. Se
+            # mira por el túnel desde lejos, que es donde hace falta.
+            programa = str(datos.get("programa") or "claude")
+            return await asyncio.to_thread(_botones_de, programa)
+        if ruta == "/api/registro":
+            # La cola del registro del servicio: el archivo vive en el AppData
+            # de verdad, que desde una sesión de Claude no se ve.
+            return {"ruta": str(directorio_base() / "servicio.log"), "lineas": _cola_del_registro()}
         if ruta == "/api/opciones":
             return self._opciones()
         if ruta == "/api/agentes":
@@ -800,6 +907,7 @@ if (location.search.includes("clave=")) {
         "manos_libres", "pitidos_manos_libres", "manos_libres_espera_s",
         "milisegundos_estado_breve", "milisegundos_tarea_completada",
         "minutos_te_toca", "usar_microfono_propio",
+        "portero", "usar_portero",
     )
 
     def _ajustes_json(self) -> dict[str, Any]:
@@ -1184,5 +1292,49 @@ if (location.search.includes("clave=")) {
             return {}
         return datos if isinstance(datos, dict) else {}
 
+
+
+def _nombre_del_equipo() -> str:
+    import socket
+    try:
+        return socket.gethostname()
+    except OSError:
+        return ""
+
+
+def _botones_de(programa: str) -> dict[str, Any]:
+    """Nombres de los botones de la ventana de ese programa, y qué dice el buscador de dictado."""
+    try:
+        from .dictado import _ventana_de
+        from .microfono_propio import _botones, buscar
+    except Exception as e:  # noqa: BLE001
+        return {"programa": programa, "error": f"sin accesibilidad: {e}"}
+    hwnd = _ventana_de(programa)
+    if not hwnd:
+        return {"programa": programa, "ventana": None, "botones": [], "dictado": None}
+    nombres: list[str] = []
+    for b in _botones(hwnd):
+        try:
+            nombres.append(b.CurrentName or "")
+        except Exception:  # noqa: BLE001
+            nombres.append("?")
+    micro = None
+    try:
+        m = buscar(hwnd, programa)
+        micro = None if m is None else {"grabando": m.estado()}
+    except Exception as e:  # noqa: BLE001
+        micro = {"error": str(e)}
+    return {"programa": programa, "ventana": hwnd, "botones": nombres, "dictado": micro}
+
+
+def _cola_del_registro(cuantas: int = 150) -> list[str]:
+    try:
+        with open(directorio_base() / "servicio.log", "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 80_000))
+            texto = f.read().decode("utf-8", "replace")
+    except OSError:
+        return []
+    return texto.splitlines()[-cuantas:]
 
 __all__ = ["PanelWeb"]

@@ -407,3 +407,127 @@ class PruebaClaudeConBotonDictar(unittest.TestCase):
         m = mp.MicrofonoDeLaApp(1, "claude")
         m._accionar("empezar", True)
         self.assertEqual([b.pulsado for b in botones], [0, 1])
+
+    def test_si_el_interruptor_ya_no_responde_se_para_por_el_boton(self):
+        """Vista de chat de Claude: se arranca con el interruptor y, a los pocos
+        segundos, ese elemento desaparece y aparece la barra de grabación con
+        su botón. Rendirse dejaba la grabación abierta («sin parar»)."""
+        class Roto:
+            CurrentToggleState = 0
+
+            def Toggle(self):
+                raise RuntimeError("UIA_E_ELEMENTNOTAVAILABLE")
+
+        mp, botones = self._con(["Finalizar dictado", "Entrada de voz"])
+        m = mp.MicrofonoDeLaApp(1, "claude")
+        m._interruptor_conocido = Roto()
+        m._identificador_conocido = None
+        self.assertIs(m._accionar("parar", False), False)
+        self.assertEqual([b.pulsado for b in botones], [1, 0])
+
+    def test_si_el_interruptor_dice_parado_pero_hay_boton_de_parar_se_para(self):
+        """«Vuelvo a pulsar el micrófono y no pasa nada» (15/9/2026): el
+        interruptor con el que se arrancó lee 0, pero la grabación sigue con
+        otra cara. Si hay botón de parar a la vista, se pulsa."""
+        class Apagado:
+            CurrentToggleState = 0
+
+            def Toggle(self):
+                pass
+
+        mp, botones = self._con(["Mantén presionado para grabar", "Detener dictado"])
+        mp._interruptor = lambda boton: Apagado() if "grabar" in boton.CurrentName else None
+        m = mp.MicrofonoDeLaApp(1, "claude")
+        m._arrancado = True
+        self.assertIs(m.parar(), False)
+        self.assertEqual([b.pulsado for b in botones], [0, 1])
+
+    def test_sin_nada_que_pulsar_se_anotan_los_botones(self):
+        mp, _ = self._con(["Copiar", "Entrada de voz"])
+        m = mp.MicrofonoDeLaApp(1, "claude")
+        with self.assertLogs("tecladoia.microfono", level="WARNING") as registro:
+            self.assertIsNone(m._accionar("parar", False))
+        self.assertIn("Botones a la vista", registro.output[0])
+        self.assertIn("Copiar", registro.output[0])
+
+    def test_boton_de_enviar_no_es_enviar_comentarios(self):
+        class Boton:
+            CurrentIsEnabled = True
+
+            def __init__(self, n):
+                self.CurrentName = n
+
+        mp, _ = self._con([])
+        botones = [Boton("Enviar comentarios"), Boton("Enviar ahora"), Boton("Enviar")]
+        mp._botones = lambda hwnd: botones
+        self.assertEqual(mp.boton_de_enviar(1).CurrentName, "Enviar")
+        mp._botones = lambda hwnd: botones[:2]
+        self.assertIsNone(mp.boton_de_enviar(1))
+
+
+class PruebaIntroMientrasGraba(unittest.TestCase):
+    """K2 (Intro) con el micrófono propio grabando: parar y enviar, no cancelar."""
+
+    def test_decidir_intro(self):
+        from tecladoia.dictado import LLKHF_INJECTED, VK_INTRO, WM_KEYDOWN, WM_KEYUP, decidir_intro
+
+        self.assertEqual(decidir_intro(VK_INTRO, 0, WM_KEYDOWN, True), (True, True))
+        self.assertEqual(decidir_intro(VK_INTRO, 0, WM_KEYUP, True), (True, False), "soltar se traga y no se atiende")
+        self.assertEqual(decidir_intro(VK_INTRO, LLKHF_INJECTED, WM_KEYDOWN, True), (False, False), "el Intro que mandamos nosotros pasa")
+        self.assertEqual(decidir_intro(VK_INTRO, 0, WM_KEYDOWN, False), (False, False), "sin grabación, el Intro es del programa")
+        self.assertEqual(decidir_intro(0x41, 0, WM_KEYDOWN, True), (False, False))
+
+    def test_aceptar_para_espera_la_transcripcion_y_envia(self):
+        from tecladoia import dictado
+
+        class Propio:
+            hwnd = 7
+
+            def __init__(self):
+                self.parado = 0
+
+            def puede_enviar_el_solo(self):
+                return False
+
+            def parar(self, enviar=False):
+                self.parado += 1
+                return False
+
+        textos = iter(["", "", "hola mundo", "hola mundo", "hola mundo"])
+        originales = (dictado.texto_del_cuadro, dictado._enviar_en)
+        enviados = []
+        dictado.texto_del_cuadro = lambda hwnd: next(textos, "hola mundo")
+        dictado._enviar_en = lambda hwnd: enviados.append(hwnd) or "botón"
+        self.addCleanup(lambda: setattr(dictado, "texto_del_cuadro", originales[0]))
+        self.addCleanup(lambda: setattr(dictado, "_enviar_en", originales[1]))
+        d = dictado.Dictado()
+        propio = Propio()
+        d.abierto, d._propio_abierto = True, propio
+        self.assertTrue(d.grabando_con_el_propio())
+        hecho = d.aceptar("claude")
+        self.assertEqual(hecho["accion"], "enviado")
+        self.assertEqual(propio.parado, 1)
+        self.assertEqual(enviados, [7])
+        self.assertFalse(d.abierto)
+        self.assertFalse(d.grabando_con_el_propio())
+        # Sin grabación, Intro no es cosa nuestra.
+        self.assertEqual(d.aceptar("claude")["accion"], "nada")
+
+    def test_aceptar_usa_transcribir_y_enviar_si_lo_hay(self):
+        from tecladoia import dictado
+
+        class Propio:
+            hwnd = 7
+            llamadas = []
+
+            def puede_enviar_el_solo(self):
+                return True
+
+            def parar(self, enviar=False):
+                self.llamadas.append(enviar)
+                return False
+
+        d = dictado.Dictado()
+        d.abierto, d._propio_abierto = True, Propio()
+        self.assertEqual(d.aceptar("chatgpt")["accion"], "enviado")
+        self.assertEqual(Propio.llamadas, [True])

@@ -323,7 +323,7 @@ class GestorTeclado:
 
     async def mantener_conexion(
         self,
-        intervalo_s: float = 12.0,
+        intervalo_s: float = 5.0,
         al_cambiar: Optional[Callable[[bool], None]] = None,
     ) -> None:
         """Reconecta cada vez que el teclado se va, y espera si no está.
@@ -331,6 +331,12 @@ class GestorTeclado:
         Un teclado Bluetooth se duerme, se aleja o se queda sin batería. Sin
         esto, el servicio solo arrancaba si el teclado estaba encendido en ese
         preciso instante y se quedaba sordo en cuanto se iba.
+
+        Cinco segundos entre vueltas, no doce: cada vuelta con el teclado
+        apagado cuesta un segundo (el camino de Windows falla rápido; bleak
+        solo se prueba de vez en cuando), y lo que se nota es lo que tarda en
+        engancharse al encenderlo, porque hasta entonces sigue con el modo y
+        el color que recordaba.
         """
         anterior = self.conectado
         quejas = 0

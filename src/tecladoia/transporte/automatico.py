@@ -25,6 +25,18 @@ from .base import ErrorTransporte, Transporte, hay_bleak
 
 _log = obtener("transporte")
 
+#: Cada cuántas vueltas se prueba el BLE de respaldo (bleak) en Windows.
+#:
+#: El camino bueno en Windows es el de los emparejados, y falla en un segundo
+#: cuando el teclado está apagado. El de bleak tarda quince en rendirse y,
+#: peor, mientras lo intenta (y un rato después) el aparato queda a medias
+#: dentro de la pila Bluetooth, y al camino de Windows le contesta «acceso
+#: denegado». Probándolos los dos en cada vuelta, encender el teclado tardaba
+#: más de un minuto en notarse (15/9/2026: encendido a las 17:38, enganchado
+#: por bleak a las 17:39:46), y hasta que no engancha no se le repone ni el
+#: modo ni el reposo de la barra: se quedaba en el modo 2 y en verde.
+CADA_CUANTAS_VUELTAS_BLE = 8
+
 
 class TransporteAutomatico(Transporte):
     """Envoltorio que elige el camino disponible en cada momento."""
@@ -35,6 +47,7 @@ class TransporteAutomatico(Transporte):
         super().__init__()
         self.ajustes = ajustes
         self._elegido: Optional[Transporte] = None
+        self._vueltas = 0
 
     # --- construcción de candidatos --------------------------------------
     def _candidatos(self) -> list[Transporte]:
@@ -43,9 +56,12 @@ class TransporteAutomatico(Transporte):
         from .windows_emparejado import TransporteWindowsEmparejado, hay_winrt
 
         lista: list[Transporte] = []
-        if hay_winrt():
+        con_windows = hay_winrt()
+        if con_windows:
             lista.append(TransporteWindowsEmparejado(self.ajustes.nombre_dispositivo))
-        if hay_bleak():
+        # Sin el camino de Windows (macOS, Linux) bleak es el único Bluetooth
+        # que hay y se prueba siempre. Con él, solo de vez en cuando.
+        if hay_bleak() and (not con_windows or self._vueltas % CADA_CUANTAS_VUELTAS_BLE == 0):
             lista.append(
                 TransporteBLE(
                     nombre=self.ajustes.nombre_dispositivo,
@@ -99,6 +115,7 @@ class TransporteAutomatico(Transporte):
             self._elegido = None
 
         motivos: list[str] = []
+        self._vueltas += 1
         for candidato in self._candidatos():
             candidato.escuchar(self._entregar)
             try:
