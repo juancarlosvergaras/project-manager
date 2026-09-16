@@ -537,8 +537,8 @@ Bluetooth, y el script avisa si falta.
 |---|---|---|---|
 | 1 | Claude | `claude_0.gif`, 70 fotogramas | 10 |
 | 2 | ChatGPT | | 80 |
-| 3 | Claude («Claude 2») | `cursor.gif` (quedó en el teclado) | 150 |
-| 4 | ChatGPT («ChatGPT 2») | | 220 |
+| 3 | Claude («Claude 2») | `claude-claude-code.gif`, 33 fotogramas | 150 |
+| 4 | ChatGPT («ChatGPT 2») | `chatgpt-3-17232.gif`, 60 fotogramas | 220 |
 
 **Los modos 3 y 4 repiten a los 1 y 2 a propósito** (16/9/2026): el botón del
 teclado solo avanza, y con Claude-ChatGPT-Claude-ChatGPT se alterna entre los
@@ -546,7 +546,9 @@ dos sin dar la vuelta entera. Cuando haga falta otro programa, el usuario
 reprograma uno de ellos. El dueño de un modo se mira por índice
 (`modos[modo].agente`), así que dos modos con el mismo dueño no se estorban.
 Se cambió con `python ajustar_config.py --desde modos.json` por una tarea de
-un solo uso (`--desde` funde un objeto JSON en la configuración real).
+un solo uso (`--desde` funde un objeto JSON en la configuración real). Las
+pantallas de los modos 3 y 4 se subieron con `POST /api/pantalla` en local
+(los GIF están en `Descargas` del usuario; 108 s y 226 s de subida).
 
 **La barra enseña el conjunto de sesiones, no el último evento** (desde el
 9/9/2026, `servidor.sesiones`). Cowork, Code y la terminal se presentan todas
