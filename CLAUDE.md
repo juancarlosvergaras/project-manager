@@ -537,8 +537,16 @@ Bluetooth, y el script avisa si falta.
 |---|---|---|---|
 | 1 | Claude | `claude_0.gif`, 70 fotogramas | 10 |
 | 2 | ChatGPT | | 80 |
-| 3 | Cursor | `cursor.gif` | 150 |
-| 4 | libre | | 220 |
+| 3 | Claude («Claude 2») | `cursor.gif` (quedó en el teclado) | 150 |
+| 4 | ChatGPT («ChatGPT 2») | | 220 |
+
+**Los modos 3 y 4 repiten a los 1 y 2 a propósito** (16/9/2026): el botón del
+teclado solo avanza, y con Claude-ChatGPT-Claude-ChatGPT se alterna entre los
+dos sin dar la vuelta entera. Cuando haga falta otro programa, el usuario
+reprograma uno de ellos. El dueño de un modo se mira por índice
+(`modos[modo].agente`), así que dos modos con el mismo dueño no se estorban.
+Se cambió con `python ajustar_config.py --desde modos.json` por una tarea de
+un solo uso (`--desde` funde un objeto JSON en la configuración real).
 
 **La barra enseña el conjunto de sesiones, no el último evento** (desde el
 9/9/2026, `servidor.sesiones`). Cowork, Code y la terminal se presentan todas
@@ -745,6 +753,14 @@ siempre, con la palanca donde sea.
   con un Intro. ChatGPT usa su «Transcribir y enviar». Los Intro que
   mandamos nosotros van marcados como inyectados y el gancho los deja pasar
   (`dictado.decidir_intro`). Fuera de una grabación el gancho no toca nada.
+  **Y también los segundos siguientes a cerrar con K1**: en Cowork parar
+  tarda 3-4 s y la transcripción cae después, así que el Intro que llegaba
+  en medio se perdía o llegaba al cuadro vacío («me toca pulsar Intro dos
+  veces», 16/9/2026; en Code no, porque cierra en menos de un segundo).
+  `Dictado._cerrando` y `Dictado._pendiente` (ventana, texto de antes, plazo)
+  hacen que `intro_es_nuestro()` siga diciendo que sí hasta
+  `ESPERA_TRANSCRIPCION_S`, y `aceptar` espera a que acabe el cierre y a
+  que el texto cambie antes de enviar.
 - **El botón con el que se arrancó el dictado puede dejar de existir.** En la
   vista de chat de Claude, a los pocos segundos de grabar, el interruptor se
   sustituye por la barra de grabación con sus botones; el puntero recordado
@@ -892,5 +908,5 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-324, todas verdes (una se salta si el sistema no deja salir desde 127.0.0.2),
+326, todas verdes (una se salta si el sistema no deja salir desde 127.0.0.2),
 sin dependencias externas. Si algo se rompe, empieza por ahí.

@@ -12,6 +12,7 @@ toca. Se le pasan pares `campo=valor`:
 
     python ajustar_config.py clave_panel=Unicartagena1 modo_al_conectar=0
     python ajustar_config.py --app MiniMic clave_panel=Unicartagena1
+    python ajustar_config.py --desde modos.json      # funde un objeto JSON entero
 
 Con ``--app`` se elige la carpeta (TecladoIA si no se dice). Los valores se interpretan como JSON cuando se puede (`true`, `0`, `null`) y
 como texto cuando no.
@@ -52,6 +53,19 @@ def main(argumentos: list[str]) -> int:
             informe.append(f"no se pudo leer: {error}")
             datos = {}
 
+    # ``--desde archivo.json``: un objeto JSON que se funde encima (para
+    # valores grandes, como la lista de modos, que no caben en una orden).
+    if argumentos[:1] == ["--desde"] and len(argumentos) > 1:
+        origen, argumentos = Path(argumentos[1]), argumentos[2:]
+        try:
+            extra = json.loads(origen.read_text(encoding="utf-8"))
+            if isinstance(extra, dict):
+                datos.update(extra)
+                informe.append(f"fundido desde {origen}: {', '.join(extra)}")
+            else:
+                informe.append(f"{origen} no contiene un objeto JSON; se ignora")
+        except (OSError, json.JSONDecodeError) as error:
+            informe.append(f"no se pudo leer {origen}: {error}")
     for pareja in argumentos:
         campo, _, crudo = pareja.partition("=")
         if not campo or not _:

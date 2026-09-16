@@ -672,6 +672,16 @@ class Dictado:
         self._propio_abierto = None
         self.programa = ""
         self._ultima = 0.0
+        #: ¿Se está parando el micrófono propio ahora mismo (K1 en curso)?
+        #: En Cowork parar tarda 3-4 s, y el Intro que llega en medio no
+        #: puede tratarse como «graba» ni como «ya está»: espera a que acabe.
+        self._cerrando = False
+        #: Tras cerrar con el micrófono propio sin enviar: (ventana, texto de
+        #: antes, hasta cuándo). Un Intro en ese rato espera a que la
+        #: transcripción caiga en el cuadro y envía; sin esto, en Cowork
+        #: había que pulsar Intro dos veces (16/9/2026): el primero llegaba
+        #: con el cuadro aún vacío.
+        self._pendiente: Optional[tuple[int, Optional[str], float]] = None
 
     def _asegurar_punto_de_partida(self) -> None:
         """Deja el dictado cerrado la primera vez, para poder abrirlo de veras.
@@ -742,9 +752,7 @@ class Dictado:
         # lo dictado.
         if self.abierto and self._propio_abierto is not None:
             propio = self._propio_abierto
-            quedo = propio.parar(enviar=enviar_al_cerrar)
-            self.abierto = False
-            self._propio_abierto = None
+            quedo = self._cerrar_el_propio(propio, enviar_al_cerrar)
             if quedo is None:
                 _log.warning(
                     "No se pudo parar el micrófono propio de «%s»; se deja como está "
@@ -763,13 +771,12 @@ class Dictado:
                 # propio programa cuando lo tiene: lo hace él, que sabe cuándo
                 # ha terminado de transcribir. Nosotros solo podíamos esperar
                 # medio segundo y pulsar Intro a ver si ya estaba.
-                propio.parar(enviar=enviar_al_cerrar)
-                self.abierto = False
-                self._propio_abierto = None
+                self._cerrar_el_propio(propio, enviar_al_cerrar)
                 return {
                     "accion": "cerrado", "programa": programa,
                     "enviado": bool(enviar_al_cerrar), "con_el_propio": True,
                 }
+            self._pendiente = None
             hecho = dictar_en(
                 programa, lanzar,
                 pinchar_el_cuadro=pinchar_el_cuadro,
@@ -808,12 +815,43 @@ class Dictado:
         self.programa = programa
         return {"accion": "abierto", **hecho}
 
+    def _cerrar_el_propio(self, propio, enviar_al_cerrar: bool) -> Optional[bool]:
+        """Para el micrófono propio y deja el estado como toca.
+
+        Mientras dura, ``_cerrando``; al acabar sin enviar, ``_pendiente``
+        para que un Intro de los próximos segundos espere a la transcripción.
+        """
+        hwnd = int(getattr(propio, "hwnd", 0) or 0)
+        antes = texto_del_cuadro(hwnd) if hwnd and not enviar_al_cerrar else None
+        self._cerrando = True
+        quedo = None
+        try:
+            quedo = propio.parar(enviar=enviar_al_cerrar)
+        finally:
+            self.abierto = False
+            self._propio_abierto = None
+            self._pendiente = (
+                (hwnd, antes, time.monotonic() + ESPERA_TRANSCRIPCION_S)
+                if quedo is not None and not enviar_al_cerrar else None
+            )
+            self._cerrando = False
+        return quedo
+
     def grabando_con_el_propio(self) -> bool:
         """¿Está grabando el micrófono propio de un programa, abierto por nosotros?
 
         Lo consulta el gancho de teclado por cada tecla: solo mira atributos.
         """
         return bool(self.abierto and self._propio_abierto is not None)
+
+    def intro_es_nuestro(self) -> bool:
+        """¿Debe el gancho quedarse con el Intro? Mientras graba el propio,
+        mientras se está cerrando, y los segundos siguientes hasta que la
+        transcripción haya podido caer en el cuadro. Solo mira atributos."""
+        if self.grabando_con_el_propio() or self._cerrando:
+            return True
+        pendiente = self._pendiente
+        return pendiente is not None and time.monotonic() < pendiente[2]
 
     def aceptar(self, programa: str = "") -> dict:
         """Intro mientras el micrófono propio graba: **parar y enviar**.
@@ -824,12 +862,27 @@ class Dictado:
         y entonces se manda. ChatGPT trae su propio «transcribir y enviar» y
         se usa ese.
         """
+        # Si K1 está parando ahora mismo (en Cowork tarda 3-4 s), se le deja
+        # acabar: intentarlo a la vez fallaba y el Intro se perdía.
+        limite = time.monotonic() + ESPERA_TRANSCRIPCION_S
+        while self._cerrando and time.monotonic() < limite:
+            time.sleep(0.1)
         propio = self._propio_abierto
         if not self.abierto or propio is None:
-            return {"accion": "nada", "programa": programa}
+            pendiente, self._pendiente = self._pendiente, None
+            if pendiente is None or time.monotonic() >= pendiente[2]:
+                return {"accion": "nada", "programa": programa}
+            # Cerrado hace un momento: la transcripción puede no haber caído
+            # aún en el cuadro. Se espera a que llegue y se envía.
+            hwnd, antes, _ = pendiente
+            if not _esperar_transcripcion(hwnd, antes):
+                _log.info("La transcripción de «%s» no apareció en %.0f s; se envía lo que haya", programa, ESPERA_TRANSCRIPCION_S)
+            como = _enviar_en(hwnd)
+            return {"accion": "enviado", "programa": programa, "con_el_propio": True, "como": como, "tras_cerrar": True}
         self._ultima = time.monotonic()
         self.abierto = False
         self._propio_abierto = None
+        self._pendiente = None
         hwnd = int(getattr(propio, "hwnd", 0) or 0)
         if propio.puede_enviar_el_solo():
             quedo = propio.parar(enviar=True)

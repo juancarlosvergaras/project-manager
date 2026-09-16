@@ -465,7 +465,7 @@ def orden_servicio(args, ajustes: Ajustes, salida: Salida) -> int:
                 escucha = EscuchaDictado(
                     al_pulsar_microfono,
                     al_intro=al_pulsar_intro,
-                    capturar_intro=microfono.grabando_con_el_propio,
+                    capturar_intro=microfono.intro_es_nuestro,
                 )
                 threading.Thread(target=escucha.correr, daemon=True).start()
                 salida.dato("Microfono", "escuchando " + ATAJO_DICTADO)

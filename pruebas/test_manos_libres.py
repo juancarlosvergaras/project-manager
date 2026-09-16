@@ -513,6 +513,75 @@ class PruebaIntroMientrasGraba(unittest.TestCase):
         # Sin grabación, Intro no es cosa nuestra.
         self.assertEqual(d.aceptar("claude")["accion"], "nada")
 
+    def test_intro_justo_despues_de_cerrar_espera_la_transcripcion_y_envia(self):
+        """En Cowork había que pulsar Intro dos veces: el primero llegaba con
+        el cuadro aún vacío (16/9/2026). Tras cerrar con K1, un Intro de los
+        segundos siguientes es nuestro: espera al texto y envía."""
+        import time
+
+        from tecladoia import dictado
+
+        class Propio:
+            hwnd = 9
+
+            def parar(self, enviar=False):
+                return False
+
+        textos = iter(["", "", "", "dictado", "dictado", "dictado"])
+        originales = (dictado.texto_del_cuadro, dictado._enviar_en)
+        enviados = []
+        dictado.texto_del_cuadro = lambda hwnd: next(textos, "dictado")
+        dictado._enviar_en = lambda hwnd: enviados.append(hwnd) or "botón"
+        self.addCleanup(lambda: setattr(dictado, "texto_del_cuadro", originales[0]))
+        self.addCleanup(lambda: setattr(dictado, "_enviar_en", originales[1]))
+        d = dictado.Dictado()
+        d.abierto, d._propio_abierto = True, Propio()
+        d._ultima = 0.0
+        hecho = d.alternar("claude", pinchar_el_cuadro=False)   # K1: cerrar
+        self.assertEqual(hecho["accion"], "cerrado")
+        self.assertFalse(d.grabando_con_el_propio())
+        self.assertTrue(d.intro_es_nuestro(), "recién cerrado, el Intro sigue siendo nuestro")
+        hecho = d.aceptar("claude")                               # K2 un segundo después
+        self.assertEqual(hecho["accion"], "enviado")
+        self.assertTrue(hecho.get("tras_cerrar"))
+        self.assertEqual(enviados, [9])
+        self.assertFalse(d.intro_es_nuestro(), "una vez enviado, el Intro vuelve a ser del programa")
+        # Pasado el plazo, tampoco.
+        d._pendiente = (9, "", time.monotonic() - 1)
+        self.assertFalse(d.intro_es_nuestro())
+        self.assertEqual(d.aceptar("claude")["accion"], "nada")
+
+    def test_intro_mientras_k1_cierra_espera_a_que_acabe(self):
+        import threading
+        import time
+
+        from tecladoia import dictado
+
+        class PropioLento:
+            hwnd = 9
+
+            def parar(self, enviar=False):
+                time.sleep(0.4)
+                return False
+
+        originales = (dictado.texto_del_cuadro, dictado._enviar_en)
+        enviados = []
+        dictado.texto_del_cuadro = lambda hwnd: "texto"
+        dictado._enviar_en = lambda hwnd: enviados.append(hwnd) or "botón"
+        self.addCleanup(lambda: setattr(dictado, "texto_del_cuadro", originales[0]))
+        self.addCleanup(lambda: setattr(dictado, "_enviar_en", originales[1]))
+        d = dictado.Dictado()
+        d.abierto, d._propio_abierto, d._ultima = True, PropioLento(), 0.0
+        hilo = threading.Thread(target=lambda: d.alternar("claude", pinchar_el_cuadro=False))
+        hilo.start()
+        time.sleep(0.1)
+        self.assertTrue(d._cerrando)
+        self.assertTrue(d.intro_es_nuestro())
+        hecho = d.aceptar("claude")   # llega en medio del cierre
+        hilo.join()
+        self.assertEqual(hecho["accion"], "enviado")
+        self.assertEqual(enviados, [9])
+
     def test_aceptar_usa_transcribir_y_enviar_si_lo_hay(self):
         from tecladoia import dictado
 
