@@ -100,6 +100,26 @@ function pintar(p) {
     ? (p.microfono.es_el_del_sistema ? "El micrófono del teclado es el del sistema." : "El teclado está, pero el micrófono del sistema es otro.")
     : "No hay micrófono del teclado a la vista.";
   $$("#modo-mic button").forEach(b => b.classList.toggle("activo", Number(b.dataset.modo) === p.modo_microfono));
+
+  // el botón Bluetooth de una tecla
+  const bt = p.boton || {};
+  const puntoBoton = $("#punto-boton");
+  const textoBoton = $("#texto-boton");
+  if (puntoBoton && textoBoton) {
+    if (!bt.buscado) {
+      puntoBoton.className = "estado-punto";
+      textoBoton.textContent = "No se busca ningún botón (sin nombre).";
+    } else if (!bt.conectado) {
+      puntoBoton.className = "estado-punto no";
+      textoBoton.textContent = `No veo el botón «${bt.nombre}» por Bluetooth. Enciéndelo (luz azul fija) y empareja «${bt.nombre}» en Configuración › Bluetooth.`;
+    } else {
+      const mic = bt.microfono || {};
+      puntoBoton.className = "estado-punto " + (mic.nombre ? (mic.es_el_del_sistema ? "si" : "no") : "no");
+      textoBoton.textContent = `Botón «${bt.nombre}» conectado (${bt.direccion}). ` +
+        (mic.nombre ? (mic.es_el_del_sistema ? "Su micrófono es el del sistema." : `Su micrófono (${mic.nombre}) no es el del sistema; se pone al pulsarlo.`) : "No veo su micrófono manos libres.") +
+        (bt.oyendo ? "" : " Ojo: no se está oyendo el botón.");
+    }
+  }
   $("#nota-dictado").textContent = p.dictado.atajo_reservado === false
     ? "La combinación de la tecla blanca no se pudo reservar: ¿hay otra copia del servicio viva?"
     : "";
@@ -118,6 +138,7 @@ function pintarAjustes(a) {
   $("#enviar_al_cerrar").checked = !!a.enviar_al_cerrar;
   $("#pitido_al_abrir").checked = !!a.pitido_al_abrir;
   $("#alto_cuadro").value = a.alto_cuadro || 0;
+  if ($("#boton_bluetooth")) $("#boton_bluetooth").value = a.boton_bluetooth || "";
   const atajos = a.atajos_dictado || {};
   $("#atajo_chatgpt").value = atajos.chatgpt || "";
   $("#atajo_claude").value = atajos.claude || "";
@@ -207,6 +228,8 @@ function conectar() {
     const r = await pedir("/api/microfono", { modo: Number(b.dataset.modo) });
     avisar(r.escrito ? "Modo grabado en el teclado" : (r.aviso || "Guardado")); await refrescar();
   }));
+  if ($("#btn-adoptar-boton")) $("#btn-adoptar-boton").addEventListener("click", async () => { const r = await pedir("/api/boton/adoptar", {}); avisar(r.es_el_del_sistema ? "El micrófono del botón ya es el del sistema" : "No encuentro el micrófono del botón"); await refrescar(); });
+  if ($("#btn-guardar-boton")) $("#btn-guardar-boton").addEventListener("click", async () => { await pedir("/api/ajustes", { boton_bluetooth: $("#boton_bluetooth").value.trim() }); avisar("Nombre guardado; reinicia el servicio para que busque el nuevo"); await refrescar(); });
   $("#btn-adoptar").addEventListener("click", async () => { const r = await pedir("/api/microfono/adoptar", {}); avisar(r.es_el_del_sistema ? "El micrófono del teclado ya es el del sistema" : "No encuentro el micrófono del teclado"); await refrescar(); });
   $("#btn-probar-dictado").addEventListener("click", async () => { const r = await pedir("/api/dictado/probar", {}); avisar("Dictado: " + (r.accion || "?")); });
   $("#programa").addEventListener("change", async () => { await pedir("/api/ajustes", { programa: $("#programa").value }); avisar("Ahora le hablas a " + $("#programa option:checked").textContent); await refrescar(); });

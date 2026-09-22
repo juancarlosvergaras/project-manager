@@ -149,6 +149,17 @@
         <label class="marca"><input type="checkbox" id="adoptar_microfono">Ponerlo como micrófono del sistema cada vez que aparezca</label>
         <div class="acciones"><button type="button" class="btn btn-claro" id="btn-adoptar">Ponerlo ahora</button></div>
       </div>
+
+      <div class="tarjeta" id="tarjeta-boton">
+        <h2 class="editor-titulo">El botón Bluetooth de una tecla</h2>
+        <p class="editor-sub">El AI_VOICE: un botón con micrófono manos libres, por Bluetooth. Manda Alt derecho y no se puede cambiar, así que MiniMic reconoce de qué aparato viene la pulsación: <b>solo el Alt derecho del botón</b> abre y cierra el dictado, con el mismo comportamiento que la tecla blanca. Al pulsarlo, su micrófono pasa a ser el del sistema.</p>
+        <p><span class="estado-punto" id="punto-boton"></span><span id="texto-boton">Buscando…</span></p>
+        <div class="campo"><label for="boton_bluetooth">Nombre Bluetooth del botón (vacío = no buscarlo; cambiarlo pide reiniciar el servicio)</label><input type="text" id="boton_bluetooth" placeholder="AI_VOICE"></div>
+        <div class="acciones">
+          <button type="button" class="btn btn-claro" id="btn-adoptar-boton">Poner su micrófono ahora</button>
+          <button type="button" class="btn btn-azul" id="btn-guardar-boton">Guardar el nombre</button>
+        </div>
+      </div>
     </div>
 
     <div>

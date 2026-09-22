@@ -33,7 +33,7 @@ _FIN = "\r\n"
 _CAMPOS_AJUSTES = {
     "programa": str, "alto_cuadro": int, "pinchar_cuadro": bool, "enviar_al_cerrar": bool,
     "adoptar_microfono": bool, "pitido_al_abrir": bool, "clave_panel": str,
-    "usar_microfono_propio": bool, "host_panel": str,
+    "usar_microfono_propio": bool, "host_panel": str, "boton_bluetooth": str,
 }
 
 
@@ -341,6 +341,8 @@ class PanelWeb:
             if not isinstance(modo, int):
                 raise ValueError("falta «modo» (0 mantener, 1 pulsar)")
             return self._json_ok(await en_hilo(s.poner_modo_microfono, modo))
+        if ruta == "/api/boton/adoptar" and metodo == "POST":
+            return self._json_ok(s.cuidar_microfono_del_boton(forzar=True))
         if ruta == "/api/microfono/adoptar" and metodo == "POST":
             return self._json_ok(await en_hilo(s.cuidar_microfono, True))
         if ruta == "/api/dictado/probar" and metodo == "POST":

@@ -81,6 +81,12 @@ class Ajustes:
     #: Vacío = ese programa no tiene atajo (Claude solo tiene botón).
     atajos_dictado: dict[str, str] = field(default_factory=lambda: dict(ATAJOS_DE_FABRICA))
 
+    # --- el botón Bluetooth de una tecla (AI_VOICE) ---
+    #: Nombre Bluetooth del botón que también abre el dictado. Manda Alt
+    #: derecho y no se puede remapear; se reconoce por el aparato del que
+    #: viene la pulsación (``boton.py``). Vacío = no se busca.
+    boton_bluetooth: str = "AI_VOICE"
+
     # --- el micrófono ---
     adoptar_microfono: bool = True  #: ponerlo como micrófono del sistema al aparecer
     modo_microfono: int = protocolo.MICROFONO_PULSAR  #: lo que se le escribe al teclado

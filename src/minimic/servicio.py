@@ -27,7 +27,7 @@ from typing import Any, Callable
 
 from tecladoia.sucesos import Bus
 
-from . import __version__, dispositivo, protocolo
+from . import __version__, boton, dispositivo, protocolo
 from .config import ATAJO_MICROFONO, TECLAS_DE_FABRICA, Ajustes, aplicar_atajos_de_dictado
 from .protocolo import Atajo
 
@@ -51,6 +51,11 @@ class Estado:
     ultima_pulsacion: float = 0.0
     atajo_reservado: bool | None = None
     avisos: list[str] = field(default_factory=list)
+    #: El botón Bluetooth de una tecla, si está conectado, y su micrófono.
+    boton: boton.Boton | None = None
+    boton_microfono: str = ""
+    boton_microfono_es_el_del_sistema: bool = False
+    boton_ultima_pulsacion: float = 0.0
 
 
 class Servicio:
@@ -63,6 +68,7 @@ class Servicio:
         self._parar = threading.Event()
         self._dictado: Any = None
         self._escucha: Any = None
+        self._escucha_boton: boton.EscuchaBoton | None = None
         self._hilos: list[threading.Thread] = []
         self._cerrojo = threading.Lock()
 
@@ -72,15 +78,17 @@ class Servicio:
         self.bucle = asyncio.get_running_loop()
         self._preparar_dictado()
         self._hilos.append(dispositivo.vigilar_presencia(self._al_cambiar_presencia, parar=self._parar))
+        self._preparar_boton()
         registro.info("MiniMic %s en marcha", __version__)
 
     async def detener(self) -> None:
         self._parar.set()
-        if self._escucha is not None:
-            try:
-                self._escucha.parar()
-            except Exception:  # noqa: BLE001
-                pass
+        for escucha in (self._escucha, self._escucha_boton):
+            if escucha is not None:
+                try:
+                    escucha.parar()
+                except Exception:  # noqa: BLE001
+                    pass
 
     # --- lo que ve el panel ---------------------------------------------------
 
@@ -103,6 +111,14 @@ class Servicio:
             "microfono": {"nombre": e.microfono, "es_el_del_sistema": e.microfono_es_el_del_sistema},
             "dictado": {"abierto": e.dictado_abierto, "programa": programa["nombre"], "atajo": NOMBRE_ATAJO,
                         "atajo_reservado": e.atajo_reservado},
+            "boton": {
+                "nombre": self.ajustes.boton_bluetooth,
+                "buscado": bool(self.ajustes.boton_bluetooth),
+                "conectado": e.boton is not None,
+                "direccion": e.boton.direccion if e.boton else "",
+                "microfono": {"nombre": e.boton_microfono, "es_el_del_sistema": e.boton_microfono_es_el_del_sistema},
+                "oyendo": bool(self._escucha_boton and self._escucha_boton.escuchando),
+            },
             "avisos": list(e.avisos),
         }
 
@@ -243,6 +259,71 @@ class Servicio:
         self.estado.microfono_es_el_del_sistema = es
         return {"microfono": elegido.nombre, "es_el_del_sistema": es}
 
+    # --- el botón Bluetooth de una tecla (AI_VOICE) -----------------------------
+
+    def _preparar_boton(self) -> None:
+        nombre = (self.ajustes.boton_bluetooth or "").strip()
+        if not nombre or not boton.hay_soporte():
+            return
+        self._escucha_boton = boton.EscuchaBoton(self._al_pulsar_boton)
+        hilo = threading.Thread(target=self._escucha_boton.correr, name="minimic-boton-raw", daemon=True)
+        hilo.start()
+        self._hilos.append(hilo)
+        self._hilos.append(boton.vigilar(nombre, self._al_cambiar_boton, parar=self._parar))
+
+    def _al_cambiar_boton(self, encontrado: boton.Boton | None) -> None:
+        self.estado.boton = encontrado
+        if self._escucha_boton is not None:
+            self._escucha_boton.apuntar_a(encontrado.rutas_hid if encontrado else [])
+        if encontrado is not None:
+            registro.info("botón Bluetooth: %s", encontrado.descripcion)
+            time.sleep(1.0)  # Windows termina de montar el manos libres
+            self.cuidar_microfono_del_boton()
+        else:
+            registro.info("botón Bluetooth: no está")
+            self.estado.boton_microfono = ""
+            self.estado.boton_microfono_es_el_del_sistema = False
+        self.publicar("estado")
+
+    def cuidar_microfono_del_boton(self, forzar: bool = False) -> dict[str, Any]:
+        """El manos libres del botón como micrófono del sistema, si se quiere."""
+        b = self.estado.boton
+        if b is None or not b.contenedor:
+            self.estado.boton_microfono = ""
+            self.estado.boton_microfono_es_el_del_sistema = False
+            return {"microfono": "", "es_el_del_sistema": False}
+        try:
+            micros = [m for m in dispositivo.microfonos_del_teclado({b.contenedor}) if m.activo]
+        except dispositivo.ErrorDispositivo as e:
+            self._avisar(str(e))
+            return {"microfono": "", "es_el_del_sistema": False}
+        if not micros:
+            self.estado.boton_microfono = ""
+            self.estado.boton_microfono_es_el_del_sistema = False
+            return {"microfono": "", "es_el_del_sistema": False}
+        elegido = micros[0]
+        actual = dispositivo.microfono_predeterminado()
+        es = any(m.identificador == actual for m in micros)
+        if not es and (forzar or self.ajustes.adoptar_microfono):
+            try:
+                dispositivo.hacer_predeterminado(elegido.identificador)
+                es = True
+                registro.info("micrófono del sistema: el del botón (%s)", elegido.nombre)
+            except Exception as e:  # noqa: BLE001
+                self._avisar(f"no se pudo poner el micrófono del botón como predeterminado: {e}")
+        self.estado.boton_microfono = elegido.nombre
+        self.estado.boton_microfono_es_el_del_sistema = es
+        return {"microfono": elegido.nombre, "es_el_del_sistema": es}
+
+    def _al_pulsar_boton(self) -> None:
+        """Llega desde el hilo de Raw Input (ya en un hilo aparte)."""
+        self.estado.boton_ultima_pulsacion = time.time()
+        # Al pulsar el botón se habla por su micrófono: se pone como el del
+        # sistema en ese momento, aunque el del teclado de cinco teclas fuera
+        # el que estaba.
+        self.cuidar_microfono_del_boton()
+        self.al_pulsar_microfono(origen="botón")
+
     # --- la tecla blanca ----------------------------------------------------------
 
     def _preparar_dictado(self) -> None:
@@ -259,7 +340,12 @@ class Servicio:
         if not hay_soporte():
             self.estado.atajo_reservado = False
             return
-        self._escucha = EscuchaDictado(self.al_pulsar_microfono, IDENTIFICADOR_ATAJO, VK_F14, NOMBRE_ATAJO)
+        # Con el Intro atendido mientras graba el micrófono propio, como en
+        # TecladoIA: un Intro a medias cancelaba el dictado de Claude.
+        self._escucha = EscuchaDictado(
+            self.al_pulsar_microfono, IDENTIFICADOR_ATAJO, VK_F14, NOMBRE_ATAJO,
+            al_intro=self.al_pulsar_intro, capturar_intro=self._dictado.intro_es_nuestro,
+        )
         hilo = threading.Thread(target=self._correr_escucha, name="minimic-atajo", daemon=True)
         hilo.start()
         self._hilos.append(hilo)
@@ -281,8 +367,19 @@ class Servicio:
         except Exception:  # noqa: BLE001
             return ""
 
-    def al_pulsar_microfono(self) -> dict[str, Any]:
-        """Lo que pasa cuando llega la combinación de la tecla blanca."""
+    def al_pulsar_intro(self) -> None:
+        """Intro con el micrófono propio grabando: parar y enviar."""
+        if self._dictado is None:
+            return
+        programa = self.ajustes.programa_elegido(self._proceso_al_frente())
+        hecho = self._dictado.aceptar(programa["proceso"])
+        self.estado.dictado_abierto = bool(self._dictado.abierto)
+        registro.info("intro con el micrófono grabando: %s (%s)", hecho.get("accion"), programa["nombre"])
+        self.publicar("pulsacion", {"tecla": "intro", "accion": hecho.get("accion"), "programa": programa["nombre"]})
+        self.publicar("estado")
+
+    def al_pulsar_microfono(self, origen: str = "tecla") -> dict[str, Any]:
+        """Lo que pasa cuando llega la combinación de la tecla blanca (o el botón)."""
         if self._dictado is None:
             return {"accion": "sin dictado"}
         programa = self.ajustes.programa_elegido(self._proceso_al_frente())
@@ -302,10 +399,11 @@ class Servicio:
         self.estado.dictado_abierto = bool(self._dictado.abierto)
         self.estado.ultima_pulsacion = time.time()
         registro.info(
-            "tecla del micrófono: %s (%s, %s)", hecho.get("accion"), programa["nombre"],
+            "%s: %s (%s, %s)", "botón Bluetooth" if origen == "botón" else "tecla del micrófono",
+            hecho.get("accion"), programa["nombre"],
             "micrófono propio" if hecho.get("con_el_propio") else "Win+H",
         )
-        self.publicar("pulsacion", {"tecla": 5, "accion": hecho.get("accion"), "programa": programa["nombre"],
-                                    "con_el_propio": bool(hecho.get("con_el_propio"))})
+        self.publicar("pulsacion", {"tecla": "boton" if origen == "botón" else 5, "accion": hecho.get("accion"),
+                                    "programa": programa["nombre"], "con_el_propio": bool(hecho.get("con_el_propio"))})
         self.publicar("estado")
         return hecho

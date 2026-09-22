@@ -284,8 +284,9 @@ class Microfono:
     activo: bool
 
 
-def microfonos_del_teclado() -> list[Microfono]:
-    """Los puntos de captura de audio que pertenecen al teclado (cable o receptor)."""
+def microfonos_del_teclado(contenedores: set[str] | None = None) -> list[Microfono]:
+    """Los puntos de captura de audio que pertenecen al teclado (cable o receptor),
+    o a los contenedores que se pasen (el botón Bluetooth usa el suyo)."""
     try:
         import comtypes  # noqa: F401
         from pycaw.utils import AudioUtilities
@@ -296,7 +297,8 @@ def microfonos_del_teclado() -> list[Microfono]:
     from comtypes.automation import VT_LPWSTR  # noqa: F401
     from pycaw.api.mmdeviceapi import PROPERTYKEY
 
-    contenedores = contenedores_del_teclado()
+    if contenedores is None:
+        contenedores = contenedores_del_teclado()
     if not contenedores:
         return []
     clave_contenedor = PROPERTYKEY()

@@ -209,6 +209,36 @@ encendido de fábrica): la tecla blanca pasa por `Dictado.usar_el_propio`, así 
 con Claude o ChatGPT pulsa su botón de dictado y solo cae a Win+H si no lo hay. El
 micrófono de este teclado falla mucho con Win+H; con el botón del programa no.
 
+**MiniMic atiende también el botón Bluetooth de una tecla, el AI_VOICE**
+(desde el 21/9/2026, `minimic/boton.py`; proveedor
+<https://voicekey.elestd.com/1key/>). Es Bluetooth **clásico** (chip Jieli,
+`JL_HFP`/`JL_SPP`) con cuatro caras: teclado HID, control multimedia, colección
+de fabricante (informe de características de 32 bytes) y **micrófono manos
+libres** (HFP, «AI_VOICE Hands-Free»). El botón manda **Alt derecho** de
+fábrica y **por Bluetooth no se puede cambiar**: su configurador web solo
+existe para la versión USB (protocolo de texto por puerto serie: `PING`,
+`DEV_INFO`, `KEY_LIST`, `SET_KEY`, `SAVE`; está en `config/js/protocol.js`
+de su web), el canal serie Bluetooth (COM11) no contesta nada, el `JL_SPP`
+(canal RFCOMM 10) solo devuelve el eco, y el informe HID de fabricante
+rechaza lectura y escritura. Su herramienta Bluetooth (`config_v2`) da 404.
+Todo probado el 21/9/2026.
+
+Así que **no se remapea: se reconoce**. `boton.buscar` sube por el árbol de
+dispositivos (interfaz HID → padre `BTHENUM…&<dirección>_C…` por cfgmgr32 →
+nombre en `BTHPORT\Parameters\Devices\<dirección>`) para saber qué interfaz
+HID es el AI_VOICE, y `boton.EscuchaBoton` oye el teclado por **Raw Input**
+(ventana invisible con `RIDEV_INPUTSINK`): una pulsación que venga de esa
+interfaz —la que sea: manda AltGr, que Windows desdobla en Ctrl y Alt derecho,
+de ahí el rebote de 0,7 s— abre o cierra el dictado por el mismo camino que la
+tecla blanca (`Servicio.al_pulsar_microfono(origen="botón")`). El AltGr del
+teclado normal no se toca porque viene de otro aparato. **Su micrófono se
+pone como el del sistema al aparecer y al pulsarlo**
+(`cuidar_microfono_del_boton`, por el identificador de contenedor, igual que
+el del teclado de cinco teclas). Ajuste `boton_bluetooth` (nombre; vacío = no
+buscar; cambiarlo pide reiniciar). El panel lo enseña en Micrófono › «El botón
+Bluetooth de una tecla», con `POST /api/boton/adoptar`. Y MiniMic ganó el
+Intro que para y envía mientras graba el micrófono propio, como TecladoIA.
+
 **Config en `%APPDATA%\MiniMic\config.json`** (`MINIMIC_INICIO` la cambia;
 las pruebas la aíslan). Misma trampa del AppData redirigido que TecladoIA:
 desde una sesión de Claude no se escribe la de verdad. La clave del panel se
