@@ -49,6 +49,22 @@ class PruebaEscucha(unittest.TestCase):
         self.assertFalse(e.es_del_boton(PruebaRutas.RAW))
 
 
+class PruebaPulsacionLarga(unittest.TestCase):
+    def test_mantener_apretado_cuenta_una_vez(self):
+        """Windows repite la tecla mientras el botón sigue apretado; pasado el
+        rebote eso abría el dictado otra vez (21/9/2026)."""
+        e = boton.EscuchaBoton(lambda: None)
+        CTRL, ALT = 0x11, 0x12
+        self.assertTrue(e.pulsacion_nueva(CTRL, False, 10.0))    # AltGr: Ctrl…
+        self.assertFalse(e.pulsacion_nueva(ALT, False, 10.01))   # …y Alt derecho: la misma pulsación
+        for t in (10.05, 10.5, 11.0, 11.5, 12.0):                 # repetición automática
+            self.assertFalse(e.pulsacion_nueva(ALT, False, t))
+            self.assertFalse(e.pulsacion_nueva(CTRL, False, t))
+        self.assertFalse(e.pulsacion_nueva(ALT, True, 12.1))     # soltar no cuenta
+        self.assertFalse(e.pulsacion_nueva(CTRL, True, 12.1))
+        self.assertTrue(e.pulsacion_nueva(CTRL, False, 13.0))    # la pulsación siguiente sí
+
+
 class PruebaServicioConBoton(unittest.TestCase):
     def test_resumen_cuenta_el_boton(self):
         import os

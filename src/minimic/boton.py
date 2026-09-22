@@ -218,6 +218,12 @@ class EscuchaBoton:
         self._hilo_id = 0
         self.escuchando = False
         self._nombres: dict[Any, str] = {}
+        #: Teclas del botón que siguen apretadas: mantenerlo pulsado hace que
+        #: Windows repita la tecla cada pocos ms, y pasado el rebote esas
+        #: repeticiones contaban como pulsaciones nuevas (21/9/2026: una
+        #: pulsación larga abrió el dictado dos veces).
+        self._apretadas: set[int] = set()
+        self._atendiendo = threading.Lock()
 
     def apuntar_a(self, rutas_hid: list[str]) -> None:
         """Las interfaces HID del botón (las de ahora; cambian al reconectar)."""
@@ -233,11 +239,28 @@ class EscuchaBoton:
         if self._hilo_id:
             ctypes.windll.user32.PostThreadMessageW(self._hilo_id, WM_QUIT, 0, 0)
 
+    def pulsacion_nueva(self, tecla: int, suelta: bool, ahora: float | None = None) -> bool:
+        """¿Cuenta este evento como una pulsación nueva del botón? (puro, para probar)
+
+        Una suelta nunca cuenta, pero libera la tecla. Una tecla que ya estaba
+        apretada es la repetición automática: no cuenta. Y dos teclas seguidas
+        (AltGr = Ctrl + Alt derecho) cuentan una, por el rebote.
+        """
+        if suelta:
+            self._apretadas.discard(tecla)
+            return False
+        if tecla in self._apretadas:
+            return False
+        self._apretadas.add(tecla)
+        return self._rebote.es_nueva(ahora)
+
     def _atender(self) -> None:
-        try:
-            self.al_pulsar()
-        except Exception:  # noqa: BLE001
-            registro.exception("fallo atendiendo el botón")
+        # De una en una: dos aperturas a la vez dejaban el dictado abierto dos veces.
+        with self._atendiendo:
+            try:
+                self.al_pulsar()
+            except Exception:  # noqa: BLE001
+                registro.exception("fallo atendiendo el botón")
 
     def correr(self) -> None:
         if not hay_soporte():
@@ -294,10 +317,10 @@ class EscuchaBoton:
                 hdr = RAWINPUTHEADER.from_buffer(buf)
                 if hdr.dwType == RIM_TYPEKEYBOARD and self._rutas:
                     k = RAWKEYBOARD.from_buffer(buf, ctypes.sizeof(RAWINPUTHEADER))
-                    if not (k.Flags & 1) and self.es_del_boton(nombre_del_aparato(hdr.hDevice)):
-                        # Pulsación (no suelta) del botón. Se atiende aparte:
-                        # abrir el dictado tarda segundos y aquí no se puede esperar.
-                        if self._rebote.es_nueva():
+                    if self.es_del_boton(nombre_del_aparato(hdr.hDevice)):
+                        # Se atiende aparte: abrir el dictado tarda segundos y
+                        # aquí no se puede esperar.
+                        if self.pulsacion_nueva(int(k.VKey), bool(k.Flags & 1)):
                             threading.Thread(target=self._atender, name="minimic-boton", daemon=True).start()
             except Exception:  # noqa: BLE001 - una pulsación rara no tumba la escucha
                 registro.debug("raw input", exc_info=True)
