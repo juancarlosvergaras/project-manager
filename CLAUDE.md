@@ -223,6 +223,14 @@ de su web), el canal serie Bluetooth (COM11) no contesta nada, el `JL_SPP`
 rechaza lectura y escritura. Su herramienta Bluetooth (`config_v2`) da 404.
 Todo probado el 21/9/2026.
 
+> **No conectarse nunca al canal manos libres (RFCOMM 111E) del aparato.**
+> Al sondearlo el 21/9/2026 contestó como auricular (`AT+BRSF=671`) y desde
+> entonces Windows no pudo abrir el enlace de voz: el dictado se abría y no
+> llegaba audio (la captura WASAPI se quedaba sin llenar el búfer). Con apagar
+> y encender el AI_VOICE volvió a funcionar. El micrófono manos libres va bien
+> mientras el aparato conecte limpio; la transcripción tarda algo más que con
+> un micrófono USB, de ahí `ESPERA_TRANSCRIPCION_S` en 15 s.
+
 Así que **no se remapea: se reconoce**. `boton.buscar` sube por el árbol de
 dispositivos (interfaz HID → padre `BTHENUM…&<dirección>_C…` por cfgmgr32 →
 nombre en `BTHPORT\Parameters\Devices\<dirección>`) para saber qué interfaz

@@ -75,7 +75,10 @@ WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x0100, 0x0101, 0x0104, 0x010
 LLKHF_INJECTED = 0x10
 
 #: Cuánto se espera a que la transcripción aparezca en el cuadro tras parar.
-ESPERA_TRANSCRIPCION_S = 8.0
+#: Quince y no ocho: con el micrófono Bluetooth del AI_VOICE la transcripción
+#: de Claude tardó más de ocho segundos (21/9/2026) y el Intro mandaba el
+#: cuadro vacío.
+ESPERA_TRANSCRIPCION_S = 15.0
 ENTRADA_TECLADO = 1
 TECLA_SOLTAR = 0x0002
 TECLA_EXTENDIDA = 0x0001
