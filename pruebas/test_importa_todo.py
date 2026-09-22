@@ -18,7 +18,7 @@ from pruebas.base import RAIZ  # noqa: F401  (fija sys.path)
 class PruebaImportaTodo(unittest.TestCase):
     def test_todos_los_modulos_importan(self):
         fallos = []
-        for paquete in ("tecladoia", "minimic", "sikaimini", "botonera"):
+        for paquete in ("tecladoia", "minimic", "sikaimini", "botonera", "onekey"):
             raiz = importlib.import_module(paquete)
             for info in pkgutil.walk_packages(raiz.__path__, paquete + "."):
                 if info.name.endswith(".__main__"):

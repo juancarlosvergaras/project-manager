@@ -209,43 +209,11 @@ encendido de fábrica): la tecla blanca pasa por `Dictado.usar_el_propio`, así 
 con Claude o ChatGPT pulsa su botón de dictado y solo cae a Win+H si no lo hay. El
 micrófono de este teclado falla mucho con Win+H; con el botón del programa no.
 
-**MiniMic atiende también el botón Bluetooth de una tecla, el AI_VOICE**
-(desde el 21/9/2026, `minimic/boton.py`; proveedor
-<https://voicekey.elestd.com/1key/>). Es Bluetooth **clásico** (chip Jieli,
-`JL_HFP`/`JL_SPP`) con cuatro caras: teclado HID, control multimedia, colección
-de fabricante (informe de características de 32 bytes) y **micrófono manos
-libres** (HFP, «AI_VOICE Hands-Free»). El botón manda **Alt derecho** de
-fábrica y **por Bluetooth no se puede cambiar**: su configurador web solo
-existe para la versión USB (protocolo de texto por puerto serie: `PING`,
-`DEV_INFO`, `KEY_LIST`, `SET_KEY`, `SAVE`; está en `config/js/protocol.js`
-de su web), el canal serie Bluetooth (COM11) no contesta nada, el `JL_SPP`
-(canal RFCOMM 10) solo devuelve el eco, y el informe HID de fabricante
-rechaza lectura y escritura. Su herramienta Bluetooth (`config_v2`) da 404.
-Todo probado el 21/9/2026.
-
-> **No conectarse nunca al canal manos libres (RFCOMM 111E) del aparato.**
-> Al sondearlo el 21/9/2026 contestó como auricular (`AT+BRSF=671`) y desde
-> entonces Windows no pudo abrir el enlace de voz: el dictado se abría y no
-> llegaba audio (la captura WASAPI se quedaba sin llenar el búfer). Con apagar
-> y encender el AI_VOICE volvió a funcionar. El micrófono manos libres va bien
-> mientras el aparato conecte limpio; la transcripción tarda algo más que con
-> un micrófono USB, de ahí `ESPERA_TRANSCRIPCION_S` en 15 s.
-
-Así que **no se remapea: se reconoce**. `boton.buscar` sube por el árbol de
-dispositivos (interfaz HID → padre `BTHENUM…&<dirección>_C…` por cfgmgr32 →
-nombre en `BTHPORT\Parameters\Devices\<dirección>`) para saber qué interfaz
-HID es el AI_VOICE, y `boton.EscuchaBoton` oye el teclado por **Raw Input**
-(ventana invisible con `RIDEV_INPUTSINK`): una pulsación que venga de esa
-interfaz —la que sea: manda AltGr, que Windows desdobla en Ctrl y Alt derecho,
-de ahí el rebote de 0,7 s— abre o cierra el dictado por el mismo camino que la
-tecla blanca (`Servicio.al_pulsar_microfono(origen="botón")`). El AltGr del
-teclado normal no se toca porque viene de otro aparato. **Su micrófono se
-pone como el del sistema al aparecer y al pulsarlo**
-(`cuidar_microfono_del_boton`, por el identificador de contenedor, igual que
-el del teclado de cinco teclas). Ajuste `boton_bluetooth` (nombre; vacío = no
-buscar; cambiarlo pide reiniciar). El panel lo enseña en Micrófono › «El botón
-Bluetooth de una tecla», con `POST /api/boton/adoptar`. Y MiniMic ganó el
-Intro que para y envía mientras graba el micrófono propio, como TecladoIA.
+**MiniMic puede atender un botón Bluetooth de una tecla** (`minimic/boton.py`,
+ajuste `boton_bluetooth`, vacío de fábrica): el código del AI_VOICE vive aquí
+porque comparte el micrófono por contenedor, pero **quien lo atiende es
+OneKey** (abajo). Rellenarlo en MiniMic solo tiene sentido en un PC sin OneKey;
+con los dos, el dictado se abriría dos veces.
 
 **Config en `%APPDATA%\MiniMic\config.json`** (`MINIMIC_INICIO` la cambia;
 las pruebas la aíslan). Misma trampa del AppData redirigido que TecladoIA:
@@ -472,6 +440,82 @@ color por perfil (azul, verde, rojo).
 **La misma trampa de AppData**: la config real es
 `AppData\Roaming\Botonera\config.json` y desde Claude no se escribe; se creó
 con `ajustar_config.py --app Botonera` por una tarea de un solo uso.
+
+
+## OneKey — el quinto teclado: el botón de una tecla AI_VOICE (paquete `src/onekey`)
+
+Caja blanca con **un botón**, micrófono manos libres, luz (roja parpadeando =
+esperando; azul fija = conectado) e interruptor, por **Bluetooth clásico**
+(chip Jieli, `JL_HFP`/`JL_SPP`; proveedor
+<https://voicekey.elestd.com/1key/>). Panel en <http://127.0.0.1:8774> y, por
+el portero del Mac mini (puerto 8032, agentes en `100.65.52.65:8033`, launchd
+`com.jcvs.onekey-portero`, `despliegue/onekey/portero.py`), en
+<https://onekey.proyectoia.org>. Tarea programada **OneKey**. Clave
+`Unicartagena1`, cabecera `X-OneKey-Clave`. Desde el 21/9/2026.
+
+```bash
+python -m onekey servicio                 # arrancar (el panel local no necesita --host: el túnel basta)
+python -m onekey estado                   # ¿está el servicio? ¿ve el botón?
+python construir_onekey.py                # dist/OneKey-<versión>.zip
+python -m unittest pruebas.test_onekey pruebas.test_minimic_boton
+```
+
+**El botón manda Alt derecho y por Bluetooth no se puede cambiar.** Probado el
+21/9/2026 todo lo que había: su configurador web solo existe para la versión
+USB (protocolo de texto por puerto serie, `config/js/protocol.js` de su web:
+`PING`, `DEV_INFO`, `KEY_LIST`, `SET_KEY`, `SAVE`), el canal serie Bluetooth
+(COM11) no contesta, el `JL_SPP` (RFCOMM 10) devuelve el eco, el informe HID
+de fabricante (32 bytes, característica) rechaza lectura y escritura, y su
+herramienta Bluetooth (`config_v2`) da 404.
+
+**Así que no se remapea: se reconoce** (`minimic/boton.py`). `buscar` sube por
+el árbol de dispositivos —interfaz HID de teclado → padre
+`BTHENUM…&<dirección>_C…` por cfgmgr32 → nombre guardado en
+`BTHPORT\Parameters\Devices\<dirección>`— para saber qué interfaz es el
+AI_VOICE, y `EscuchaBoton` oye el teclado por **Raw Input** (ventana
+invisible, `RIDEV_INPUTSINK`): cualquier pulsación que venga de esa interfaz
+abre o cierra el dictado por el mismo camino que la tecla blanca de MiniMic.
+Manda AltGr, que Windows desdobla en Ctrl y Alt derecho: rebote de 0,7 s. Y
+**mantenerlo apretado cuenta una vez**: Windows repite la tecla mientras siga
+apretado y, pasado el rebote, cada repetición abría el dictado otra vez
+(`pulsacion_nueva` ignora una tecla que ya estaba apretada hasta que se
+suelta). El AltGr del teclado normal viene de otro aparato y no se toca.
+
+**Su micrófono manos libres se pone como el del sistema** al aparecer y al
+pulsar (`cuidar_microfono`, por el identificador de contenedor con
+`minimic.dispositivo.microfonos_del_teclado({contenedor})`). Y una trampa
+gorda: **no conectarse nunca al canal manos libres (RFCOMM 111E) del
+aparato**. Al sondearlo contestó como auricular (`AT+BRSF=671`) y desde
+entonces Windows no pudo abrir el enlace de voz: el dictado se abría y no
+llegaba audio (la captura WASAPI se quedaba sin llenar el búfer). Apagar y
+encender el botón lo arregla. La transcripción por Bluetooth tarda más que
+por USB, de ahí `ESPERA_TRANSCRIPCION_S` en 15 s.
+
+**No hay combinación privada que reservar**; se reserva `Ctrl+Mayús+Alt+F17`
+(nadie la usa) solo para tener el gancho del Intro que para y envía, y para
+probar sin el botón. El nombre del botón se cambia desde el panel sin
+reiniciar (`boton.vigilar` acepta una función).
+
+**Dos ejecutables por carpeta, y esto va para los cinco teclados**
+(`construir_comun.py`, desde el 21/9/2026): `<Nombre>.exe` con consola (la
+instalación guiada) y `<Nombre>Servicio.exe` sin ventana, sobre el mismo
+`_internal`. **La tarea programada usa el segundo.** Con el de consola, cada
+disparador de diez minutos abría una ventana de DOS: el servicio veía que ya
+había otro y se retiraba, pero la ventana ya había asomado («cada rato aparece
+esa ventana de DOS»). Los asistentes de MiniMic, SikaiMini y Botonera
+(`ejecutable_sin_ventana`) prefieren el ejecutable sin ventana si está en la
+carpeta. **En este PC la tarea MiniMic apuntaba al `MiniMic.exe` de
+`Descargas`** (el instalado desde el zip 0.1.x, con consola): ese era el
+origen de las ventanas. TecladoIA sigue en un solo `.exe` con consola; en los
+PC instalados desde ese `.exe` la ventana seguirá hasta que pase a la receta
+común.
+
+**La configuración real no se puede escribir con una tarea de un solo uso
+desde esta sesión** (21/9/2026: `Register-ScheduledTask` + `Start-ScheduledTask`
+decían «0» y no ejecutaban nada, dos veces; el 16/9 sí había funcionado). Lo
+que sí funciona siempre: arrancar el servicio por su tarea con el panel en
+local y **guardar la clave por `POST /api/ajustes` desde 127.0.0.1**, que no
+pide clave; el servicio escribe en el AppData de verdad.
 
 ## Que arranque con Windows
 
@@ -948,5 +992,5 @@ montar lo mismo en otro teclado sin leer este código.
 python -m unittest discover -s pruebas -t .
 ```
 
-326, todas verdes (una se salta si el sistema no deja salir desde 127.0.0.2),
+342, todas verdes (una se salta si el sistema no deja salir desde 127.0.0.2),
 sin dependencias externas. Si algo se rompe, empieza por ahí.

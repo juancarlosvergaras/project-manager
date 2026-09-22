@@ -19,10 +19,10 @@ autoextracción y no salta.
 
 from __future__ import annotations
 
-import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+from construir_comun import construir_carpeta
 
 RAIZ = Path(__file__).resolve().parent
 
@@ -36,58 +36,32 @@ OCULTOS = [
     "minimic", "minimic.protocolo", "minimic.dispositivo", "minimic.config",
 ]
 
-
 LEEME = """SikaiMini
 
 Deja esta carpeta entera donde quieras tenerla (por ejemplo en Documentos)
 y abre SikaiMini.exe. Hace la instalación guiada: crea la tarea que lo arranca
-con Windows y lo pone en marcha. El panel queda en http://127.0.0.1:8772
+con Windows (con el ejecutable *Servicio.exe, que no abre ninguna ventana)
+y lo pone en marcha. El panel queda en http://127.0.0.1:8772
 
 No muevas ni borres la carpeta _internal: es el Python que lleva dentro.
 """
 
 
 def construir() -> int:
-    orden = [
-        sys.executable, "-m", "PyInstaller",
-        "--onedir", "--name", "SikaiMini", "--console", "--noconfirm", "--clean",
-        "--distpath", str(RAIZ / "dist"),
-        "--workpath", str(RAIZ / "build"),
-        "--specpath", str(RAIZ / "build"),
-        "--paths", str(RAIZ / "src"),
-        "--add-data", f"{RAIZ / 'src' / 'sikaimini' / 'web'};sikaimini/web",
-        "--collect-submodules", "comtypes",
-    ]
-    for modulo in OCULTOS:
-        orden += ["--hidden-import", modulo]
-    orden.append(str(RAIZ / "lanzador_sikaimini.py"))
-
-    print("Construyendo SikaiMini.exe (tarda un par de minutos)...")
-    hecho = subprocess.run(orden, cwd=RAIZ)
-    if hecho.returncode != 0:
-        print("La construcción falló.")
-        return hecho.returncode
-    carpeta = RAIZ / "dist" / "SikaiMini"
-    exe = carpeta / "SikaiMini.exe"
-    if not exe.exists():
-        print("PyInstaller terminó pero no dejó el ejecutable donde se esperaba.")
-        return 1
-    (carpeta / "LEEME.txt").write_text(LEEME, encoding="utf-8")
+    """Dos ejecutables sobre el mismo Python: ``SikaiMini.exe`` (instalación guiada,
+    con consola) y ``SikaiMiniServicio.exe`` (el servicio, sin ventana). Ver
+    ``construir_comun.py``."""
     sys.path.insert(0, str(RAIZ / "src"))
     from sikaimini.empaquetado import NOMBRE_EXE
 
-    for viejo in (RAIZ / "dist").glob("SikaiMini-*.zip"):
-        viejo.unlink()
-    zip_final = RAIZ / "dist" / NOMBRE_EXE
-    shutil.make_archive(str(zip_final.with_suffix("")), "zip", RAIZ / "dist", "SikaiMini")
-    # Y una copia con el nombre de siempre, para los enlaces que no saben de versiones.
-    shutil.copyfile(zip_final, RAIZ / "dist" / "SikaiMini.zip")
-    print(f"Listo: {zip_final}  ({zip_final.stat().st_size / 1_048_576:.1f} MB)")
-    shutil.rmtree(RAIZ / "build", ignore_errors=True)
-    viejo = RAIZ / "dist" / "SikaiMini.exe"
-    if viejo.exists():
-        viejo.unlink()
-    return 0
+    return construir_carpeta(
+        nombre="SikaiMini",
+        lanzador="lanzador_sikaimini.py",
+        datas=[("src/sikaimini/web", "sikaimini/web")],
+        ocultos=OCULTOS,
+        leeme=LEEME,
+        nombre_zip=NOMBRE_EXE,
+    )
 
 
 if __name__ == "__main__":

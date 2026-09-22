@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneKey · el botón de una tecla</title>
+<meta name="description" content="El botón Bluetooth de una tecla con micrófono (AI_VOICE): pulsa y habla con tu agente de IA.">
+<link rel="stylesheet" href="/estilo.css?v=20260921">
+<link rel="icon" href="/icono.svg" type="image/svg+xml">
+<style>
+  /* Lo propio de OneKey; el resto viene de la hoja compartida con los demás teclados. */
+  .logotipo.onekey{background:linear-gradient(135deg,#0EA5E9,#2563EB);box-shadow:0 3px 12px rgba(37,99,235,.32)}
+  .logotipo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+  /* El aparato, dibujado: la caja blanca con el botón encima, la luz y la rejilla. */
+  .aparato{max-width:420px;margin:.6rem auto 0;padding:1.4rem 1.2rem 1.1rem;border-radius:22px;position:relative;
+        background:linear-gradient(160deg,#FFFFFF,#E4E9F0);border:1px solid #C9D2DD;
+        box-shadow:0 18px 40px -18px rgba(15,23,42,.45),inset 0 1px 0 #fff;display:grid;grid-template-columns:1fr auto;align-items:center;gap:1rem}
+  .boton-grande{width:120px;height:120px;border-radius:22px;cursor:default;font:inherit;border:1px solid #C6CFDB;
+        background:linear-gradient(145deg,#FFFFFF,#E2E8F0);box-shadow:0 9px 0 #AEB8C6,0 12px 14px -6px rgba(15,23,42,.35);
+        display:grid;place-items:center;color:#334155;transition:.18s;margin:0 auto}
+  .boton-grande svg{width:44px;height:44px;stroke:#334155;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .boton-grande.pulsado{transform:translateY(6px);box-shadow:0 3px 0 #AEB8C6}
+  .boton-grande.grabando{box-shadow:0 9px 0 #AEB8C6,0 0 0 4px #16A34A,0 0 26px #16A34A}
+  .lado{display:grid;gap:.6rem;justify-items:center;color:#64748B;font-size:.78rem}
+  .luz{width:14px;height:14px;border-radius:50%;background:#94A3B8;box-shadow:0 0 0 3px #E2E8F0}
+  .luz.azul{background:#2563EB;box-shadow:0 0 0 3px #DBEAFE,0 0 14px #2563EB}
+  .luz.roja{background:#DC2626;box-shadow:0 0 0 3px #FEE2E2;animation:parpadeo 1s infinite}
+  @keyframes parpadeo{50%{opacity:.25}}
+  .rejilla{display:flex;gap:4px}.rejilla i{width:4px;height:22px;border-radius:2px;background:#CBD5E1;display:block}
+  .estado-punto{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:var(--tenue);margin-right:.35rem}
+  .estado-punto.si{background:var(--verde)} .estado-punto.no{background:var(--no)}
+  input[type=text],input[type=number],input[type=password],select{font:inherit;padding:.5rem .7rem;border-radius:9px;
+        border:1px solid var(--borde-fuerte);background:var(--fondo);color:var(--texto);width:100%}
+  input:focus,select:focus{outline:2px solid var(--azul);outline-offset:1px}
+  label.marca{display:flex;align-items:center;gap:.5rem;font-size:.92rem}
+  .tab.activa{color:var(--texto);border-bottom-color:var(--azul)}
+  .seccion.activa{display:block}
+  .lista-pasos{padding-left:1.2rem;line-height:1.7}
+  .lista-pasos li{margin-bottom:.3rem}
+  .aviso.visible{transform:translate(-50%,0);opacity:1;visibility:visible}
+  .registro{font:.76rem/1.45 ui-monospace,Consolas,monospace;background:var(--fondo);border:1px solid var(--borde);border-radius:9px;padding:.7rem;max-height:24rem;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  kbd{font:inherit;font-size:.82rem;padding:.1rem .45rem;border:1px solid var(--borde-fuerte);border-bottom-width:2px;border-radius:6px;background:var(--fondo)}
+  @media (max-width:900px){.taller{grid-template-columns:1fr}.editor{position:static;max-height:none}}
+</style>
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="cabecera">
+  <div class="cabecera-izq">
+    <span class="logotipo onekey" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="8" rx="2"/><rect x="8" y="5" width="8" height="6" rx="1.5"/></svg>
+    </span>
+    <span class="titulo-app">One<b>Key</b></span>
+    <div class="indicadores">
+      <div class="indicador"><span class="ind-etiqueta">Botón</span><span class="ind-valor" id="ind-conexion">Esperando…</span></div>
+      <div class="indicador"><span class="ind-etiqueta">Micrófono</span><span class="ind-valor" id="ind-microfono">—</span></div>
+      <div class="indicador"><span class="ind-etiqueta">Dictado</span><span class="ind-valor" id="ind-dictado">—</span></div>
+    </div>
+  </div>
+  <div class="cabecera-der">
+    <span class="chip-vivo" id="chip-vivo" hidden><i class="estado-punto si"></i>En vivo</span>
+    <div class="tema" role="group" aria-label="Tema de la página">
+      <button type="button" data-tema="sistema" title="Seguir al sistema">Auto</button>
+      <button type="button" data-tema="claro" title="Fondo claro">Claro</button>
+      <button type="button" data-tema="oscuro" title="Fondo oscuro">Oscuro</button>
+    </div>
+  </div>
+</header>
+
+<nav class="barra-secciones" aria-label="Secciones">
+  <button type="button" class="tab activa" data-seccion="boton">El botón</button>
+  <button type="button" class="tab" data-seccion="microfono">Micrófono y dictado</button>
+  <button type="button" class="tab" data-seccion="ajustes">Ajustes</button>
+  <button type="button" class="tab" data-seccion="ayuda">Cómo se usa</button>
+  <button type="button" class="tab" data-seccion="descargar">Descargar</button>
+</nav>
+
+<main id="contenido">
+
+<!-- ================================= BOTÓN ================================= -->
+<section class="seccion activa" id="seccion-boton">
+  <div id="banda-boton" class="banda" hidden></div>
+  <div class="taller">
+    <div class="tarjeta">
+      <p class="bloque-titulo">El botón manda <kbd>Alt derecho</kbd> y por Bluetooth no se le puede cambiar. OneKey no lo remapea: <b>reconoce de qué aparato viene la pulsación</b>, y solo la suya abre y cierra el dictado. El Alt derecho de tu teclado normal sigue siendo tuyo.</p>
+      <div class="aparato" id="aparato">
+        <button type="button" class="boton-grande" id="boton-dibujo" title="El botón"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button>
+        <div class="lado">
+          <span class="luz" id="luz" title="La luz del aparato"></span>
+          <span id="luz-texto">…</span>
+          <span class="rejilla" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>micrófono</span>
+        </div>
+      </div>
+      <p style="margin-top:1rem"><span class="estado-punto" id="punto-boton"></span><span id="texto-boton">Buscando…</span></p>
+      <div class="acciones">
+        <button type="button" class="btn btn-claro" id="btn-buscar">Volver a buscarlo</button>
+        <button type="button" class="btn btn-naranja" id="btn-probar-dictado">Probar como si lo pulsara</button>
+      </div>
+      <p class="nota" id="nota-boton"></p>
+    </div>
+
+    <aside class="editor" id="editor">
+      <h2 class="editor-titulo">Qué botón se busca</h2>
+      <p class="editor-sub">Por su nombre Bluetooth, el que enseña Configuración › Bluetooth. Vale cualquier botón o teclado Bluetooth clásico: todo lo que mande desde ese aparato abre el dictado.</p>
+      <div class="campo"><label for="boton_bluetooth">Nombre Bluetooth</label><input type="text" id="boton_bluetooth" placeholder="AI_VOICE"></div>
+      <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-boton">Guardar</button></div>
+      <p class="nota">Se aplica sin reiniciar: el servicio vuelve a buscar cada tres segundos.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================== MICRÓFONO ============================== -->
+<section class="seccion" id="seccion-microfono">
+  <div class="taller">
+    <div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">A quién le hablas</h2>
+        <p class="editor-sub">Al pulsar el botón, OneKey trae este programa al frente, pincha su cuadro de escribir y abre su dictado. Al volver a pulsarlo, lo cierra y manda lo dictado.</p>
+        <div class="campo"><label for="programa">Programa</label><select id="programa"></select></div>
+        <p class="nota" id="nota-dictado"></p>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="editor-titulo">El micrófono del botón</h2>
+        <p class="editor-sub">Es un manos libres Bluetooth. El dictado escucha por el micrófono predeterminado, así que OneKey pone el del botón como el del sistema cuando aparece y cada vez que lo pulsas.</p>
+        <p><span class="estado-punto" id="punto-mic"></span><span id="texto-mic">Buscando…</span></p>
+        <label class="marca"><input type="checkbox" id="adoptar_microfono">Ponerlo como micrófono del sistema cada vez que aparezca y al pulsar</label>
+        <div class="acciones"><button type="button" class="btn btn-claro" id="btn-adoptar">Ponerlo ahora</button></div>
+        <p class="nota">Si el dictado se abre y no llega texto, apaga y enciende el botón: Windows a veces no consigue abrir el enlace de voz Bluetooth hasta que el aparato vuelve a conectar limpio.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Atajos de dictado de cada programa</h2>
+        <p class="editor-sub">Primero se pulsa el botón de dictado del programa por accesibilidad. Si no aparece, se manda su atajo de teclado. Vacío = no tiene.</p>
+        <div class="rejilla-campos">
+          <div class="campo"><label for="atajo_chatgpt">ChatGPT</label><input type="text" id="atajo_chatgpt" placeholder="ctrl+shift+d"></div>
+          <div class="campo"><label for="atajo_claude">Claude</label><input type="text" id="atajo_claude" placeholder="(solo botón)"></div>
+        </div>
+        <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-atajos">Guardar atajos</button></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="editor-titulo">Afinar el dictado</h2>
+        <label class="marca"><input type="checkbox" id="usar_microfono_propio">Usar el micrófono del propio programa cuando lo tenga (Claude, ChatGPT); Win+H solo de respaldo</label>
+        <label class="marca"><input type="checkbox" id="pinchar_cuadro">Pinchar el cuadro de escribir antes de abrir el dictado</label>
+        <label class="marca"><input type="checkbox" id="enviar_al_cerrar">Al cerrar el dictado con el botón, mandar el texto (Intro)</label>
+        <label class="marca"><input type="checkbox" id="pitido_al_abrir">Dos pitidos al abrir</label>
+        <div class="campo" style="margin-top:.8rem"><label for="alto_cuadro">Si el clic no cae en el cuadro: píxeles desde abajo (0 = el 10 % de la ventana)</label><input type="number" id="alto_cuadro" min="0" max="2000"></div>
+        <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-dictado">Guardar</button></div>
+        <p class="nota">Un Intro mientras el micrófono del programa graba no cancela nada: para la grabación, espera a que llegue el texto y lo envía.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================ AJUSTES ================================ -->
+<section class="seccion" id="seccion-ajustes">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">Clave del panel</h2>
+    <p class="editor-sub">Sin clave, el panel solo se abre desde el propio equipo. Con ella se puede publicar en Internet.</p>
+    <div class="rejilla-campos">
+      <div class="campo"><label for="clave_panel">Nueva clave (seis caracteres o más)</label><input type="password" id="clave_panel" autocomplete="new-password"></div>
+    </div>
+    <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-clave">Cambiar la clave</button></div>
+  </div>
+  <div class="tarjeta">
+    <h2 class="editor-titulo">onekey.proyectoia.org</h2>
+    <p class="editor-sub">Este equipo se presenta solo al portero del Mac mini por Tailscale y le abre un túnel: la dirección pública pasa al PC que tenga el botón, sin publicar nada ni abrir puertos. Hace falta clave en el panel y Tailscale conectado.</p>
+    <p><span class="estado-punto" id="punto-tunel"></span><span id="texto-tunel">…</span></p>
+    <label class="marca"><input type="checkbox" id="usar_portero">Presentarse al portero</label>
+    <div class="rejilla-campos"><div class="campo"><label for="portero">Portero (dirección de Tailscale del Mac mini)</label><input type="text" id="portero" placeholder="100.65.52.65:8033"></div></div>
+    <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-portero">Guardar</button></div>
+  </div>
+  <div class="tarjeta">
+    <h2 class="editor-titulo">Dónde escucha el panel</h2>
+    <p class="editor-sub">Solo en este equipo, o también en su dirección de Tailscale (camino de respaldo). Desde el propio equipo nunca se pide clave.</p>
+    <div class="rejilla-campos">
+      <div class="campo"><label for="host_panel">Escuchar en</label><select id="host_panel"></select></div>
+    </div>
+    <div class="acciones"><button type="button" class="btn btn-azul" id="btn-guardar-host">Aplicar</button></div>
+  </div>
+  <div class="tarjeta">
+    <h2 class="editor-titulo">El servicio</h2>
+    <p id="texto-servicio" class="editor-sub">…</p>
+    <ul class="lista-pasos" id="avisos"></ul>
+    <div class="acciones"><button type="button" class="btn btn-claro" id="btn-registro">Ver el registro del servicio</button></div>
+    <pre id="registro" class="registro" hidden></pre>
+  </div>
+</section>
+
+<!-- ================================= AYUDA ================================= -->
+<section class="seccion" id="seccion-ayuda">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">Cómo se usa</h2>
+    <ol class="lista-pasos">
+      <li><b>Enciende el botón y emparéjalo</b> en Configuración › Bluetooth como «AI_VOICE». La luz roja parpadea mientras espera; azul fija cuando está conectado.</li>
+      <li><b>Elige a quién le hablas</b> en «Micrófono y dictado»: Claude, ChatGPT, Cursor o la ventana que esté activa.</li>
+      <li><b>Pulsa el botón.</b> El programa se viene al frente y se abre su dictado. Habla.</li>
+      <li><b>Vuelve a pulsarlo.</b> Se cierra el dictado y el texto entra (se puede quitar en «Afinar el dictado»). Un Intro mientras graba hace lo mismo.</li>
+      <li>Si el dictado se abre y no llega texto, <b>apaga y enciende el botón</b>: el enlace de voz Bluetooth se abre al conectar limpio.</li>
+    </ol>
+    <p class="nota">El botón manda Alt derecho y por Bluetooth no se le puede cambiar (su configurador solo existe para la versión USB). OneKey lo distingue por el aparato del que viene la pulsación, así que el AltGr de tu teclado no se ve afectado.</p>
+  </div>
+</section>
+
+<!-- =============================== DESCARGAR =============================== -->
+<section class="seccion" id="seccion-descargar">
+  <div class="tarjeta">
+    <h2 class="editor-titulo">OneKey en otro PC</h2>
+    <p class="editor-sub">El botón se lleva a cualquier equipo, pero quien lo oye es este servicio, que tiene que estar en el PC al que esté emparejado. Una carpeta con Python dentro: no hay que instalar nada antes, y no abre ninguna ventana.</p>
+    <div class="acciones">
+      <a class="btn btn-verde" id="btn-descargar" href="/descargar/OneKey.zip" download>Descargar OneKey.zip</a>
+      <span class="nota" id="nota-descarga"></span>
+    </div>
+    <ol class="lista-pasos" style="margin-top:1rem">
+      <li>Descárgalo, extrae la carpeta <b>OneKey</b> donde quieras tenerla y abre <b>OneKey.exe</b>. Hace la instalación guiada: crea la tarea que lo arranca con Windows (con <b>OneKeyServicio.exe</b>, sin ventana) y lo pone en marcha.</li>
+      <li>Si Windows avisa de «editor desconocido», elige «Más información › Ejecutar de todas formas»: no está firmado.</li>
+      <li>Abre <code>http://127.0.0.1:8774</code> en ese PC y empareja el botón por Bluetooth.</li>
+      <li>Para que <b>onekey.proyectoia.org</b> pase a ese equipo, ponle clave al panel y ten Tailscale conectado.</li>
+    </ol>
+  </div>
+</section>
+
+</main>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"><span id="aviso-texto"></span></div>
+<script src="/app.js?v=20260921"></script>
+</body>
+</html>

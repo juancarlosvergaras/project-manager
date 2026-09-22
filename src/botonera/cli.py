@@ -138,10 +138,23 @@ def orden_escuchar(args: argparse.Namespace) -> int:
     return 0
 
 
+def ejecutable_sin_ventana() -> Path | None:
+    """El ejecutable sin consola de la misma carpeta (``BotoneraServicio.exe``), si lo hay.
+
+    Es el que debe lanzar la tarea programada: con el de consola, cada
+    disparador de diez minutos abría una ventana de DOS (el servicio veía que
+    ya había otro y se retiraba, pero la ventana ya había asomado). 21/9/2026.
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    candidato = Path(sys.executable).resolve().with_name("BotoneraServicio.exe")
+    return candidato if candidato.is_file() else None
+
+
 def orden_de_arranque() -> str:
     """Con qué se lanza el servicio desde la tarea: pythonw si lo hay, sin consola."""
     if getattr(sys, "frozen", False):
-        return f'"{sys.executable}"'
+        return f'"{ejecutable_sin_ventana() or sys.executable}"'
     ejecutable = Path(sys.executable)
     sin_consola = ejecutable.with_name("pythonw.exe")
     if sin_consola.exists():
@@ -160,7 +173,7 @@ def ejecutable_y_argumentos(argumentos: str = "") -> tuple[str, str]:
     servicio escribe su registro él mismo (`tecladoia.registro.a_archivo`).
     """
     if getattr(sys, "frozen", False):
-        return str(Path(sys.executable).resolve()), argumentos.strip()
+        return str(ejecutable_sin_ventana() or Path(sys.executable).resolve()), argumentos.strip()
     interprete = Path(sys.executable).resolve()
     sin_consola = interprete.with_name("pythonw.exe")
     if os.name == "nt" and sin_consola.is_file():

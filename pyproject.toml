@@ -39,6 +39,7 @@ sikaimini = ["hidapi>=0.14", "pycaw>=20240210", "comtypes>=1.2"]
 tecladoia = "tecladoia.cli:main"
 minimic = "minimic.cli:main"
 sikaimini = "sikaimini.cli:main"
+onekey = "onekey.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -48,3 +49,4 @@ where = ["src"]
 tecladoia = ["py.typed", "web/*"]
 minimic = ["web/*"]
 sikaimini = ["web/*"]
+onekey = ["web/*"]

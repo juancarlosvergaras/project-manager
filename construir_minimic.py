@@ -18,10 +18,10 @@ autoextracción y no salta.
 
 from __future__ import annotations
 
-import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+from construir_comun import construir_carpeta
 
 RAIZ = Path(__file__).resolve().parent
 
@@ -33,53 +33,32 @@ OCULTOS = [
     "tecladoia.dictado", "tecladoia.cuadro_de_texto", "tecladoia.sonido", "tecladoia.sucesos", "tecladoia.registro",
 ]
 
-
 LEEME = """MiniMic
 
 Deja esta carpeta entera donde quieras tenerla (por ejemplo en Documentos)
 y abre MiniMic.exe. Hace la instalación guiada: crea la tarea que lo arranca
-con Windows y lo pone en marcha. El panel queda en http://127.0.0.1:8771
+con Windows (con el ejecutable *Servicio.exe, que no abre ninguna ventana)
+y lo pone en marcha. El panel queda en http://127.0.0.1:8771
 
 No muevas ni borres la carpeta _internal: es el Python que lleva dentro.
 """
 
 
 def construir() -> int:
-    orden = [
-        sys.executable, "-m", "PyInstaller",
-        "--onedir", "--name", "MiniMic", "--console", "--noconfirm", "--clean",
-        "--distpath", str(RAIZ / "dist"),
-        "--workpath", str(RAIZ / "build"),
-        "--specpath", str(RAIZ / "build"),
-        "--paths", str(RAIZ / "src"),
-        "--add-data", f"{RAIZ / 'src' / 'minimic' / 'web'};minimic/web",
-        "--collect-submodules", "comtypes",
-    ]
-    for modulo in OCULTOS:
-        orden += ["--hidden-import", modulo]
-    orden.append(str(RAIZ / "lanzador_minimic.py"))
+    """Dos ejecutables sobre el mismo Python: ``MiniMic.exe`` (instalación guiada,
+    con consola) y ``MiniMicServicio.exe`` (el servicio, sin ventana). Ver
+    ``construir_comun.py``."""
+    sys.path.insert(0, str(RAIZ / "src"))
+    from minimic.empaquetado import NOMBRE_EXE
 
-    print("Construyendo MiniMic.exe (tarda un par de minutos)...")
-    hecho = subprocess.run(orden, cwd=RAIZ)
-    if hecho.returncode != 0:
-        print("La construcción falló.")
-        return hecho.returncode
-    carpeta = RAIZ / "dist" / "MiniMic"
-    exe = carpeta / "MiniMic.exe"
-    if not exe.exists():
-        print("PyInstaller terminó pero no dejó el ejecutable donde se esperaba.")
-        return 1
-    (carpeta / "LEEME.txt").write_text(LEEME, encoding="utf-8")
-    zip_final = RAIZ / "dist" / "MiniMic.zip"
-    if zip_final.exists():
-        zip_final.unlink()
-    shutil.make_archive(str(zip_final.with_suffix("")), "zip", RAIZ / "dist", "MiniMic")
-    print(f"Listo: {zip_final}  ({zip_final.stat().st_size / 1_048_576:.1f} MB)")
-    shutil.rmtree(RAIZ / "build", ignore_errors=True)
-    viejo = RAIZ / "dist" / "MiniMic.exe"
-    if viejo.exists():
-        viejo.unlink()
-    return 0
+    return construir_carpeta(
+        nombre="MiniMic",
+        lanzador="lanzador_minimic.py",
+        datas=[("src/minimic/web", "minimic/web")],
+        ocultos=OCULTOS,
+        leeme=LEEME,
+        nombre_zip=NOMBRE_EXE,
+    )
 
 
 if __name__ == "__main__":

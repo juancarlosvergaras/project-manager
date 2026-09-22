@@ -15,10 +15,10 @@ Defender no marque la autoextracción.
 
 from __future__ import annotations
 
-import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+from construir_comun import construir_carpeta
 
 RAIZ = Path(__file__).resolve().parent
 
@@ -36,49 +36,28 @@ LEEME = """Botonera
 
 Deja esta carpeta entera donde quieras tenerla (por ejemplo en Documentos)
 y abre Botonera.exe. Hace la instalación guiada: crea la tarea que lo arranca
-con Windows y lo pone en marcha. El panel queda en http://127.0.0.1:8773
+con Windows (con el ejecutable *Servicio.exe, que no abre ninguna ventana)
+y lo pone en marcha. El panel queda en http://127.0.0.1:8773
 
 No muevas ni borres la carpeta _internal: es el Python que lleva dentro.
 """
 
 
 def construir() -> int:
-    orden = [
-        sys.executable, "-m", "PyInstaller",
-        "--onedir", "--name", "Botonera", "--console", "--noconfirm", "--clean",
-        "--distpath", str(RAIZ / "dist"),
-        "--workpath", str(RAIZ / "build"),
-        "--specpath", str(RAIZ / "build"),
-        "--paths", str(RAIZ / "src"),
-        "--add-data", f"{RAIZ / 'src' / 'botonera' / 'web'};botonera/web",
-        "--collect-submodules", "comtypes",
-    ]
-    for modulo in OCULTOS:
-        orden += ["--hidden-import", modulo]
-    orden.append(str(RAIZ / "lanzador_botonera.py"))
-
-    print("Construyendo Botonera.exe (tarda un par de minutos)...")
-    hecho = subprocess.run(orden, cwd=RAIZ)
-    if hecho.returncode != 0:
-        print("La construcción falló.")
-        return hecho.returncode
-    carpeta = RAIZ / "dist" / "Botonera"
-    exe = carpeta / "Botonera.exe"
-    if not exe.exists():
-        print("PyInstaller terminó pero no dejó el ejecutable donde se esperaba.")
-        return 1
-    (carpeta / "LEEME.txt").write_text(LEEME, encoding="utf-8")
+    """Dos ejecutables sobre el mismo Python: ``Botonera.exe`` (instalación guiada,
+    con consola) y ``BotoneraServicio.exe`` (el servicio, sin ventana). Ver
+    ``construir_comun.py``."""
     sys.path.insert(0, str(RAIZ / "src"))
     from botonera.empaquetado import NOMBRE_EXE
 
-    for viejo in (RAIZ / "dist").glob("Botonera-*.zip"):
-        viejo.unlink()
-    zip_final = RAIZ / "dist" / NOMBRE_EXE
-    shutil.make_archive(str(zip_final.with_suffix("")), "zip", RAIZ / "dist", "Botonera")
-    shutil.copyfile(zip_final, RAIZ / "dist" / "Botonera.zip")
-    print(f"Listo: {zip_final}  ({zip_final.stat().st_size / 1_048_576:.1f} MB)")
-    shutil.rmtree(RAIZ / "build", ignore_errors=True)
-    return 0
+    return construir_carpeta(
+        nombre="Botonera",
+        lanzador="lanzador_botonera.py",
+        datas=[("src/botonera/web", "botonera/web")],
+        ocultos=OCULTOS,
+        leeme=LEEME,
+        nombre_zip=NOMBRE_EXE,
+    )
 
 
 if __name__ == "__main__":

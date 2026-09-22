@@ -11,7 +11,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-NOMBRE_EXE = "MiniMic.zip"  # una carpeta en un zip; ver construir_minimic.py
+from . import __version__
+
+#: Una carpeta en un zip, con la versión en el nombre (hay copia «MiniMic.zip» para los enlaces fijos).
+NOMBRE_EXE = f"MiniMic-{__version__}.zip"
 
 
 def ruta_ejecutable() -> Path | None:

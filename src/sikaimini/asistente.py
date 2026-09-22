@@ -18,9 +18,22 @@ from .config import NOMBRE, Ajustes, ruta_config, ruta_registro
 TAREA = NOMBRE  # «SikaiMini»
 
 
+def ejecutable_sin_ventana() -> Path | None:
+    """El ejecutable sin consola de la misma carpeta (``SikaiMiniServicio.exe``), si lo hay.
+
+    Es el que debe lanzar la tarea programada: con el de consola, cada
+    disparador de diez minutos abría una ventana de DOS (el servicio veía que
+    ya había otro y se retiraba, pero la ventana ya había asomado). 21/9/2026.
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    candidato = Path(sys.executable).resolve().with_name("SikaiMiniServicio.exe")
+    return candidato if candidato.is_file() else None
+
+
 def orden_de_arranque() -> str:
     if getattr(sys, "frozen", False):
-        return f'"{Path(sys.executable).resolve()}"'
+        return f'"{ejecutable_sin_ventana() or Path(sys.executable).resolve()}"'
     interprete = Path(sys.executable).resolve()
     sin_consola = interprete.with_name("pythonw.exe")
     if os.name == "nt" and sin_consola.is_file():
@@ -39,7 +52,7 @@ def ejecutable_y_argumentos(argumentos: str = "") -> tuple[str, str]:
     servicio escribe su registro él mismo (`tecladoia.registro.a_archivo`).
     """
     if getattr(sys, "frozen", False):
-        return str(Path(sys.executable).resolve()), argumentos.strip()
+        return str(ejecutable_sin_ventana() or Path(sys.executable).resolve()), argumentos.strip()
     interprete = Path(sys.executable).resolve()
     sin_consola = interprete.with_name("pythonw.exe")
     if os.name == "nt" and sin_consola.is_file():

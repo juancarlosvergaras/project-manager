@@ -166,15 +166,19 @@ def buscar(nombre: str = NOMBRE_DE_FABRICA) -> Boton | None:
     return encontrado
 
 
-def vigilar(nombre: str, al_cambiar: Callable[[Boton | None], None], cada_s: float = 3.0,
+def vigilar(nombre: str | Callable[[], str], al_cambiar: Callable[[Boton | None], None], cada_s: float = 3.0,
             parar: threading.Event | None = None) -> threading.Thread:
-    """Hilo que avisa cuando el botón aparece o desaparece."""
+    """Hilo que avisa cuando el botón aparece o desaparece.
+
+    ``nombre`` puede ser una función: se le pregunta en cada vuelta, y así el
+    nombre se puede cambiar desde el panel sin reiniciar el servicio.
+    """
     parar = parar or threading.Event()
 
     def bucle() -> None:
         ultimo: str | None = None
         while not parar.is_set():
-            boton = buscar(nombre)
+            boton = buscar(nombre() if callable(nombre) else nombre)
             firma = boton.direccion if boton else ""
             if ultimo is None or firma != ultimo:
                 ultimo = firma

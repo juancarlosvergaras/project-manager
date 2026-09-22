@@ -82,10 +82,11 @@ class Ajustes:
     atajos_dictado: dict[str, str] = field(default_factory=lambda: dict(ATAJOS_DE_FABRICA))
 
     # --- el botón Bluetooth de una tecla (AI_VOICE) ---
-    #: Nombre Bluetooth del botón que también abre el dictado. Manda Alt
-    #: derecho y no se puede remapear; se reconoce por el aparato del que
-    #: viene la pulsación (``boton.py``). Vacío = no se busca.
-    boton_bluetooth: str = "AI_VOICE"
+    #: Nombre Bluetooth de un botón que también abra el dictado (``boton.py``).
+    #: Vacío de fábrica: el AI_VOICE tiene su propia aplicación, OneKey, y
+    #: dos servicios oyéndolo abrirían el dictado dos veces. Se rellena solo
+    #: en un PC donde no se quiera instalar OneKey.
+    boton_bluetooth: str = ""
 
     # --- el micrófono ---
     adoptar_microfono: bool = True  #: ponerlo como micrófono del sistema al aparecer
